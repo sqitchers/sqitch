@@ -4,15 +4,16 @@ sqitch-rework-usage - Sqitch rework usage statement
 
 =head1 Usage
 
-  sqitch [options] rework [change-options] changename
+  sqitch rework [options] changename
 
 =head1 Options
 
-    -c --change --change-name   name of the change to rework
-    -r --requires               require change
-    -x --conflicts              declare conflicting change
-    -n --note                   a note describing the change
-    -a --all                    rework the change in all plans in the project
-    -e --edit --open-editor     open change scripts in an editor
-    --no-edit --no-open-editor  do not open the change scripts in an editor
+    -c --change --change-name <name>   name of the change to rework
+    -r --requires             <change> require change
+    -x --conflicts            <change> declare conflicting change
+    -n --note                 <note>   a note describing the change
+    -a --all                           rework the change in all plans in the project
+    -e --edit --open-editor            open change scripts in an editor
+       --no-edit --no-open-editor      do not open the change scripts in an editor
+    -f --plan-file            <file>   path to a deployment plan file
 

@@ -131,30 +131,6 @@ is_deeply [$fb->isql], [(
 ), @std_opts, 'db.example.com/1234:widgets'], 'firebird command should be configured';
 
 ##############################################################################
-# Now make sure that Sqitch options override configurations.
-$sqitch = App::Sqitch->new(
-    config => $config,
-    options => {
-        client   => '/some/other/isql',
-        registry => 'meta',
-    },
-);
-$target = App::Sqitch::Target->new(sqitch => $sqitch);
-
-ok $fb = $CLASS->new(sqitch => $sqitch, target => $target),
-    'Create a firebird with sqitch with options';
-
-is $fb->client, '/some/other/isql', 'client should be as optioned';
-is $fb->registry_uri,
-    URI::db->new('db:firebird://freddy:s3cr3t@db.example.com:1234/meta'),
-    'Registry URI should include --registry value.';
-is_deeply [$fb->isql], [(
-    '/some/other/isql',
-    '-user', 'freddy',
-    '-password', 's3cr3t',
-), @std_opts, 'db.example.com/1234:widgets'], 'isql command should be as optioned';
-
-##############################################################################
 # Test connection_string.
 can_ok $fb, 'connection_string';
 for my $file (qw(
@@ -363,17 +339,9 @@ END {
 }
 
 DBIEngineTest->run(
-    class         => $CLASS,
-    sqitch_params => [
-        config  => TestConfig->new('core.engine' => 'exasol'),
-        options => {
-            top_dir     => Path::Class::dir(qw(t engine))->stringify,
-            plan_file   => Path::Class::file(qw(t engine sqitch.plan))->stringify,
-        },
-    ],
+    class             => $CLASS,
     target_params     => [ uri => $uri, registry => catfile($data_dir, '__metasqitch') ],
     alt_target_params => [ uri => $uri, registry => catfile($data_dir, '__sqitchtest') ],
-
     skip_unless => sub {
         my $self = shift;
         die $err if $err;

@@ -142,25 +142,6 @@ is $exa->_script, join( "\n" => (
 ) ), '_script should use registry from config settings';
 
 ##############################################################################
-# Now make sure that (deprecated?) Sqitch options override configurations.
-$sqitch = App::Sqitch->new(
-    config => $config,
-    options => { client => '/some/other/exaplus' },
-);
-
-$target = App::Sqitch::Target->new( sqitch => $sqitch );
-ok $exa = $CLASS->new(sqitch => $sqitch, target => $target),
-    'Create a exasol with sqitch with options';
-
-is $exa->client, '/some/other/exaplus', 'client should be as optioned';
-is_deeply [$exa->exaplus], [qw(
-    /some/other/exaplus
-    -u me
-    -p myself
-    -c localhost:4444
-), @std_opts], 'exaplus command should be as optioned';
-
-##############################################################################
 # Test _run() and _capture().
 can_ok $exa, qw(_run _capture);
 my $mock_sqitch = Test::MockModule->new('App::Sqitch');
@@ -373,14 +354,7 @@ my $err = try {
 };
 
 DBIEngineTest->run(
-    class         => $CLASS,
-    sqitch_params => [
-        config  => TestConfig->new('core.engine' => 'exasol'),
-        options => {
-            top_dir   => Path::Class::dir(qw(t engine)),
-            plan_file => Path::Class::file(qw(t engine sqitch.plan)),
-        },
-    ],
+    class             => $CLASS,
     target_params     => [ uri => $uri ],
     alt_target_params => [ uri => $uri, registry => 'sqitchtest' ],
     skip_unless       => sub {

@@ -3,11 +3,12 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 330;
+use Test::More tests => 333;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::Exception;
+use Test::Warn;
 use Test::Dir;
 use Test::File qw(file_not_exists_ok file_exists_ok);
 use Test::NoWarnings;
@@ -41,6 +42,7 @@ isa_ok my $cmd = App::Sqitch::Command->load({
     command => 'target',
     config  => $config,
 }), $CLASS, 'Target command';
+isa_ok $cmd, 'App::Sqitch::Command', 'Target command';
 
 can_ok $cmd, qw(
     options
@@ -55,12 +57,15 @@ can_ok $cmd, qw(
     rename
     rm
     show
+    does
 );
 
+ok $CLASS->does("App::Sqitch::Role::TargetConfigCommand"),
+    "$CLASS does TargetConfigCommand";
+
 is_deeply [$CLASS->options], [qw(
-    verbose|v+
     uri=s
-    plan-file=s
+    plan-file|f=s
     registry=s
     client=s
     extension=s
@@ -68,15 +73,22 @@ is_deeply [$CLASS->options], [qw(
     dir|d=s%
 )], 'Options should be correct';
 
-# Check default property values.
-is $cmd->verbose,  0,     'Default verbosity should be 0';
+warning_is {
+    Getopt::Long::Configure(qw(bundling pass_through));
+    ok Getopt::Long::GetOptionsFromArray(
+        [], {}, App::Sqitch->_core_opts, $CLASS->options,
+    ), 'Should parse options';
+} undef, 'Options should not conflict with core options';
+
+##############################################################################
+# Test configure().
 is_deeply $cmd->properties, {}, 'Default properties should be empty';
 
 # Make sure configure ignores config file.
-is_deeply $CLASS->configure({ foo => 'bar'}, { verbose => 2 }),
-    { verbose => 2, properties => {} },
+is_deeply $CLASS->configure({ foo => 'bar'}, {}), { properties => {} },
     'configure() should ignore config file';
 
+# Check default property values.
 ok my $conf = $CLASS->configure({}, {
     top_dir             => 'top',
     plan_file           => 'my.plan',
@@ -145,8 +157,9 @@ is_deeply +MockOutput->get_emit, [['dev'], ['prod'], ['qa']],
     'The list of targets should have been output';
 
 # Make it verbose.
-isa_ok $cmd = $CLASS->new({ sqitch => $sqitch, verbose => 1 }),
-    $CLASS, 'Verbose target';
+isa_ok $cmd = $CLASS->new({
+    sqitch => App::Sqitch->new( config => $config, options => { verbosity => 1 })
+}), $CLASS, 'Verbose engine';
 ok $cmd->list, 'Run verbose list()';
 is_deeply +MockOutput->get_emit, [
     ["dev\tdb:pg:widgets"],
@@ -743,6 +756,6 @@ throws_ok {
 is $@->ident, 'target', 'Unknown engine URI error ident should be "target"';
 is $@->message, __x(
     'Unknown engine "{engine}" in URI "{uri}"',
-    uri => $uri,
+    uri    => $uri,
     engine => 'nonesuch',
 ), 'Unknown engine URI error message should be correct';

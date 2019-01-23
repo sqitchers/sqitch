@@ -4,7 +4,7 @@ sqitch-rework - Rework a database change
 
 =head1 Synopsis
 
-  sqitch [options] rework [<dependency-options>] name
+  sqitch  rework [options] [<dependency-options>] name
 
 =head1 Description
 
@@ -123,6 +123,13 @@ Open the generated change scripts in an editor.
 
 Do not open the change scripts in an editor. Useful when L<C<rework.open_editor>>
 is true.
+
+=item C<--plan-file>
+
+=item C<-f>
+
+Path to the deployment plan file. Overrides target, engine, and core
+configuration values. Defaults to F<$top_dir/sqitch.plan>.
 
 =back
 

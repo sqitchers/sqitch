@@ -20,10 +20,10 @@ use TestConfig;
 
 BEGIN { require_ok 'App::Sqitch::Plan::ChangeList' or die }
 
-my $sqitch = App::Sqitch->new(
-    config  => TestConfig->new('core.engine' => 'sqlite'),
-    options => { top_dir => dir(qw(t sql))->stringify },
-);
+my $sqitch = App::Sqitch->new(config  => TestConfig->new(
+    'core.engine'  => 'sqlite',
+    'core.top_dir' => dir(qw(t sql))->stringify,
+));
 my $target = App::Sqitch::Target->new(sqitch => $sqitch);
 my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch, target => $target);
 

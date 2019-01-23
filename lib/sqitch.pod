@@ -6,7 +6,7 @@ sqitch - Sane database change management
 
 =head1 Synopsis
 
-  sqitch [<options>] <command> [<command-options>] [<args>]
+  sqitch <command> [options] [command-options] [args]
 
 =head1 Description
 
@@ -206,20 +206,11 @@ User who adds a change to the plan.
 
 =head1 Options
 
-  -f --plan-file  FILE      Path to a deployment plan file.
-     --engine     ENGINE    Database engine.
-     --registry   REGISTRY  Registry schema or database.
-     --db-client  PATH      Path to engine command-line client.
-  -d --db-name    NAME      Database name.
-  -u --db-user    USER      Database user name.
-  -h --db-host    HOST      Database server host name.
-  -p --db-port    PORT      Database server port number.
-  -C --directory  DIR       Change to directory before performing any actions.
-     --top-dir    DIR       Path to directory with plan and scripts.
+  -C --chdir --cd DIR       Change to directory before performing any actions.
      --etc-path             Print path to etc directory and exit.
      --no-pager             Do not pipe output into a pager.
      --quiet                Quiet mode with non-error output suppressed.
-  -v --verbose              Increment verbosity.
+  -V --verbose              Increment verbosity.
      --version              Print version number and exit.
      --help                 Show a list of commands and exit.
      --man                  Print introductory documentation and exit.
@@ -228,110 +219,14 @@ User who adds a change to the plan.
 
 =over
 
-=item C<-f>
+=item C<--chdir>
 
-=item C<--plan-file>
-
-  sqitch --plan-file plan.txt
-  sqitch -f main.plan
-
-Path to the deployment plan file. Defaults to F<$top_dir/sqitch.plan>. See
-L</Plan File> for a description of its structure.
-
-=item C<--engine>
-
-  sqitch --engine pg
-
-The database engine to use. Supported engines include:
-
-=over
-
-=item * C<pg> - L<PostgreSQL|https://postgresql.org/> and L<Postgres-XC|https://sourceforge.net/projects/postgres-xc//>
-
-=item * C<sqlite> - L<SQLite|https://sqlite.org/>
-
-=item * C<oracle> - L<Oracle|https://www.oracle.com/us/products/database/>
-
-=item * C<mysql> - L<MySQL|https://dev.mysql.com/> and L<MariaDB|https://mariadb.com/>
-
-=item * C<firebird> - L<Firebird|https://www.firebirdsql.org/>
-
-=item * C<vertica> - L<Vertica|https://my.vertica.com/>
-
-=item * C<exasol> - L<Exasol|https://www.exasol.com/>
-
-=item * C<snowflake> - L<Snowflake|https://www.snowflake.net/>
-
-=back
-
-=item C<--registry>
-
-  sqitch --registry registry
-
-The name of the Sqitch registry schema or database. Sqitch will store its own
-data here.
-
-=item C<--db-client>
-
-=item C<--client>
-
-  sqitch --client /usr/local/pgsql/bin/psql
-
-Path to the command-line client for the database engine. Defaults to a client
-in the current path named appropriately for the specified engine.
-
-=item C<-d>
-
-=item C<--db-name>
-
-  sqitch --db-name widgets
-  sqitch -d bricolage
-
-Name of the database. In general, L<targets|sqitch-target> and URIs are
-preferred, but this option can be used to override the database name in a
-target.
-
-=item C<-u>
-
-=item C<--db-user>
-
-=item C<--db-username>
-
-  sqitch --db-username root
-  sqitch --db-user postgres
-  sqitch -u Mom
-
-User name to use when connecting to the database. Does not apply to all
-engines. In general, L<targets|sqitch-target> and URIs are preferred, but this
-option can be used to override the user name in a target.
-
-=item C<-h>
-
-=item C<--db-host>
-
-  sqitch --db-host db.example.com
-  sqitch -h appdb.example.net
-
-Host name to use when connecting to the database. Does not apply to all
-engines. In general, L<targets|sqitch-target> and URIs are preferred, but this
-option can be used to override the host name in a target.
-
-=item C<-p>
-
-=item C<--db-port>
-
-  sqitch --db-port 7654
-  sqitch -p 5431
-
-Port number to connect to. Does not apply to all engines.In general,
-L<targets|sqitch-target> and URIs are preferred, but this option can be used
-to override the port in a target.
+=item C<--cd>
 
 =item C<-C>
 
-=item C<--directory>
-
-  sqitch --directory dbproject
+  sqitch --chdir dbproject
+  sqitch --cd /usr/local/somedb
   sqitch -C dbcheckout
 
 Change to the specified directory before performing any actions. Effectively the
@@ -340,14 +235,6 @@ same as:
   (cd somedir && sqitch ...)
 
 But a bit friendlier when managing multiple projects.
-
-=item C<--top-dir>
-
-  sqitch --top-dir migrations/
-
-Path to directory containing deploy, revert, and verify scripts. It should
-contain subdirectories named C<deploy>, C<revert>, and (optionally) C<verify>.
-Defaults to C<.>.
 
 =item C<--etc-path>
 
@@ -371,12 +258,12 @@ and C<plan> commands.
 Suppress normal output messages. Error messages will still be emitted to
 C<STDERR>. Overrides any value specified by C<--verbose>.
 
-=item C<-v>
+=item C<-V>
 
 =item C<--verbose>
 
   sqitch --verbose
-  sqitch -vvv
+  sqitch -VVV
 
 Pass multiple times to specify a value between 0 and 3 to determine how
 verbose Sqitch should be. Unless C<--quiet> is specified, the default is 1,
@@ -395,8 +282,6 @@ Outputs a brief description all known Sqitch commands and exits.
   sqitch --man
 
 Outputs this documentation and exits.
-
-=item C<-V>
 
 =item C<--version>
 

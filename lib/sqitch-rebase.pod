@@ -4,12 +4,12 @@ sqitch-rebase - Revert and redeploy database changes
 
 =head1 Synopsis
 
-  sqitch [options] rebase [<database>]
-  sqitch [options] rebase [<database>] --onto-change <change>
-  sqitch [options] rebase [<database>] --onto-change <change> --upto-change <change>
-  sqitch [options] rebase [<database>] <change>
-  sqitch [options] rebase [<database>] <change> --upto-change <change>
-  sqitch [options] rebase [<database>] <change> <change>
+  sqitch rebase [options] [<database>]
+  sqitch rebase [options] [<database>] --onto-change <change>
+  sqitch rebase [options] [<database>] --onto-change <change> --upto-change <change>
+  sqitch rebase [options] [<database>] <change>
+  sqitch rebase [options] [<database>] <change> --upto-change <change>
+  sqitch rebase [options] [<database>] <change> <change>
 
 =head1 Description
 
@@ -108,7 +108,7 @@ supports variables. The format must be C<name=value>, e.g.,
 C<--set defuser='Homer Simpson'>. Overrides any values loaded from the
 C<deploy.variables> or C<revert.variables> configurations.
 
-=item C<-d>
+=item C<-e>
 
 =item C<--set-deploy>
 
@@ -134,6 +134,78 @@ running the deploy and revert scripts.
 =item C<-y>
 
 Disable the prompt that normally asks whether or not to execute the revert.
+
+=item C<--registry>
+
+  sqitch rebase --registry registry
+
+The name of the Sqitch registry schema or database in which sqitch stores its
+own data.
+
+=item C<--db-client>
+
+=item C<--client>
+
+  sqitch rebase --client /usr/local/pgsql/bin/psql
+
+Path to the command-line client for the database engine. Defaults to a client
+in the current path named appropriately for the database engine.
+
+=item C<-d>
+
+=item C<--db-name>
+
+  sqitch rebase --db-name widgets
+  sqitch rebase -d bricolage
+
+Name of the database. In general, L<targets|sqitch-target> and URIs are
+preferred, but this option can be used to override the database name in a
+target.
+
+=item C<-u>
+
+=item C<--db-user>
+
+=item C<--db-username>
+
+  sqitch rebase --db-username root
+  sqitch rebase --db-user postgres
+  sqitch rebase -u Mom
+
+User name to use when connecting to the database. Does not apply to all
+engines. In general, L<targets|sqitch-target> and URIs are preferred, but this
+option can be used to override the user name in a target.
+
+=item C<-h>
+
+=item C<--db-host>
+
+  sqitch rebase --db-host db.example.com
+  sqitch rebase -h appdb.example.net
+
+Host name to use when connecting to the database. Does not apply to all
+engines. In general, L<targets|sqitch-target> and URIs are preferred, but this
+option can be used to override the host name in a target.
+
+=item C<-p>
+
+=item C<--db-port>
+
+  sqitch rebase --db-port 7654
+  sqitch rebase -p 5431
+
+Port number to connect to. Does not apply to all engines. In general,
+L<targets|sqitch-target> and URIs are preferred, but this option can be used
+to override the port in a target.
+
+=item C<--plan-file>
+
+=item C<-f>
+
+  sqitch rebase --plan-file my.plan
+
+Path to the deployment plan file. Overrides target, engine, and core
+configuration values. Defaults to F<$top_dir/sqitch.plan>.
 
 =back
 

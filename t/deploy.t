@@ -8,6 +8,7 @@ use App::Sqitch;
 use Path::Class qw(dir file);
 use Test::MockModule;
 use Test::Exception;
+use Test::Warn;
 use Locale::TextDomain qw(App-Sqitch);
 use lib 't/lib';
 use MockOutput;
@@ -27,7 +28,11 @@ can_ok $CLASS, qw(
     log_only
     execute
     variables
+    does
 );
+
+ok $CLASS->does("App::Sqitch::Role::$_"), "$CLASS does $_"
+    for qw(ContextCommand ConnectingCommand);
 
 is_deeply [$CLASS->options], [qw(
     target|t=s
@@ -37,22 +42,37 @@ is_deeply [$CLASS->options], [qw(
     log-only
     verify!
     to-target=s
+    plan-file|f=s
+    top-dir=s
+    registry=s
+    client|db-client=s
+    db-name|d=s
+    db-user|db-username|u=s
+    db-host|h=s
+    db-port|p=i
 )], 'Options should be correct';
 
-my $config = TestConfig->new('core.engine' => 'sqlite');
-my $sqitch = App::Sqitch->new(
-    config => $config,
-    options => {
-        plan_file => file(qw(t sql sqitch.plan))->stringify,
-        top_dir   => dir(qw(t sql))->stringify,
-    },
+warning_is {
+    Getopt::Long::Configure(qw(bundling pass_through));
+    ok Getopt::Long::GetOptionsFromArray(
+        [], {}, App::Sqitch->_core_opts, $CLASS->options,
+    ), 'Should parse options';
+} undef, 'Options should not conflict with core options';
+
+my $config = TestConfig->new(
+    'core.engine'    => 'sqlite',
+    'core.plan_file' => file(qw(t sql sqitch.plan))->stringify,
+    'core.top_dir'   => dir(qw(t sql))->stringify,
 );
+my $sqitch = App::Sqitch->new(config => $config);
 
 # Test configure().
 is_deeply $CLASS->configure($config, {}), {
     mode     => 'all',
     verify   => 0,
     log_only => 0,
+    _params  => [],
+    _cx      => [],
 }, 'Should have default configuration with no config or opts';
 
 is_deeply $CLASS->configure($config, {
@@ -60,11 +80,15 @@ is_deeply $CLASS->configure($config, {
     verify => 1,
     log_only => 1,
     set  => { foo => 'bar' },
+    _params  => [],
+    _cx      => [],
 }), {
     mode      => 'tag',
     verify    => 1,
     log_only  => 1,
     variables => { foo => 'bar' },
+    _params   => [],
+    _cx      => [],
 }, 'Should have mode, verify, set, and log-only options';
 
 CONFIG: {
@@ -78,6 +102,8 @@ CONFIG: {
         mode     => 'change',
         verify   => 1,
         log_only => 0,
+        _params  => [],
+        _cx      => [],
     }, 'Should have mode and verify configuration';
 
     # Try merging.
@@ -92,6 +118,8 @@ CONFIG: {
         verify    => 0,
         log_only  => 0,
         variables => { foo => 'yo', yo => 'stellar', hi => 21 },
+        _params   => [],
+        _cx      => [],
     }, 'Should have merged variables';
 
     isa_ok my $deploy = $CLASS->new(

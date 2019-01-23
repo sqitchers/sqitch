@@ -11,6 +11,7 @@ use Test::Exception;
 use App::Sqitch;
 use App::Sqitch::Target;
 use App::Sqitch::Plan;
+use Path::Class;
 use Locale::TextDomain qw(App-Sqitch);
 use lib 't/lib';
 use TestConfig;
@@ -23,8 +24,10 @@ BEGIN {
 }
 
 ok my $sqitch = App::Sqitch->new(
-    config => TestConfig->new('core.engine' => 'sqlite'),
-    options => { top_dir => Path::Class::Dir->new(qw(t sql))->stringify}
+    config => TestConfig->new(
+        'core.engine'  => 'sqlite',
+        'core.top_dir' => dir(qw(t sql))->stringify,
+    ),
 ), 'Load a sqitch sqitch object';
 my $target = App::Sqitch::Target->new( sqitch => $sqitch );
 my $plan = App::Sqitch::Plan->new(sqitch => $sqitch, project => 'depend', target => $target);

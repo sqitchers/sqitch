@@ -9,7 +9,9 @@ use App::Sqitch::X qw(hurl);
 use List::Util qw(first);
 use Moo;
 use App::Sqitch::Types qw(Bool Str);
+
 extends 'App::Sqitch::Command';
+with 'App::Sqitch::Role::ContextCommand';
 
 our $VERSION = '0.9999';
 
@@ -43,7 +45,7 @@ sub execute {
     $self->usage unless $type && $key;
 
     my $target = $self->target ? App::Sqitch::Target->new(
-        sqitch => $self->sqitch,
+        $self->target_params,
         name   => $self->target,
     ) : $self->default_target;
     my $plan = $target->plan;

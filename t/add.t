@@ -3,13 +3,14 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 233;
+use Test::More tests => 236;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Target;
 use Locale::TextDomain qw(App-Sqitch);
 use Path::Class;
 use Test::Exception;
+use Test::Warn;
 use Test::Dir;
 use File::Temp 'tempdir';
 use Test::File qw(file_not_exists_ok file_exists_ok);
@@ -22,13 +23,12 @@ use TestConfig;
 
 my $CLASS = 'App::Sqitch::Command::add';
 
-my $config = TestConfig->new('core.engine' => 'pg');
-ok my $sqitch = App::Sqitch->new(
-    config => $config,
-    options => {
-        top_dir => dir('test-add')->stringify,
-    }
-), 'Load a sqitch sqitch object';
+my $config = TestConfig->new(
+    'core.engine' => 'pg',
+    'core.top_dir' => dir('test-add')->stringify,
+);
+ok my $sqitch = App::Sqitch->new(config => $config),
+    'Load a sqitch sqitch object';
 
 isa_ok my $add = App::Sqitch::Command->load({
     sqitch  => $sqitch,
@@ -64,7 +64,11 @@ can_ok $CLASS, qw(
     all_templates
     _slurp
     _add
+    does
 );
+
+ok $CLASS->does("App::Sqitch::Role::ContextCommand"),
+    "$CLASS does ContextCommand";
 
 is_deeply [$CLASS->options], [qw(
     change-name|change|c=s
@@ -85,7 +89,16 @@ is_deeply [$CLASS->options], [qw(
     deploy!
     revert!
     verify!
+    plan-file|f=s
+    top-dir=s
 )], 'Options should be set up';
+
+warning_is {
+    Getopt::Long::Configure(qw(bundling pass_through));
+    ok Getopt::Long::GetOptionsFromArray(
+        [], {}, App::Sqitch->_core_opts, $CLASS->options,
+    ), 'Should parse options';
+} undef, 'Options should not conflict with core options';
 
 sub contents_of ($) {
     my $file = shift;
@@ -100,6 +113,7 @@ is_deeply $CLASS->configure($config, {}, $sqitch), {
     requires  => [],
     conflicts => [],
     note      => [],
+    _cx       => [],
 }, 'Should have default configuration with no config or opts';
 
 is_deeply $CLASS->configure($config, {
@@ -110,12 +124,14 @@ is_deeply $CLASS->configure($config, {
     requires  => [qw(foo bar)],
     conflicts => ['baz'],
     note      => [qw(hellow there)],
+    _cx       => [],
 }, 'Should have get requires and conflicts options';
 
 is_deeply $CLASS->configure($config, { template_directory => 't' }), {
     requires  => [],
     conflicts => [],
     note      => [],
+    _cx       => [],
     template_directory => dir('t'),
 }, 'Should set up template directory option';
 
@@ -123,6 +139,7 @@ is_deeply $CLASS->configure($config, { change_name => 'blog' }), {
     requires  => [],
     conflicts => [],
     note      => [],
+    _cx       => [],
     change_name => 'blog',
 }, 'Should set up change name option';
 
@@ -148,6 +165,7 @@ is_deeply $CLASS->configure($config, { template_name => 'foo' }), {
     requires  => [],
     conflicts => [],
     note      => [],
+    _cx       => [],
     template_name => 'foo',
 }, 'Should set up template name option';
 
@@ -165,6 +183,7 @@ is_deeply $CLASS->configure($config, {
     requires  => [],
     conflicts => [],
     note      => [],
+    _cx       => [],
     with_scripts => { deploy => 1, revert => 1, verify => 0 },
     templates => {
         deploy => file('etc/templates/deploy/pg.tmpl'),
@@ -186,6 +205,7 @@ CONFIG: {
         requires  => [],
         conflicts => [],
         note      => [],
+        _cx       => [],
     }, 'Variables should by default not be loaded from config';
 
     is_deeply $CLASS->configure($config, {set => { yo => 'dawg' }}), {
@@ -194,6 +214,7 @@ CONFIG: {
         requires  => [],
         conflicts => [],
         note      => [],
+        _cx       => [],
         variables => {
             foo => 'bar',
             baz => [qw(hi there you)],
@@ -207,6 +228,7 @@ CONFIG: {
         requires  => [],
         conflicts => [],
         note      => [],
+        _cx       => [],
         variables => {
             foo => 'ick',
             baz => [qw(hi there you)],
@@ -254,10 +276,9 @@ READCONFIG: {
     my $config = TestConfig->from(
         local => file('t/templates.conf')->stringify
     );
-    ok my $sqitch = App::Sqitch->new(
-        config  => $config,
-        options => { top_dir => dir('test-add')->stringify },
-    ), 'Load another sqitch sqitch object';
+    $config->update('core.top_dir' => dir('test-add')->stringify);
+    ok my $sqitch = App::Sqitch->new(config  => $config),
+        'Load another sqitch sqitch object';
     ok $add = $CLASS->new(sqitch => $sqitch),
         'Create add with template config';
     is_deeply $add->_config_templates($config), {

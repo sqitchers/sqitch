@@ -43,11 +43,11 @@ can_ok $CLASS, qw(
     format_planner
 );
 
-my $config = TestConfig->new('core.engine' => 'sqlite');
-my $sqitch = App::Sqitch->new(
-    config  => $config,
-    options => { top_dir => dir(qw(t sql))->stringify },
+my $config = TestConfig->new(
+    'core.engine'  => 'sqlite',
+    'core.top_dir' => dir(qw(t sql))->stringify,
 );
+my $sqitch = App::Sqitch->new(config  => $config);
 my $target = App::Sqitch::Target->new(sqitch => $sqitch);
 my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch, target => $target);
 my $change = App::Sqitch::Plan::Change->new( plan => $plan, name => 'roles' );

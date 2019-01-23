@@ -8,6 +8,7 @@ use App::Sqitch;
 use Path::Class qw(dir file);
 use Test::MockModule;
 use Test::Exception;
+use Test::Warn;
 use Locale::TextDomain qw(App-Sqitch);
 use lib 't/lib';
 use MockOutput;
@@ -25,7 +26,11 @@ can_ok $CLASS, qw(
     from_change
     to_change
     variables
+    does
 );
+
+ok $CLASS->does("App::Sqitch::Role::$_"), "$CLASS does $_"
+    for qw(ContextCommand ConnectingCommand);
 
 is_deeply [$CLASS->options], [qw(
     target|t=s
@@ -34,19 +39,34 @@ is_deeply [$CLASS->options], [qw(
     from-target=s
     to-target=s
     set|s=s%
+    plan-file|f=s
+    top-dir=s
+    registry=s
+    client|db-client=s
+    db-name|d=s
+    db-user|db-username|u=s
+    db-host|h=s
+    db-port|p=i
 )], 'Options should be correct';
 
-my $config = TestConfig->new('core.engine' => 'sqlite');
-my $sqitch = App::Sqitch->new(
-    config => $config,
-    options => {
-        plan_file => file(qw(t sql sqitch.plan))->stringify,
-        top_dir   => dir(qw(t sql))->stringify,
-    },
+warning_is {
+    Getopt::Long::Configure(qw(bundling pass_through));
+    ok Getopt::Long::GetOptionsFromArray(
+        [], {}, App::Sqitch->_core_opts, $CLASS->options,
+    ), 'Should parse options';
+} undef, 'Options should not conflict with core options';
+
+my $config = TestConfig->new(
+    'core.engine'    => 'sqlite',
+    'core.plan_file' => file(qw(t sql sqitch.plan))->stringify,
+    'core.top_dir'   => dir(qw(t sql))->stringify,
 );
+my $sqitch = App::Sqitch->new(config => $config);
 
 # Test configure().
 is_deeply $CLASS->configure($config, {}), {
+    _params => [],
+    _cx     => [],
 }, 'Should have default configuration with no config or opts';
 
 is_deeply $CLASS->configure($config, {
@@ -57,13 +77,15 @@ is_deeply $CLASS->configure($config, {
     from_change => 'foo',
     to_change   => 'bar',
     variables   => { foo => 'bar' },
+    _params     => [],
+    _cx         => [],
 }, 'Should have changes and variables from options';
 
 CONFIG: {
     my $config = TestConfig->new(
         'verify.variables' => { foo => 'bar', hi => 21 },
     );
-    is_deeply $CLASS->configure($config, {}), {},
+    is_deeply $CLASS->configure($config, {}), { _params => [], _cx => [] },
         'Should have no config if no options';
 
     # Try merging.
@@ -73,6 +95,8 @@ CONFIG: {
     }), {
         to_change => 'whu',
         variables => { foo => 'yo', yo => 'stellar', hi => 21 },
+        _params     => [],
+        _cx         => [],
     }, 'Should have merged variables';
 
     my $sqitch = App::Sqitch->new(config => $config);

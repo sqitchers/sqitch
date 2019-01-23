@@ -4,7 +4,7 @@ sqitch-plan-usage - Sqitch plan usage statement
 
 =head1 Usage
 
-  sqitch [options] plan [plan options] [<database>]
+  sqitch plan [options] [<database>]
 
 =head1 Options
 

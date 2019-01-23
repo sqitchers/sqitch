@@ -288,22 +288,6 @@ is_deeply [$ora->sqlplus], ['/path/to/sqlplus', @std_opts],
     'sqlplus command should be configured';
 
 ##############################################################################
-# Now make sure that Sqitch options override configurations.
-$sqitch = App::Sqitch->new(
-    config => $config,
-    options => { client => '/some/other/sqlplus' },
-);
-
-$target = App::Sqitch::Target->new(sqitch => $sqitch);
-ok $ora = $CLASS->new(sqitch => $sqitch, target => $target),
-    'Create a ora with sqitch with options';
-
-is $ora->client, '/some/other/sqlplus', 'client should be as optioned';
-is $ora->registry, 'meta', 'registry should still be as configured';
-is_deeply [$ora->sqlplus], ['/some/other/sqlplus', @std_opts],
-    'sqlplus command should be as optioned';
-
-##############################################################################
 # Test _run() and _capture().
 can_ok $ora, qw(_run _capture);
 my $mock_sqitch = Test::MockModule->new('App::Sqitch');
@@ -568,15 +552,8 @@ $uri->user($user);
 $uri->password($pass);
 # $uri->dbname( $ENV{TWO_TASK} || $ENV{LOCAL} || $ENV{ORACLE_SID} );
 DBIEngineTest->run(
-    class         => $CLASS,
-    version_query => q{SELECT * FROM v$version WHERE banner LIKE 'Oracle%'},
-    sqitch_params => [
-        config => TestConfig->new('core.engine' => 'oracle'),
-        options => {
-            top_dir   => Path::Class::dir(qw(t engine)),
-            plan_file => Path::Class::file(qw(t engine sqitch.plan)),
-        },
-    ],
+    class             => $CLASS,
+    version_query     => q{SELECT * FROM v$version WHERE banner LIKE 'Oracle%'},
     target_params     => [ uri => $uri ],
     alt_target_params => [ uri => $uri, registry => 'oe' ],
     skip_unless       => sub {

@@ -3,12 +3,13 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 252;
+use Test::More tests => 253;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::NoWarnings;
 use Test::Exception;
+use Test::Warn;
 use Test::MockModule;
 use Path::Class;
 use Term::ANSIColor qw(color);
@@ -22,14 +23,12 @@ my $CLASS = 'App::Sqitch::Command::log';
 require_ok $CLASS;
 
 my $plan_file = Path::Class::File->new('t/sql/sqitch.plan')->stringify;
-my $config = TestConfig->new('core.engine' => 'sqlite');
-ok my $sqitch = App::Sqitch->new(
-    config => $config,
-    options => {
-        top_dir   => Path::Class::Dir->new('test-log')->stringify,
-        plan_file => $plan_file,
-    },
-), 'Load a sqitch sqitch object';
+my $config = TestConfig->new(
+    'core.engine'    => 'sqlite',
+    'core.top_dir'   => Path::Class::Dir->new('test-log')->stringify,
+    'core.plan_file' => $plan_file,
+);
+ok my $sqitch = App::Sqitch->new(config => $config), 'Load a sqitch object';
 isa_ok my $log = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'log',
@@ -49,7 +48,11 @@ can_ok $log, qw(
     execute
     configure
     headers
+    does
 );
+
+ok $CLASS->does("App::Sqitch::Role::ConnectingCommand"),
+    "$CLASS does ConnectingCommand";
 
 is_deeply [$CLASS->options], [qw(
     event=s@
@@ -67,6 +70,12 @@ is_deeply [$CLASS->options], [qw(
     abbrev=i
     oneline
     headers!
+    registry=s
+    client|db-client=s
+    db-name|d=s
+    db-user|db-username|u=s
+    db-host|h=s
+    db-port|p=i
 )], 'Options should be correct';
 
 ##############################################################################
@@ -82,7 +91,7 @@ is $log->target, 'foo', 'Should have target "foo"';
 # Test configure().
 my $configured = $CLASS->configure($config, {});
 isa_ok delete $configured->{formatter}, 'App::Sqitch::ItemFormatter', 'Formatter';
-is_deeply $configured, {},
+is_deeply $configured, {_params => []},
     'Should get empty hash for no config or options';
 
 # Test date_format validation.

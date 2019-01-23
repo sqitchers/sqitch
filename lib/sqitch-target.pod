@@ -151,6 +151,8 @@ deployment plan file and the change script directories.
 
 =item C<--plan-file>
 
+=item C<-f>
+
   sqitch target add devwidgets --plan-file my.plan
 
 Specifies the path to the deployment plan file. Defaults to

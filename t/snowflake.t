@@ -331,29 +331,6 @@ is_deeply [$snow->snowsql], [qw(
     --rolename    yup
 ), @std_opts], 'snowsql command should be configured from URI config';
 
-
-##############################################################################
-# Now make sure that (deprecated?) Sqitch options override configurations.
-$sqitch = App::Sqitch->new(
-    config => $config,
-    options => { client => '/some/other/snowsql' },
-);
-
-$target = App::Sqitch::Target->new( sqitch => $sqitch );
-my $exp_pass = 's3cr3t';
-$target->uri->password($exp_pass);
-ok $snow = $CLASS->new(sqitch => $sqitch, target => $target),
-    'Create a snowflake with sqitch with options';
-
-is $snow->client, '/some/other/snowsql', 'client should be as optioned';
-is_deeply [$snow->snowsql], [qw(
-    /some/other/snowsql
-    --accountname foo
-    --username    fred
-    --dbname      try
-    --rolename    yup
-), @std_opts], 'snowsql command should be as optioned';
-
 ##############################################################################
 # Test SQL helpers.
 is $snow->_listagg_format, q{listagg(%s, ' ')}, 'Should have _listagg_format';
@@ -398,7 +375,7 @@ is_deeply [$snow->_regex_expr('corn', 'Obama$')],
 $config->replace('core.engine' => 'snowflake');
 can_ok $snow, qw(_run _capture _spool);
 my $mock_sqitch = Test::MockModule->new('App::Sqitch');
-my @capture;
+my ($exp_pass, @capture) = ('s3cr3t');
 $mock_sqitch->mock(capture => sub {
     local $Test::Builder::Level = $Test::Builder::Level + 2;
     shift;
@@ -435,6 +412,11 @@ $mock_sqitch->mock(probe => sub {
     }
     return;
 });
+
+$target = App::Sqitch::Target->new(sqitch => $sqitch, uri => URI->new($uri));
+$target->uri->password($exp_pass);
+ok $snow = $CLASS->new(sqitch => $sqitch, target => $target),
+    'Create a snowflake with sqitch with options';
 
 ok $snow->_run(qw(foo bar baz)), 'Call _run';
 is_deeply \@capture, [$snow->snowsql, qw(foo bar baz)],
@@ -551,15 +533,8 @@ my $err = try {
 };
 
 DBIEngineTest->run(
-    class         => $CLASS,
-    version_query => q{SELECT 'Snowflake ' || CURRENT_VERSION()},
-    sqitch_params => [
-        config => TestConfig->new('core.engine' => 'pg'),
-        options => {
-            top_dir   => dir(qw(t engine)),
-            plan_file => file(qw(t engine sqitch.plan)),
-        },
-    ],
+    class             => $CLASS,
+    version_query     => q{SELECT 'Snowflake ' || CURRENT_VERSION()},
     target_params     => [ uri => $uri ],
     alt_target_params => [ uri => $uri, registry => '__sqitchtest' ],
     skip_unless       => sub {

@@ -16,6 +16,8 @@ use File::Path qw(make_path);
 use namespace::autoclean;
 use constant extra_target_keys => ();
 
+our $VERSION = '0.9999';
+
 requires 'command';
 requires 'options';
 requires 'configure';
@@ -32,7 +34,7 @@ has properties => (
 around options => sub {
     my ($orig, $class) = @_;
     return ($class->$orig), (map { "$_=s" } $class->extra_target_keys), qw(
-        plan-file=s
+        plan-file|f=s
         registry=s
         client=s
         extension=s
@@ -131,23 +133,6 @@ sub BUILD {
             uri    => $uri,
         ) unless first { $engine eq $_ } App::Sqitch::Command::ENGINES;
 
-    }
-
-    # Copy core options.
-    my $opts = $self->sqitch->options;
-    for my $name (qw(
-        top_dir
-        plan_file
-        engine
-        registry
-        client
-        target
-        extension
-        deploy_dir
-        revert_dir
-        verify_dir
-    )) {
-        $props->{$name} ||= $opts->{$name} if exists $opts->{$name};
     }
 }
 

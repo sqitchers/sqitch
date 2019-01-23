@@ -180,25 +180,8 @@ is $sqlite->registry_destination, $sqlite->registry_uri->as_string,
     'Registry target should be configured registry_uri stringified';
 
 ##############################################################################
-# Now make sure that Sqitch options override configurations.
-$sqitch = App::Sqitch->new(
-    config => $config,
-    options => {
-        client   => 'foo/bar',
-        registry => 'reg',
-    },
-);
-$target = ref($target)->new( sqitch => $sqitch );
-ok $sqlite = $CLASS->new(sqitch => $sqitch, target => $target),
-    'Create sqlite with sqitch with --client and --target';
-is $sqlite->client, 'foo/bar', 'The client should be grabbed from --client';
-is $sqlite->registry, 'reg', 'The registry should be grabbed from --registry';
-is_deeply [$sqlite->sqlite3],
-    [$sqlite->client, @std_opts, $sqlite->uri->dbname],
-    'sqlite3 command should have option values';
-
-##############################################################################
 # Test _read().
+$config->replace('core.engine' => 'sqlite');
 my $db_name = $tmp_dir->file('sqitch.db');
 $target = App::Sqitch::Target->new(
     sqitch => $sqitch,
@@ -346,13 +329,6 @@ END {
 DBIEngineTest->run(
     class         => $CLASS,
     version_query => q{select 'SQLite ' || sqlite_version()},
-    sqitch_params => [
-        config  => TestConfig->new('core.engine' => 'sqlite'),
-        options => {
-            top_dir   => Path::Class::dir(qw(t engine))->stringify,
-            plan_file => Path::Class::file(qw(t engine sqitch.plan))->stringify,
-        },
-    ],
     target_params => [ uri => URI->new("db:sqlite:$db_name") ],
     alt_target_params => [
         registry => 'sqitchtest',

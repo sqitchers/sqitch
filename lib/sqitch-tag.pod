@@ -4,11 +4,11 @@ sqitch-tag - Create or list tag objects
 
 =head1 Synopsis
 
-  sqitch [options] tag
-  sqitch [options] tag <name>
-  sqitch [options] tag <name> change --note <note>
-  sqitch [options] tag --tag <name> --change <change>
-  sqitch [options] tag <name> --all
+  sqitch tag [options]
+  sqitch tag <name>
+  sqitch tag <name> change --note <note>
+  sqitch tag --tag <name> --change <change>
+  sqitch tag <name> --all
 
 =head1 Description
 
@@ -78,6 +78,13 @@ comment. Multiple invocations will be concatenated together as separate
 paragraphs.
 
 For you Git folks out there, C<-m> also works.
+
+=item C<--plan-file>
+
+=item C<-f>
+
+Path to the deployment plan file. Overrides target, engine, and core
+configuration values. Defaults to F<$top_dir/sqitch.plan>.
 
 =back
 

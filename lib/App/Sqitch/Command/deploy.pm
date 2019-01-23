@@ -5,13 +5,16 @@ use strict;
 use warnings;
 use utf8;
 use Moo;
-use App::Sqitch::Types qw(URI Maybe Str Bool HashRef);
+use App::Sqitch::Types qw(URI Str Bool HashRef);
 use Locale::TextDomain qw(App-Sqitch);
 use Type::Utils qw(enum);
 use App::Sqitch::X qw(hurl);
 use List::Util qw(first);
 use namespace::autoclean;
+
 extends 'App::Sqitch::Command';
+with 'App::Sqitch::Role::ContextCommand';
+with 'App::Sqitch::Role::ConnectingCommand';
 
 our $VERSION = '0.9999';
 

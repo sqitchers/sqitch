@@ -70,6 +70,7 @@ BuildRequires:  perl(Test::File::Contents) >= 0.20
 BuildRequires:  perl(Test::MockModule) >= 0.05
 BuildRequires:  perl(Test::More) >= 0.94
 BuildRequires:  perl(Test::NoWarnings) >= 0.083
+BuildRequires:  perl(Test::Warn)
 BuildRequires:  perl(Throwable) >= 0.200009
 BuildRequires:  perl(Time::HiRes)
 BuildRequires:  perl(Try::Tiny)

@@ -1911,8 +1911,8 @@ re-deployed.
 
 Searches the database for the change with the specified name, tag, project,
 or ID. Returns C<undef> if it matches no changes. If it matches more than one
-chagne, it returns the earliest deployed change if the C<first> parameter is
-passed; otherwise it rhrows an exception The parameters are as follows:
+change, it returns the earliest deployed change if the C<first> parameter is
+passed; otherwise it throws an exception The parameters are as follows:
 
 =over
 

@@ -9,7 +9,6 @@ use Path::Class qw(dir file);
 use Test::Exception;
 use Locale::TextDomain qw(App-Sqitch);
 use lib 't/lib';
-use MockOutput;
 use TestConfig;
 
 my $CLASS;
@@ -152,15 +151,18 @@ CONSTRUCTOR: {
         get => sub { my $c = shift; push @get_params => \@_; $orig_get->($c, @_); }
     );
     $orig_get = $mock->original('get');
-    $config->replace;
+    $config->replace('core.engine' => 'sqlite');
 
     # Pass neither, but rely on the engine in the Sqitch object.
-    my $sqitch = App::Sqitch->new(config => $config, options => { engine => 'sqlite'});
+    my $sqitch = App::Sqitch->new(config => $config);
     isa_ok my $target = $CLASS->new(sqitch => $sqitch), $CLASS, 'Default target';
     is $target->name, 'db:sqlite:', 'Name should be "db:sqlite:"';
     is $target->uri, URI::db->new('db:sqlite:'), 'URI should be "db:sqlite:"';
-    is_deeply \@get_params, [[key => 'engine.sqlite.target'],[key => 'core.sqlite.target']],
-        'Should have tried to get engine target';
+    is_deeply \@get_params, [
+        [key => 'core.target'],
+        [key => 'core.engine'],
+        [key => 'engine.sqlite.target'],
+    ], 'Should have tried to get engine target';
 
     # Try with just core.engine.
     delete $sqitch->options->{engine};
@@ -173,7 +175,6 @@ CONSTRUCTOR: {
         [key => 'core.target'],
         [key => 'core.engine'],
         [key => 'engine.mysql.target'],
-        [key => 'core.mysql.target'],
     ], 'Should have tried to get core.target, core.engine and then the target';
 
     # Try with no engine option but a name that looks like a URI.
@@ -347,8 +348,7 @@ CONSTRUCTOR: {
         [key => 'core.target'],
         [key => 'target.foo.uri']
     ], 'Should have requested engine target and target URI from config';
-    is_deeply \@sect_params, [[section => 'core.sqlite']],
-        'Should have requested sqlite section';
+    is_deeply \@sect_params, [], 'Should have requested no section';
 
     # Let the name come from the environment.
     ENV: {
@@ -363,84 +363,56 @@ CONSTRUCTOR: {
         is_deeply \@sect_params, [], 'Should have requested no sections';
     }
 
-    # Make sure db options and deprecated config variables work.
-    local $App::Sqitch::Target::WARNED = 0;
-    $config->replace(
-        'core.engine'      => 'pg',
-        'core.pg.host'     => 'hi.com',
-        'core.pg.port'     => 5432,
-        'core.pg.username' => 'bob',
-        'core.pg.password' => 'ouch',
-        'core.pg.db_name'  => 'sharks',
-    );
+    # Make sure uri params work.
     @get_params = @sect_params = ();
-    $uri = URI::db->new('db:pg://bob:ouch@hi.com:5432/sharks');
-    isa_ok $target = $CLASS->new(sqitch => $sqitch), $CLASS, 'Pg target';
-    is_deeply \@sect_params, [ [section => 'core.pg' ], [section => 'engine.pg' ]],
-        'Should have requested core and engine pg sections';
-    like $target->name, qr{db:pg://bob:?\@hi.com:5432/sharks},
-        'Name should be passwordless stringified URI';
-    is $target->uri, $uri, 'URI should be tweaked by config* options';
-    is_deeply +MockOutput->get_warn, [[__x(
-        "The core.{engine} config has been deprecated in favor of engine.{engine}.\nRun '{sqitch} engine update-config' to update your configurations.",
-        engine => 'pg',
-        sqitch => $0,
-    )]], 'Should have warned on deprecated config options';
-
-    # Make sure --db-* options work.
-    $App::Sqitch::Target::WARNED = 0;
-    @get_params = @sect_params = ();
-    $uri = URI::db->new('db:pg://fred:ouch@foo.com:12245/widget');
-    $sqitch->options->{db_host}     = 'foo.com';
-    $sqitch->options->{db_port}     = 12245;
-    $sqitch->options->{db_username} = 'fred';
-    $sqitch->options->{db_name}     = 'widget';
-    isa_ok $target = $CLASS->new(sqitch => $sqitch), $CLASS, 'Postgres target';
-    is_deeply \@sect_params, [ [section => 'core.pg' ], [section => 'engine.pg' ] ],
-        'Should have requested sqlite core and engine sections';
+    $config->replace('core.engine' => 'pg');
+    $uri = URI::db->new('db:pg://fred@foo.com:12245/widget');
+    isa_ok $target = $CLASS->new(
+        sqitch => $sqitch,
+        host   => 'foo.com',
+        port   => 12245,
+        user   => 'fred',
+        dbname => 'widget',
+    ), $CLASS, 'URI-munged target';
+    is_deeply \@sect_params, [], 'Should have requested no section';
     like $target->name, qr{db:pg://fred:?\@foo.com:12245/widget},
         'Name should be passwordless stringified URI';
-    is $target->uri, $uri, 'URI should be tweaked by --db-* options';
-    is_deeply +MockOutput->get_warn, [
-        [__x(
-            "The core.{engine} config has been deprecated in favor of engine.{engine}.\nRun '{sqitch} engine update-config' to update your configurations.",
-            engine => 'pg',
-            sqitch => $0,
-        )],
-    ], 'Should have warned on deprecated config';
+    is $target->uri, $uri, 'URI should be tweaked by URI params';
 
-    # Options should work, but not config, when URI read from target config.
-    $App::Sqitch::Target::WARNED = 0;
+    # URI params should work when URI read from target config.
     $uri = URI::db->new('db:pg://foo.com/widget');
     @get_params = @sect_params = ();
-    delete $sqitch->{options}->{$_} for qw(engine db_port db_username);
     $sqitch->options->{db_host} = 'foo.com';
     $sqitch->options->{db_name} = 'widget';
     $config->update('target.foo.uri' => 'db:pg:');
-    isa_ok $target = $CLASS->new(sqitch => $sqitch, name => 'foo'), $CLASS,
-        'Foo target';
+    isa_ok $target = $CLASS->new(
+        sqitch => $sqitch,
+        name   => 'foo',
+        host   => 'foo.com',
+        dbname => 'widget',
+    ), $CLASS, 'Foo target';
     is_deeply \@get_params, [ [key => 'target.foo.uri' ]],
         'Should have requested target URI';
     is_deeply \@sect_params, [], 'Should have fetched no section';
     is $target->name, 'foo', 'Name should be as passed';
-    is $target->uri, $uri, 'URI should be tweaked by --db-* options';
-    is_deeply +MockOutput->get_warn, [],
-        'Should have emitted no warnigns';
+    is $target->uri, $uri, 'URI should be tweaked by URI params';
 
-    # Options should work, but not config, when URI passsed.
-    $App::Sqitch::Target::WARNED = 0;
-    $uri = URI::db->new('db:pg://foo.com/widget');
+    # URI params should work when URI passsed.
+    $uri = URI::db->new('db:pg://:1919/');
     @get_params = @sect_params = ();
-    delete $sqitch->{options}->{$_} for qw(engine db_port db_username);
     $sqitch->options->{db_host} = 'foo.com';
     $sqitch->options->{db_name} = 'widget';
-    isa_ok $target = $CLASS->new(sqitch => $sqitch, name => 'db:pg:widget'), $CLASS,
-        'URI target';
+    isa_ok $target = $CLASS->new(
+        sqitch => $sqitch,
+        name   => 'db:pg:widget',
+        host   => '',
+        dbname => '',
+        port   => 1919,
+    ), $CLASS, 'URI target';
     is_deeply \@get_params, [], 'Should have requested no config';
     is_deeply \@sect_params, [], 'Should have fetched no section';
-    is $target->name, $uri, 'Name should tweaked by --db-* options';
-    is $target->uri, $uri, 'URI should be tweaked by --db-* options';
-    is_deeply +MockOutput->get_warn, [], 'Should have emitted no warnigns';
+    is $target->name, $uri, 'Name should tweaked by URI params';
+    is $target->uri, $uri, 'URI should be tweaked by URI params';
 }
 
 CONFIG: {
@@ -581,49 +553,6 @@ CONFIG: {
     is $target->reworked_verify_dir, 'fooverr', 'Reworked verify dir should be "fooverr"';
     isa_ok $target->reworked_verify_dir, 'Path::Class::Dir', 'Reworked verify dir';
     is $target->extension, 'fooddl', 'Extension should be "fooddl"';
-
-    # Add command-line options.
-    $opts->{registry}            = 'optreg';
-    $opts->{client}              = 'optcli';
-    $opts->{plan_file}           = 'opt.plan';
-    $opts->{top_dir}             = 'top.dir';
-    $opts->{deploy_dir}          = 'dep.dir';
-    $opts->{revert_dir}          = 'rev.dir';
-    $opts->{verify_dir}          = 'ver.dir';
-    $opts->{reworked_dir}        = 'wrk.dir';
-    $opts->{reworked_deploy_dir} = 'rdep.dir';
-    $opts->{reworked_revert_dir} = 'rrev.dir';
-    $opts->{reworked_verify_dir} = 'rver.dir';
-    $opts->{extension}           = 'opt';
-    $target = $CLASS->new(
-        sqitch => $sqitch,
-        name   => 'foo',
-        uri    => URI::db->new('db:pg:foo'),
-    );
-
-    is $target->registry, 'optreg', 'Registry should be "optreg"';
-    is $target->client, 'optcli', 'Client should be "optcli"';
-    is $target->plan_file, 'opt.plan', 'Plan file should be "opt.plan"';
-    isa_ok $target->plan_file, 'Path::Class::File', 'Plan file';
-    isa_ok $plan = $target->plan, 'App::Sqitch::Plan', 'Plan';
-    is $plan->file, $target->plan_file, 'Plan should use target plan file';
-    is $target->top_dir, 'top.dir', 'Top dir should be "top.dir"';
-    isa_ok $target->top_dir, 'Path::Class::Dir', 'Top dir';
-    is $target->deploy_dir, 'dep.dir', 'Deploy dir should be "dep.dir"';
-    isa_ok $target->deploy_dir, 'Path::Class::Dir', 'Deploy dir';
-    is $target->revert_dir, 'rev.dir', 'Revert dir should be "rev.dir"';
-    isa_ok $target->revert_dir, 'Path::Class::Dir', 'Revert dir';
-    is $target->verify_dir, 'ver.dir', 'Verify dir should be "ver.dir"';
-    isa_ok $target->verify_dir, 'Path::Class::Dir', 'Verify dir';
-    is $target->reworked_dir, 'wrk.dir', 'Reworked dir should be "wrk.dir"';
-    isa_ok $target->reworked_dir, 'Path::Class::Dir', 'Reworked dir';
-    is $target->reworked_deploy_dir, 'rdep.dir', 'Reworked deploy dir should be "rdep.dir"';
-    isa_ok $target->reworked_deploy_dir, 'Path::Class::Dir', 'Reworked deploy dir';
-    is $target->reworked_revert_dir, 'rrev.dir', 'Reworked revert dir should be "rrev.dir"';
-    isa_ok $target->reworked_revert_dir, 'Path::Class::Dir', 'Reworked revert dir';
-    is $target->reworked_verify_dir, 'rver.dir', 'Reworked verify dir should be "rver.dir"';
-    isa_ok $target->reworked_verify_dir, 'Path::Class::Dir', 'Reworked verify dir';
-    is $target->extension, 'opt', 'Extension should be "opt"';
 }
 
 sub _load($) {
@@ -691,8 +620,22 @@ ALL: {
     $sqitch = App::Sqitch->new(config => $config);
     ok @targets = $CLASS->all_targets(sqitch => $sqitch), 'Load all engine conf targets';
     is @targets, 3, 'Should have three engine conf targets';
-    is_deeply [ sort map { $_->name } @targets ], [qw(db:mysql://root@/foo db:pg:try widgets)],
+    is_deeply [ sort map { $_->name } @targets ],
+        [qw(db:mysql://root@/foo db:pg:try widgets)],
         'Should have the engine and target targets';
+
+    # Make sure parameters are set on all targets.
+    ok @targets = $CLASS->all_targets(
+        sqitch => $sqitch,
+        registry => 'quack',
+        dbname   => 'w00t',
+    ), 'Overload all engine conf targets';
+    is @targets, 3, 'Should again have three engine conf targets';
+    is_deeply [ sort map { $_->uri->as_string } @targets ],
+        [qw(db:mysql://root@/w00t db:pg:w00t db:sqlite:w00t)],
+        'Should have set dbname on all target URIs';
+    is_deeply [ map { $_->registry } @targets ], [('quack') x 3],
+        'Should have set the registry on all targets.';
 }
 
 done_testing;

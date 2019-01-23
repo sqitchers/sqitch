@@ -8,6 +8,7 @@ use App::Sqitch;
 use Path::Class qw(dir file);
 use Test::MockModule;
 use Test::Exception;
+use Test::Warn;
 use Locale::TextDomain qw(App-Sqitch);
 use lib 't/lib';
 use MockOutput;
@@ -26,7 +27,11 @@ can_ok $CLASS, qw(
     log_only
     execute
     variables
+    does
 );
+
+ok $CLASS->does("App::Sqitch::Role::$_"), "$CLASS does $_"
+    for qw(ContextCommand ConnectingCommand);
 
 is_deeply [$CLASS->options], [qw(
     target|t=s
@@ -35,28 +40,47 @@ is_deeply [$CLASS->options], [qw(
     set|s=s%
     log-only
     y
+    plan-file|f=s
+    top-dir=s
+    registry=s
+    client|db-client=s
+    db-name|d=s
+    db-user|db-username|u=s
+    db-host|h=s
+    db-port|p=i
 )], 'Options should be correct';
 
-my $config = TestConfig->new('core.engine' => 'sqlite');
-my $sqitch = App::Sqitch->new(
-    config  => $config,
-    options => {
-        plan_file => file(qw(t sql sqitch.plan))->stringify,
-        top_dir   => dir(qw(t sql))->stringify,
-    },
+warning_is {
+    Getopt::Long::Configure(qw(bundling pass_through));
+    ok Getopt::Long::GetOptionsFromArray(
+        [], {}, App::Sqitch->_core_opts, $CLASS->options,
+    ), 'Should parse options';
+} undef, 'Options should not conflict with core options';
+
+my $config = TestConfig->new(
+    'core.engine'    => 'sqlite',
+    'core.top_dir'   => dir(qw(t sql))->stringify,
+    'core.plan_file' => file(qw(t sql sqitch.plan))->stringify,
 );
+my $sqitch = App::Sqitch->new(config  => $config);
 
 # Test configure().
-is_deeply $CLASS->configure($config, {}), { no_prompt => 0, prompt_accept => 1 },
-    'Should have empty default configuration with no config or opts';
+is_deeply $CLASS->configure($config, {}), {
+    no_prompt     => 0,
+    prompt_accept => 1,
+    _params       => [],
+    _cx           => [],
+}, 'Should have empty default configuration with no config or opts';
 
 is_deeply $CLASS->configure($config, {
     y    => 1,
     set  => { foo => 'bar' },
 }), {
-    no_prompt => 1,
+    no_prompt     => 1,
     prompt_accept => 1,
-    variables => { foo => 'bar' },
+    variables     => { foo => 'bar' },
+    _params       => [],
+    _cx           => [],
 }, 'Should have set option';
 
 CONFIG: {
@@ -65,8 +89,12 @@ CONFIG: {
         'deploy.variables' => { foo => 'bar', hi => 21 },
     );
 
-    is_deeply $CLASS->configure($config, {}), { no_prompt => 0, prompt_accept => 1 },
-        'Should have no_prompt false, prompt_accept true';
+    is_deeply $CLASS->configure($config, {}), {
+        no_prompt     => 0,
+        prompt_accept => 1,
+        _params       => [],
+        _cx           => [],
+    }, 'Should have no_prompt false, prompt_accept true';
 
     # Try merging.
     is_deeply $CLASS->configure($config, {
@@ -78,7 +106,9 @@ CONFIG: {
         prompt_accept => 1,
         variables     => { foo => 'yo', yo => 'stellar', hi => 21 },
         to_change     => 'whu',
-        log_only       => 1,
+        log_only      => 1,
+        _params       => [],
+        _cx           => [],
     }, 'Should have merged variables';
 
     # Try merging with revert.variables, too.
@@ -89,6 +119,8 @@ CONFIG: {
         no_prompt     => 0,
         prompt_accept => 1,
         variables     => { foo => 'bar', yo => 'stellar', hi => 42 },
+        _params       => [],
+        _cx           => [],
     }, 'Should have merged --set, deploy, revert';
 
     my $sqitch = App::Sqitch->new(config => $config);
@@ -101,22 +133,38 @@ CONFIG: {
         'revert.no_prompt'     => 1,
         'revert.prompt_accept' => 0,
     );
-    is_deeply $CLASS->configure($config, {}), { no_prompt => 1, prompt_accept => 0 },
-        'Should have no_prompt true, prompt_accept false';
+    is_deeply $CLASS->configure($config, {}), {
+        no_prompt     => 1,
+        prompt_accept => 0,
+        _params       => [],
+        _cx           => [],
+    }, 'Should have no_prompt true, prompt_accept false';
 
     # But option should override.
-    is_deeply $CLASS->configure($config, {y => 0}), { no_prompt => 0, prompt_accept => 0 },
-        'Should have no_prompt false again';
+    is_deeply $CLASS->configure($config, {y => 0}), {
+        no_prompt     => 0,
+        prompt_accept => 0,
+        _params       => [],
+        _cx           => [],
+    }, 'Should have no_prompt false again';
 
     $config->update(
         'revert.no_prompt'     => 0,
         'revert.prompt_accept' => 1,
     );
-    is_deeply $CLASS->configure($config, {}), { no_prompt => 0, prompt_accept => 1 },
-        'Should have no_prompt false for false config';
+    is_deeply $CLASS->configure($config, {}), {
+        no_prompt     => 0,
+        prompt_accept => 1,
+        _params       => [],
+        _cx           => [],
+    }, 'Should have no_prompt false for false config';
 
-    is_deeply $CLASS->configure($config, {y => 1}), { no_prompt => 1, prompt_accept => 1 },
-        'Should have no_prompt true with -y';
+    is_deeply $CLASS->configure($config, {y => 1}), {
+        no_prompt     => 1,
+        prompt_accept => 1,
+        _params       => [],
+        _cx           => [],
+    }, 'Should have no_prompt true with -y';
 }
 
 ##############################################################################

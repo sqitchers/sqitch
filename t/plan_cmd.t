@@ -3,12 +3,13 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 227;
+use Test::More tests => 229;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::NoWarnings;
 use Test::Exception;
+use Test::Warn;
 use Test::MockModule;
 use Path::Class;
 use Term::ANSIColor qw(color);
@@ -21,14 +22,13 @@ use LC;
 my $CLASS = 'App::Sqitch::Command::plan';
 require_ok $CLASS;
 
-my $config = TestConfig->new('core.engine' => 'sqlite');
-ok my $sqitch = App::Sqitch->new(
-    config => $config,
-    options => {
-        top_dir   => Path::Class::Dir->new('test-plan_command')->stringify,
-        plan_file => file(qw(t sql sqitch.plan))->stringify,
-    },
-), 'Load a sqitch sqitch object';
+my $config = TestConfig->new(
+    'core.engine'    => 'sqlite',
+    'core.top_dir'   => dir('test-plan_cmd')->stringify,
+    'core.plan_file' => file(qw(t sql sqitch.plan))->stringify,
+);
+ok my $sqitch = App::Sqitch->new(config => $config),
+    'Load a sqitch sqitch object';
 isa_ok my $cmd = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'plan',
@@ -65,6 +65,13 @@ is_deeply [$CLASS->options], [qw(
     oneline
    headers!
 )], 'Options should be correct';
+
+warning_is {
+    Getopt::Long::Configure(qw(bundling pass_through));
+    ok Getopt::Long::GetOptionsFromArray(
+        [], {}, App::Sqitch->_core_opts, $CLASS->options,
+    ), 'Should parse options';
+} undef, 'Options should not conflict with core options';
 
 ##############################################################################
 # Test configure().

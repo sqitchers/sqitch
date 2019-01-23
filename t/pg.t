@@ -125,27 +125,6 @@ is_deeply [$pg->psql], [
 @std_opts], 'psql command should be configured from URI config';
 
 ##############################################################################
-# Now make sure that (deprecated?) Sqitch options override configurations.
-$sqitch = App::Sqitch->new(
-    config => $config,
-    options => { client => '/some/other/psql' },
-);
-
-$target = App::Sqitch::Target->new( sqitch => $sqitch );
-ok $pg = $CLASS->new(sqitch => $sqitch, target => $target),
-    'Create a pg with sqitch with options';
-
-is $pg->client, '/some/other/psql', 'client should be as optioned';
-is $pg->registry_destination, $pg->destination,
-    'registry_destination should be the same as destination';
-is $pg->registry, 'meta', 'registry should still be as configured';
-is_deeply [$pg->psql], [
-    '/some/other/psql',
-    '--dbname',
-    "dbname=try host=localhost connect_timeout=5 sslmode=disable",
-@std_opts], 'psql command should be as optioned';
-
-##############################################################################
 # Test _run(), _capture(), and _spool().
 can_ok $pg, qw(_run _capture _spool);
 my $mock_sqitch = Test::MockModule->new('App::Sqitch');
@@ -313,13 +292,6 @@ my $err = try {
 DBIEngineTest->run(
     class         => $CLASS,
     version_query => 'SELECT version()',
-    sqitch_params => [
-        config => $config,
-        options => {
-            top_dir     => Path::Class::dir(qw(t engine))->stringify,
-            plan_file   => Path::Class::file(qw(t engine sqitch.plan))->stringify,
-        },
-    ],
     target_params => [
         uri => URI::db->new("db:pg://$pguser\@/$db"),
     ],
