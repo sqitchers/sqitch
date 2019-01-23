@@ -53,7 +53,7 @@ jobs:
       before_script:
         - coverage-setup
       script:
-        - export LIVE_PG_REQUIRED=1 LIVE_MYSQL_REQUIRED=1 LIVE_SQLITE_REQUIRED=1 LIVE_VERTICA_REQUIRED=1 LIVE_EXASOL_REQUIRED=1 LIVE_FIREBIRD_REQUIRED=1
+        - export AUTHOR_TESTING=1 LIVE_PG_REQUIRED=1 LIVE_MYSQL_REQUIRED=1 LIVE_SQLITE_REQUIRED=1 LIVE_VERTICA_REQUIRED=1 LIVE_EXASOL_REQUIRED=1 LIVE_FIREBIRD_REQUIRED=1
         - prove -lr --directives --comments $(test-dirs)
         # - prove -lv t/sqlite.t t/pg.t t/mysql.t t/vertica.t t/exasol.t t/firebird.t t/oracle.t t/snowflake.t
       after_success:
