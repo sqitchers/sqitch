@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 297;
+use Test::More tests => 201;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -50,9 +50,6 @@ can_ok $cmd, qw(
     execute
     list
     add
-    set_target
-    set_registry
-    set_client
     remove
     rm
     show
@@ -373,89 +370,6 @@ is $@->message, __x(
 ), 'Target mismatch message should be correct';
 
 ##############################################################################
-# Test set_target().
-MISSINGARGS: {
-    # Test handling of no name.
-    my $mock = Test::MockModule->new($CLASS);
-    my @args;
-    $mock->mock(usage => sub { @args = @_; die 'USAGE' });
-    throws_ok { $cmd->set_target } qr/USAGE/,
-        'No name arg to set_target() should yield usage';
-    is_deeply \@args, [$cmd], 'No args should be passed to usage';
-
-    @args = ();
-    throws_ok { $cmd->set_target('foo') } qr/USAGE/,
-        'No target arg to set_target() should yield usage';
-    is_deeply \@args, [$cmd], 'No args should be passed to usage';
-}
-
-# Should get an error if the engine does not exist.
-throws_ok { $cmd->set_target('nonexistent', 'db:pg:' ) } 'App::Sqitch::X',
-    'Should get error for nonexistent engine';
-is $@->ident, 'engine', 'Nonexistent engine error ident should be "engine"';
-is $@->message, __x(
-    'Unknown engine "{engine}"',
-    engine => 'nonexistent'
-), 'Nonexistent engine error message should be correct';
-
-# Set one that exists.
-ok $cmd->set_target('pg', 'db:pg:newtarget'), 'Set new target';
-$config->load;
-is $config->get(key => 'engine.pg.target'), 'db:pg:newtarget',
-    'Engine "pg" should have new target';
-
-# Make sure the target is a database target.
-ok $cmd->set_target('pg', 'postgres:stuff'), 'Set new target';
-$config->load;
-is $config->get(key => 'engine.pg.target'), 'db:postgres:stuff',
-    'Engine "pg" should have new DB target';
-
-# Make sure we die for an unknown target.
-throws_ok { $cmd->set_target('pg', 'unknown') } 'App::Sqitch::X',
-    'Should get an error for an unknown target';
-is $@->ident, 'engine', 'Nonexistent target error ident should be "engine"';
-is $@->message, __x(
-    'Unknown target "{target}"',
-    target => 'unknown'
-), 'Nonexistent target error message should be correct';
-
-##############################################################################
-# Test other set_* methods
-for my $key (keys %props) {
-    next if $key =~ /^(?:reworked|variables)/;
-    my $meth = "set_$key";
-    MISSINGARGS: {
-        # Test handling of no name.
-        my $mock = Test::MockModule->new($CLASS);
-        my @args;
-        $mock->mock(usage => sub { @args = @_; die 'USAGE' });
-        throws_ok { $cmd->$meth } qr/USAGE/,
-            "No name arg to $meth() should yield usage";
-        is_deeply \@args, [$cmd], 'No args should be passed to usage';
-
-        @args = ();
-        throws_ok { $cmd->$meth('foo') } qr/USAGE/,
-            "No $key arg to $meth() should yield usage";
-        is_deeply \@args, [$cmd], 'No args should be passed to usage';
-    }
-
-    # Should get an error if the engine does not exist.
-    throws_ok { $cmd->$meth('nonexistent', 'widgets' ) } 'App::Sqitch::X',
-        'Should get error for nonexistent engine';
-    is $@->ident, 'engine', 'Nonexistent engine error ident should be "engine"';
-    is $@->message, __x(
-        'Unknown engine "{engine}"',
-        engine => 'nonexistent'
-    ), 'Nonexistent engine error message should be correct';
-
-    # Set one that exists.
-    ok $cmd->$meth('pg', 'widgets'), 'Set new $key';
-    $config->load;
-    is $config->get(key => "engine.pg.$key"), 'widgets',
-        qq{Engine "pg" should have new $key};
-}
-
-##############################################################################
 # Test remove.
 MISSINGARGS: {
     # Test handling of no names.
@@ -535,8 +449,7 @@ is_deeply +MockOutput->get_emit, [
 ], 'The full "sqlite" engine should have been shown';
 
 # Try multiples.
-ok $cmd->set_client(vertica => 'vsql.exe'), 'Set vertica client';
-$config->load;
+$config->update('engine.vertica.client' => 'vsql.exe');
 ok $cmd->show(qw(sqlite vertica firebird)), 'Show three engines';
 is_deeply +MockOutput->get_emit, [
     ['* sqlite'],

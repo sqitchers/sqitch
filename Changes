@@ -179,6 +179,8 @@ Revision history for Perl extension App::Sqitch
        such as `--to-target`, `--upto-target`, which have been deprecated
        with warnings in in favor of options containing the string "change",
        such as `--to-change` and `--upto-change`, since v0.997.
+     - Removed the `set-*` actions in the `engine` and `target` commands, which
+       have been deprecated in favor of the new `alter` action since v0.9993.
 
      [API Changes]
      - Added the URI-overriding parameters `user`, `host`, `port`, and
@@ -216,6 +218,8 @@ Revision history for Perl extension App::Sqitch
        used by Sqitch. It always fetched the config from the required `sqitch`
        parameter. Support for the `config` parameter has not been removed,
        since third-parties might use it.
+     - Removed the `set_*` methods in the `engine` and `target` commands, which
+       have been deprecated in favor of the new `alter` method since v0.9993.
 
 0.9998 2018-10-03T20:53:58Z
      - Fixed an issue where Sqitch would sometimes truncate the registry
