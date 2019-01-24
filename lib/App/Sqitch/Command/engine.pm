@@ -236,6 +236,11 @@ sub show {
     return $self;
 }
 
+# DEPRECATTION: Added in v0.997 (Oct 2014). As of v0.9999, Sqitch no longer
+# notices and warns about core.$engine; most folks should long since have
+# updated their configurations. Keeping this method for now, since it might
+# still be useful and doesn't add much overhead in general except for the
+# compilation of the engine command. But consider removing in the future.
 sub update_config {
     my $self = shift;
     my $sqitch = $self->sqitch;

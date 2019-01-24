@@ -900,8 +900,8 @@ sub _sync_plan {
         }
 
         # Update the script hashes if they're the same as the change ID.
-        # XXX Added in v0.998 (Jan 2015, c86cba61c); consider removing in the
-        # future when all databases are likely to be updated already.
+        # DEPRECATTION: Added in v0.998 (Jan 2015, c86cba61c); consider removing
+        # in the future when all databases are likely to be updated already.
         $self->_update_script_hashes if $state->{script_hash}
             && $state->{script_hash} eq $state->{change_id};
 
