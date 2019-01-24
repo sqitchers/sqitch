@@ -173,19 +173,21 @@ Revision history for Perl extension App::Sqitch
 	     `add.verify_template` configuration settings. They have been deprecated
 	     with warnings in favor of the `add.templates` configuration section
        since v0.990.
-     - Formally the `@FIRST` and `@LAST` symbolic tags, which have been
-       deprecated with warnings since 0.997.
+     - Removed the `@FIRST` and `@LAST` symbolic tags, which have been
+       deprecated with warnings in favor of `@ROOT` and `@HEAD`, respectively,
+       since 0.997.
      - Removed the command-specific options with the string "target" in them,
        such as `--to-target`, `--upto-target`, which have been deprecated
        with warnings in in favor of options containing the string "change",
        such as `--to-change` and `--upto-change`, since v0.997.
-     - Removed the `set-*` actions in the `engine` and `target` commands, which
-       have been deprecated in favor of the new `alter` action since v0.9993.
-     - Removed the automatic updating of change and tag IDs in the Postgres engine.
-       This functionality was added in v0.940, when Postgres was still the only
-       engine, and the SHA-1 hash for change and tag IDs was changed. There were
-       very few deployments at the time, and all should long since have been
-       updated.
+     - Remove the `engine` and `target` command `set-*` actions and their
+       corresponding methods, which have been deprecated in favor of the `alter`
+       action since v0.9993.
+     - Removed the automatic updating of change and tag IDs in the Postgres
+       engine. This functionality was added in v0.940, when Postgres was the
+       only engine, and the SHA-1 hash for change and tag IDs was changed. There
+       were very few deployments at the time, and all should long since have
+       been updated.
 
      [API Changes]
      - Added the URI-overriding parameters `user`, `host`, `port`, and
