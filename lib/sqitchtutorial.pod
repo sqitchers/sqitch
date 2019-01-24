@@ -195,6 +195,13 @@ nicely. Put this query into F<verify/appschema.sql>:
 
   SELECT pg_catalog.has_schema_privilege('flipr', 'usage');
 
+B<Important!> This query isn't verifying that the user has C<usage> privilege
+on schema C<flipr>. The verification will pass even if the current user
+has no usage rights.
+
+B<Important!> Both C<SELECT false;> and C<SELECT true;> queries will successfully
+pass C<verify> step. Only queries that raise an exception will fail.
+
 Such functionality may not be available to other databases, but you can use
 I<any> query that will throw an exception if the schema doesn't exist. One
 handy way to do that is to divide by zero if an object doesn't exist. So for
@@ -202,6 +209,27 @@ other databases, assuming division by zero is fatal, you could do something
 like this:
 
   SELECT 1/COUNT(*) FROM information_schema.schemata WHERE schema_name = 'flipr';
+
+In Postgres 9.5+ you can use C<PL/pgSQL> anonymous functions with
+C<ASSERT> / C<RAISE> statements.
+
+  DO $$
+  BEGIN
+     ASSERT (SELECT has_schema_privilege('flipr', 'usage'));
+  END $$;
+
+You can use variables to perform more complex checks:
+
+  DO $$
+  DECLARE
+      result varchar;
+  BEGIN
+     result := (SELECT name FROM flipr.pipelines WHERE id = 1);
+     ASSERT result = 'Example';
+  END $$;
+
+This example ensures the record with C<id=1> in C<pipelines> table
+has C<name> field equals C<'Example'>.
 
 Either way, run the C<verify> script with the L<C<verify>|sqitch-verify>
 command:
