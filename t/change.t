@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 97;
+use Test::More tests => 92;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use App::Sqitch;
@@ -33,8 +33,6 @@ can_ok $CLASS, qw(
     name
     info
     id
-    old_info
-    old_id
     lspace
     rspace
     note
@@ -184,18 +182,6 @@ is $change->as_string, "foo $ts " . $change->format_planner,
     'should stringify to "foo" + planner';
 is $change->since_tag, undef, 'Since tag should be undef';
 is $change->parent, undef, 'Parent should be undef';
-is $change->old_info, join("\n",
-   'project change',
-   'change foo',
-   'planner ' . $change->format_planner,
-   'date ' . $change->timestamp->as_string,
-), 'Old change info should be correct';
-is $change->old_id, do {
-    my $content = encode_utf8 $change->old_info;
-    Digest::SHA->new(1)->add(
-        'change ' . length($content) . "\0" . $content
-    )->hexdigest;
-},'Old change ID should be correct';
 
 is $change->info, join("\n",
    'project change',
@@ -261,13 +247,6 @@ ok $change2->is_revert, 'It should be a revert change';
 is $change2->action, 'revert', 'It should say so';
 is $change2->since_tag, $tag, 'It should have a since tag';
 is $change2->parent, $change, 'It should have a parent';
-is $change2->old_info, join("\n",
-   'project change',
-   'uri https://github.com/sqitchers/sqitch/',
-   'change yo/howdy',
-   'planner Barack Obama <potus@whitehouse.gov>',
-   'date 2012-07-16T17:25:07Z'
-), 'Old info should not since tag';
 
 is $change2->info, join("\n",
    'project change',
@@ -404,20 +383,6 @@ ok $change2 = $CLASS->new(
     name => '阱阪阬',
     plan => $plan2,
 ), 'Create change with UTF-8 name';
-is $change2->old_info, join("\n",
-    'project ' . 'multi',
-    'uri '     . $uri->canonical,
-    'change '  . '阱阪阬',
-    'planner ' . $change2->format_planner,
-    'date '    . $change2->timestamp->as_string,
-), 'The name should be decoded text in old info';
-
-is $change2->old_id, do {
-    my $content = Encode::encode_utf8 $change2->old_info;
-    Digest::SHA->new(1)->add(
-        'change ' . length($content) . "\0" . $content
-    )->hexdigest;
-},'Old change ID should be hashed from encoded UTF-8';
 
 is $change2->info, join("\n",
     'project ' . 'multi',

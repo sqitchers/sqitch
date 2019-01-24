@@ -893,13 +893,6 @@ sub _sync_plan {
             file   => $plan->file,
         );
 
-        my $change = $plan->change_at($idx);
-        if ($state->{change_id} eq $change->old_id) {
-            # Old IDs need to be replaced.
-            $idx    = $self->_update_ids;
-            $change = $plan->change_at($idx);
-        }
-
         # Upgrade the registry if there is no script_hash column.
         unless ( exists $state->{script_hash} ) {
             $self->upgrade_registry;
@@ -911,6 +904,7 @@ sub _sync_plan {
             && $state->{script_hash} eq $state->{change_id};
 
         $plan->position($idx);
+        my $change = $plan->change_at($idx);
         if (my @tags = $change->tags) {
             $self->log_new_tags($change);
             $self->start_at( $change->format_name . $tags[-1]->format_name );
@@ -922,16 +916,6 @@ sub _sync_plan {
         $plan->reset;
     }
     return $plan;
-}
-
-sub _update_ids {
-    # We do nothing but inform, by default.
-    my $self = shift;
-    $self->sqitch->info(__x(
-        'Updating legacy change and tag IDs in {destination}',
-        destination => $self->destination,
-    ));
-    return $self;
 }
 
 sub is_deployed {

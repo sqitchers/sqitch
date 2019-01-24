@@ -132,7 +132,6 @@ sub change($) {
     $seen{ $p->{name} } = $prev_change;
     if ($vivify) {
         $prev_change->id;
-        $prev_change->old_id;
         $prev_change->tags;
     }
     return $prev_change;
@@ -150,7 +149,7 @@ sub tag($) {
         %{ $p },
     );
     $prev_change->add_tag($prev_tag);
-    $prev_tag->id, $prev_tag->old_id if $vivify;
+    $prev_tag->id, if $vivify;
     return $ret ? $prev_tag : ();
 }
 

@@ -42,7 +42,6 @@ my @load_changes;
 my $offset_change;
 my $die = '';
 my $record_work = 1;
-my $updated_idx;
 my ( $earliest_change_id, $latest_change_id, $initialized );
 my $registry_version = $CLASS->registry_release;
 my $script_hash;
@@ -87,7 +86,6 @@ ENGINE: {
     sub mock_check_revert  { shift; push @SEEN => [ check_revert_dependencies => [@_] ] }
     sub begin_work         { push @SEEN => ['begin_work']  if $record_work }
     sub finish_work        { push @SEEN => ['finish_work'] if $record_work }
-    sub _update_ids        { push @SEEN => ['_update_ids']; $updated_idx }
     sub log_new_tags       { push @SEEN => [ log_new_tags => $_[1] ]; $_[0] }
     sub _update_script_hashes { push @SEEN => ['_update_script_hashes']; $_[0] }
 
@@ -887,14 +885,12 @@ is_deeply $engine->seen, [['current_state', undef]],
     'Still should not have updated IDs or hashes';
 
 # Have latest_item return a tag.
-$latest_change_id = $changes[1]->old_id;
-$updated_idx = 2;
+$latest_change_id = $changes[2]->id;
 ok $engine->_sync_plan, 'Sync the plan to a tag';
-is $plan->position, 2, 'Plan should now be at position 1';
+is $plan->position, 2, 'Plan should now be at position 2';
 is $engine->start_at, 'widgets@beta', 'start_at should now be widgets@beta';
 is_deeply $engine->seen, [
     ['current_state', undef],
-    ['_update_ids'],
     ['log_new_tags' => $plan->change_at(2)],
 ], 'Should have updated IDs';
 
@@ -905,7 +901,6 @@ is $plan->position, 2, 'Plan should now be at position 1';
 is $engine->start_at, 'widgets@beta', 'start_at should now be widgets@beta';
 is_deeply $engine->seen, [
     ['current_state', undef],
-    ['_update_ids'],
     ['log_new_tags' => $plan->change_at(2)],
 ], 'Should have updated IDs but not hashes';
 
@@ -916,7 +911,6 @@ is $plan->position, 2, 'Plan should now be at position 1';
 is $engine->start_at, 'widgets@beta', 'start_at should now be widgets@beta';
 is_deeply $engine->seen, [
     ['current_state', undef],
-    ['_update_ids'],
     ['_update_script_hashes'],
     ['log_new_tags' => $plan->change_at(2)],
 ], 'Should have updated IDs and hashes';

@@ -168,13 +168,11 @@ sub append {
         push @{ $list } => $change;
         push @{ $lookup->{ $change->format_name } } => $#$list;
         $lookup->{ $change->id } = my $pos = [$#$list];
-        $lookup->{ $change->old_id } = $pos;
 
         # Index on the tags, too.
         for my $tag ($change->tags) {
             $lookup->{ $tag->format_name } = $pos;
             $lookup->{ $tag->id }          = $pos;
-            $lookup->{ $tag->old_id }      = $pos;
             $self->{last_tagged_at} = $#$list;
         }
     }
@@ -191,7 +189,6 @@ sub index_tag {
     my $lookup = $self->{lookup};
     my $pos = [$index];
     $lookup->{ $tag->id } = $pos;
-    $lookup->{ $tag->old_id } = $pos;
     $lookup->{ $tag->format_name } = $pos;
     $self->{last_tagged_at} = $index if $index == $#{ $self->{list} };
     return $self;
