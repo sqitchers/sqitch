@@ -1,13 +1,9 @@
 Revision history for Perl extension App::Sqitch
 
 0.9999
+     [Bug Fixes]
      - Fixed a test failure with the MySQL max limit value, mostly exhibited
        on BSD platforms.
-     - The Snowflake engine now consults the `connections.warehousename`,
-       `connections.dbname`, and `connections.rolename` variables in the
-       SnowSQL configuration file (`~/.snowsql/config`) before falling back on
-       the hard-coded warehouse name "sqitch" and using the system username as
-       the database name and no default for the role.
      - Removed fallback in the PostgreSQL engine on the `$PGUSER` and
        `$PGPASSWORD` environnement variables, as well as the system username,
        since libpq does all that automatically, and collects data from other
@@ -22,15 +18,26 @@ Revision history for Perl extension App::Sqitch
        be specified if functionality as of a particular tag is required.
      - Added a workaround for the shell quoting issue on Windows. Applies to
        IPC::System::Simple 1.29 and lower. See
-       https://github.com/pjf/ipc-system-simple/pull/29 for details (#413).
-     - Switched to using a constant internally to optimize windows-specific
-       code paths at compile time.
+       [pjf/ipc-system-simple#29](https://github.com/pjf/ipc-system-simple/pull/29)
+       for details (#413).
      - Fixed an issue with the MariaDB client where a deploy, revert, or
        verify failure was not properly propagated to Sqitch. Sqitch now passes
        `--abort-source-on-error` to the Maria `mysql` client to ensure that
        SQL errors cause the client to abort with an error so that Sqitch can
        properly handle it. Thanks to @mvgrimes for the original report and,
        years later, the fix (#209).
+     - Fixed an issue with command argument parsing so that it truly never
+       returns a target without an engine specified, as documented.
+     - Removed documentation for methods that don't exist.
+
+     [Improvements]
+     - The Snowflake engine now consults the `connections.warehousename`,
+       `connections.dbname`, and `connections.rolename` variables in the
+       SnowSQL configuration file (`~/.snowsql/config`) before falling back on
+       the hard-coded warehouse name "sqitch" and using the system username as
+       the database name and no default for the role.
+     - Switched to using a constant internally to optimize windows-specific
+       code paths at compile time.
      - When `deploy` detects undeployed dependencies, it now eliminates
        duplicates before listing them in the error message.
      - Now requiring IO::Pager v0.34 or later for its more consistent
@@ -50,27 +57,22 @@ Revision history for Perl extension App::Sqitch
        `core.engine` is set. This change eliminates the need for the
        `no_default` parameter to the `parse_args()` method of App::Sqitch
        Command. It also greatly reduces the need for the core `--engine`
-       option, which was previously required to work around this issue.
-     - Now that deriving the engine from arguments is always supported, the
-       error when no engine can be determined has no longer mentions
-       `--engine` and instead suggests setting the engine via the target.
-     - Fixed an issue with command argument parsing so that it truly never
-       returns a target without an engine specified, as documented.
-     - Removed documentation for methods that don't exist.
+       option, which was previously required to work around this issue (see
+       below for its removal).
      - Refactored config handling in tests to use a custom subclass of
        App::Sqitch::Config instead of various mocks, temporary files, and the
        like.
 
      [Target Variables]
-     - The verify command now reads `deploy.variables`, and individual
+     - The `verify` command now reads `deploy.variables`, and individual
        `verify.variables override `deploy.variables`, on the assumption that
        the verify variables in general ought to be the same as the deploy
        variables. This makes `verify` variable configuration consistent with
        `revert` variable configuration.
      - Variables set via the `--set-deploy` option on the `rebase` and
-       `checkout` no longer apply to both reverts and deploys, but only
-       deploys. Use the `--set` option to apply a variable to both reverts and
-       deploys.
+       `checkout` commands no longer apply to both reverts and deploys, but
+       only deploys. Use the `--set` option to apply a variable to both
+       reverts and deploys.
      - Added support for core, engine, and target variable configuration. The
        simplest way to use them is via the `--set` option on the `init`,
        `engine`, and `target` commands. These commands allow the configuration
@@ -78,15 +80,15 @@ Revision history for Perl extension App::Sqitch
        as defaults that apply to all change execution commands (`deploy`,
        `revert`, `verify`, `rebase`, and `checkout`). The commands merge the
        variables from each level in this priority order:
-       * `--set-deploy` and `--set-revert` options on `rebase` and `checkout`.
+       * `--set-deploy` and `--set-revert` options on `rebase` and `checkout`
        * `--set` option
        * `target.$target.variables`
        * `engine.$engine.variables`
        * `deploy.variables`, `revert.variables`, and `verify.variables`
        * `core.variables`
-       See `sqitch-configuration` for general documentation of of the hierarchy
-       for merging variables and the documentation for each command for
-       specifics.
+       See `sqitch-configuration` for general documentation of of the
+       hierarchy for merging variables and the documentation for each command
+       for specifics.
 
      [Options Unification]
      - Added the `--chdir`/`--cd`/`-C` option to specify a directory to change
@@ -99,7 +101,7 @@ Revision history for Perl extension App::Sqitch
        is that command options that take arguments should either appear after
        the command or use the `--opt=val` syntax instead of `--opt val`, so
        that Sqitch doesn't think `val` is the command. Even in that case, it
-       will keep searching the rest of the arguments to find a valid command.
+       will search the rest of the arguments to find a valid command.
        However, to minimize this challenge, the documentation now suggests
        and demonstrates putting all options after the command, like so:
        `sqitch [command] [options]`.
@@ -119,19 +121,21 @@ Revision history for Perl extension App::Sqitch
        has been added as an alias for `--version`, although `-v` remains for
        now, undocumented. It may be removed in the future should a compelling
        use for `-v` in a command be discovered.
-     - All other options have been moved to the commands they affect. Their use
-       should remain mostly unchanged now that command options are parsed from
-       anywhere on the command-line, although we recommend that all options
-       come after commands. The options were moved as follows:
-       * --registry, --client, --db-name, --db-user, --db-host, and --db-port
-         (and their aliases) have been moved to the checkout, deploy, log,
-         rebase, revert, status, upgrade, and verify commands.
-       * --plan-file and --top-dir have been moved to the add, bundle,
-         checkout, deploy, rebase, revert, rework, show, status, tag, and
-         verify commands. They were already supported by the init, engine,
-         and target commands.
-     - Because some command options conflicted with core options, a few options
-       have been removed altogether, including:
+     - All other options have been moved to the commands they affect. Their
+       use should remain mostly unchanged now that command options are parsed
+       from anywhere on the command-line, although we recommend that all
+       options come after commands. The options were moved as follows:
+       * `--registry`, `--client`, `--db-name`, `--db-user`, `--db-host`, and
+         `--db-port` (and their aliases) have been moved to the `checkout`,
+         `deploy`, `log`, `rebase`, `revert`, `status`, `upgrade`, and
+         `verify` commands.
+       * `--plan-file` and `--top-dir` (deprecated; see below) have been moved
+         to the `add`, `bundle`, `checkout`, `deploy`, `rebase`, `revert`,
+         `rework`, `show`, `status`, `tag`, and `verify` commands. They were
+         already supported by the `init`, `engine`, and `target` commands
+         (where `--top-dir` is not deprecated).
+     - Because some command options conflicted with core options, a few
+       options have been removed altogether, including:
        * The `--verbose` option on the `--engine` and `--target` commands has
          been removed, but no visible change should be apparent, since those
          commands now read the core `--verbose` option.
@@ -144,78 +148,85 @@ Revision history for Perl extension App::Sqitch
        * Added tests for all commands to ensure none of their options conflict
          with core options. Will help prevent conflicts in the future.
 
-     [Removed Features]
-     - Deprecated the `--top-dir` option in favor of `--chdir`, except when
-       used for configuration in the init, engine, and target commands. Use
-       of the deprecated option will trigger a warning that recommends
-       using `--chdir` instead.
+     [Deprecations & Removals]
+     - Deprecated the `--top-dir` option in favor of `--chdir` with a warning
+       except when used for configuration in the `init`, `engine`, and
+       `target` commands.
      - Removed the core `--deploy-dir`, `--revert-dir`, and `--verify-dir`
        options, which have been deprecated and triggering warnings since
-       v0.9993. The `--dir` option to the `init`, `engine`, and `target`
-       commands remains the favored interface for specifying script
+       v0.9993 (August 2015). The `--dir` option to the `init`, `engine`, and
+       `target` commands remains the favored interface for specifying script
        directories.
      - Removed the deprecated core `--engine` option. The `init` command still
        supports it, while other commands are able to parse the engine name as
        an argument — e.g., `sqitch deploy mysql` — or implicitly as part of a
-       target, as in `sqitch revert db:pg:tryme`.
+       target, as in `sqitch revert db:pg:tryme`. When Sqitch is unable to
+       determine the engine for a command, the error message no longer
+       mentions `--engine` and instead suggests specifying the engine via the
+       target. This option never triggered an error, but demonstration of its
+       use has been limited to `init` examples.
      - Removed support for reading the `core.$engine` configuration, which has
-       been deprecated with warnings in favor of `engine.$engine` since 0.997.
-       The `sqitch engine update-config` action remains available to update old
-       configurations.
+       been deprecated with warnings in favor of `engine.$engine` since 0.997
+       (November 2014). The `sqitch engine update-config` action remains
+       available to update old configurations, but may be removed in the
+       future.
      - Removed the `--deploy`, `--revert`, and `--verify` options on the `add`
        command, as well as their `--no-*` variants. They have been deprecated
        with warnings in favor of the `--with` and `--without` options since
-       v0.990.
+       v0.990 (January 2014).
      - Removed the `--deploy-template`, `--revert-template`, and
        `--verify-template` options to the `add` command. They have been
-	     deprecated with warnings in favor of the `--use` option since v0.990.
+       deprecated with warnings in favor of the `--use` option since v0.990
+       (January 2014).
      - Removed the `add.deploy_template`, `add.revert_template`, and
-	     `add.verify_template` configuration settings. They have been deprecated
-	     with warnings in favor of the `add.templates` configuration section
-       since v0.990.
+	   `add.verify_template` configuration settings. They have been deprecated
+	   with warnings in favor of the `add.templates` configuration section
+       since v0.990 (January 2014).
      - Removed the `@FIRST` and `@LAST` symbolic tags, which have been
        deprecated with warnings in favor of `@ROOT` and `@HEAD`, respectively,
-       since 0.997.
+       since 0.997 (November 2014).
      - Removed the command-specific options with the string "target" in them,
-       such as `--to-target`, `--upto-target`, which have been deprecated
-       with warnings in in favor of options containing the string "change",
-       such as `--to-change` and `--upto-change`, since v0.997.
+       such as `--to-target`, `--upto-target`, which have been deprecated with
+       warnings in in favor of options containing the string "change", such as
+       `--to-change` and `--upto-change`, since v0.997 (November 2014).
      - Remove the `engine` and `target` command `set-*` actions and their
-       corresponding methods, which have been deprecated in favor of the `alter`
-       action since v0.9993.
+       corresponding methods, which have been deprecated in favor of the
+       `alter` action since v0.9993 (August 2015).
      - Removed the automatic updating of change and tag IDs in the Postgres
-       engine. This functionality was added in v0.940, when Postgres was the
-       only engine, and the SHA-1 hash for change and tag IDs was changed. There
-       were very few deployments at the time, and all should long since have
-       been updated.
+       engine. This functionality was added in v0.940 (December 2012), when
+       Postgres was the only engine, and the SHA-1 hash for change and tag IDs
+       was changed. There were very few deployments at the time, and all
+       should long since have been updated.
 
      [API Changes]
      - Added the URI-overriding parameters `user`, `host`, `port`, and
-       `dbname` to App::Sqitch::Target so that command options can be used
-       to easily set them.
+       `dbname` to App::Sqitch::Target so that command options can be used to
+       easily set them.
      - Added support for passing attribute parameters to the `all_targets`
        group constructor on App::Sqitch::Target, so that command-line options
        can be used to assign attributes to all targets read from the
        configuration.
      - Aded the `target_params` method to App::Sqitch::Command and updated all
        commands to use it when constructing targets. This allows commands to
-       easily add options for parameters to be passed to the Target
-       constructors, as required for the options unification documented above.
+       define options for Target parameters, as required for moving options to
+       commands as described above.
      - Added the `class_for` method to App::Sqitch::Command so that the new
        options parser described above can load a command class without
        instantiating an instance. Useful for searching command-line arguments
        for a command name.
      - Added the `create` constructor to App::Sqitch::Command to let Sqitch
-       instantiate an instance of a command with arguments once it finds one
-       via `class_for`.
-     - Added the ConnectingCommand role to abstract handling command options
-       for connecting to a database.
-     - Added the ContextCommand role to abstract handling command options for
-       the location of the plan file and top directory. This is also where
-       use of the deprecated form of `--top-dir` triggers a warning.
-     - Removed the `verbosity` attribute from App::Sqitch::Command::engine
-       and App::Sqitch::Command::target, since the option is no longer needed.
-       These commands now rely on the core `--verbose` option.
+       instantiate an instance of a command once it finds one via `class_for`.
+       Previously, Sqitch used the `load` method, which handled the
+       functionality of both `class_for` and `create`. That method still
+       exists but is used only in tests.
+     - Added the ConnectingCommand role to define database connection options
+       for the commands that need them.
+     - Added the ContextCommand role to define command options for the
+       location of the plan file and top directory. This is also where use of
+       the deprecated form of `--top-dir` triggers a warning.
+     - Removed the `verbosity` attribute from App::Sqitch::Command::engine and
+       App::Sqitch::Command::target, since the `--verbose` option is no longer
+       needed. These commands now rely on the core `--verbose` option.
      - Removed the copying of core options from the target class and
        TargetConfigCommand role, since the attributes fetched from there are
        no longer core options, but provided as attribute parameters to the
@@ -225,12 +236,14 @@ Revision history for Perl extension App::Sqitch
        used by Sqitch. It always fetched the config from the required `sqitch`
        parameter. Support for the `config` parameter has not been removed,
        since third-parties might use it.
-     - Removed the `set_*` methods in the `engine` and `target` commands, which
-       have been deprecated in favor of the new `alter` method since v0.9993.
+     - Removed the `set_*` methods in the `engine` and `target` commands,
+       which have been deprecated in favor of the new `alter` method since
+       v0.9993 (August 2015).
      - Removed the `old_id` and `old_info` methods from Change and Tag, which
-       date from v0.940, and were provided only to allow existing Postgres
-       databases to be updated from the old to new ID format, now removed. There
-       should be no other use case for these methods.
+       date from v0.940 (December 2012), and were provided only to allow
+       existing Postgres databases to be updated from the old to new ID
+       format, now removed. There should be no other use case for these
+       methods.
 
 0.9998 2018-10-03T20:53:58Z
      - Fixed an issue where Sqitch would sometimes truncate the registry
@@ -263,8 +276,8 @@ Revision history for Perl extension App::Sqitch
      - The plan parser will now complain if a change specifies a duplicate
        dependency. This should be less confusing than a database unique
        violation. Thanks to Eric Bréchemier for the suggestion (#344).
-     - Moved the project to its own GitHub organization:
-       https://github.com/sqitchers.
+     - Moved the project to its own GitHub organization,
+       [Sqitchers](https://github.com/sqitchers).
      - Fixed likely cause of Oracle buffer allocation bug when selecting
        timestamp strings. Thanks to @johannwilfling for the bug report and to
        @nmaqsudov for the analysis and solution (#316).
