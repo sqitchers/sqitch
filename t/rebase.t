@@ -42,8 +42,6 @@ ok $CLASS->does("App::Sqitch::Role::$_"), "$CLASS does $_"
 is_deeply [$CLASS->options], [qw(
     onto-change|onto=s
     upto-change|upto=s
-    onto-target=s
-    upto-target=s
     plan-file|f=s
     top-dir=s
     registry=s
@@ -193,7 +191,7 @@ CONFIG: {
 
     # Try setting variables.
     is_deeply $CLASS->configure($config, {
-        onto_target => 'whu',
+        onto_change => 'whu',
         set         => { foo => 'yo', yo => 'stellar' },
     }), {
         mode             => 'all',
@@ -206,11 +204,7 @@ CONFIG: {
         _params          => [],
         _cx              => [],
     }, 'Should have merged variables';
-    is_deeply +MockOutput->get_warn, [[__x(
-        'Option --{old} has been deprecated; use --{new} instead',
-        old => 'onto-target',
-        new => 'onto-change',
-    )]], 'Should get warning for deprecated --onto-target';
+    is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
     # Make sure we can override mode, prompting, and verify.
     $config->replace(

@@ -97,74 +97,6 @@ sub alter {
     $self->make_directories_for( $self->config_target(name => $target) );
 }
 
-# XXX Begin deprecated.
-
-sub _set {
-    my ($self, $key, $name, $value) = @_;
-    $self->usage unless $name && $value;
-    (my $opt = $key) =~ s/_/-/g;
-    $self->sqitch->warn(__x(
-        qq{  The "{old}" action is deprecated;\n  Instead use "{new}".},
-        old => "set-$key $name $value",
-        new => "alter $key --$opt $value",
-    ));
-
-    my $config = $self->sqitch->config;
-    my $target = "target.$name";
-
-    hurl target => __x(
-        'Unknown target "{target}"',
-        target => $name
-    ) unless $config->get( key => "$target.uri");
-
-    $config->set(
-        key      => "$target.$key",
-        value    => $value,
-        filename => $config->local_file,
-    );
-    return $self;
-}
-
-my %normalizer_for = (
-    top_dir   => sub { $_[0] ? dir($_[0])->cleanup : undef },
-    plan_file => sub { $_[0] ? file($_[0])->cleanup : undef },
-    client    => sub { $_[0] },
-);
-
-$normalizer_for{"$_\_dir"} = $normalizer_for{top_dir} for qw(deploy revert verify);
-$normalizer_for{$_} = $normalizer_for{client} for qw(registry extension);
-
-sub set_url { shift->set_uri(@_) };
-sub set_uri {
-    my ($self, $name, $uri) = @_;
-    $self->_set(
-        'uri',
-        $name,
-        $uri ? URI::db->new($uri, 'db:')->as_string : undef
-    );
-}
-
-sub set_registry  { shift->_set('registry',  @_) }
-sub set_client    { shift->_set('client',    @_) }
-sub set_extension { shift->_set('extension', @_) }
-
-sub _set_dir {
-    my ($self, $key, $name, $dir) = @_;
-    $self->_set( $key, $name, $normalizer_for{top_dir}->($dir) );
-}
-
-sub set_top_dir    { shift->_set_dir('top_dir',    @_) }
-sub set_deploy_dir { shift->_set_dir('deploy_dir', @_) }
-sub set_revert_dir { shift->_set_dir('revert_dir', @_) }
-sub set_verify_dir { shift->_set_dir('verify_dir', @_) }
-
-sub set_plan_file {
-    my ($self, $name, $file) = @_;
-    $self->_set( 'plan_file', $name, $normalizer_for{plan_file}->($file) );
-}
-
-# XXX End deprecated.
-
 sub rm { shift->remove(@_) }
 sub remove {
     my ($self, $name) = @_;
@@ -359,44 +291,6 @@ Implements the C<remove> action.
 =head3 C<rename>
 
 Implements the C<rename> action.
-
-=head3 C<set_client>
-
-Implements the C<set-client> action.
-
-=head3 C<set_registry>
-
-Implements the C<set-registry> action.
-
-=head3 C<set_uri>
-
-=head3 C<set_url>
-
-Implements the C<set-uri> action.
-
-=head3 C<set_top_dir>
-
-Implements the C<set-top-dir> action.
-
-=head3 C<set_plan_file>
-
-Implements the C<set-plan-file> action.
-
-=head3 C<set_deploy_dir>
-
-Implements the C<set-deploy-dir> action.
-
-=head3 C<set_revert_dir>
-
-Implements the C<set-revert-dir> action.
-
-=head3 C<set_verify_dir>
-
-Implements the C<set-verify-dir> action.
-
-=head3 C<set_extension>
-
-Implements the C<set-extension> action.
 
 =head3 C<show>
 

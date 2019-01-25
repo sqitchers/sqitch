@@ -298,9 +298,9 @@ sub _find_cmd {
         my $arg = $args->[$i] or next;
         if ($arg =~ /^-/) {
             last if $arg eq '--';
-            # Skip the next argument if this looks like a legacy option. There
-            # shouldn't be many since we now recommend putting options after
-            # the command. XXX Remove at some future date.
+            # Skip the next argument if this looks like a pre-0.9999 option.
+            # There shouldn't be many since we now recommend putting options
+            # after the command. XXX Remove at some future date.
             $i++ if $arg =~ /^(?:-[duhp])|(?:--(?:db-\w+|client|engine|extension|plan-file|registry|top-dir))$/;
             next;
         }

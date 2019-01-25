@@ -33,6 +33,7 @@ around options => sub {
 around configure => sub {
     my ( $orig, $class, $config, $opt ) = @_;
 
+    # DEPRECATTION: --top-dir deprecated in v0.9999. Remove at some point.
     App::Sqitch->warn(__x(
         "  Option --top-dir is deprecated for {command} and other non-configuration commands.\n  Use --chdir instead.",
         command => $class->command,

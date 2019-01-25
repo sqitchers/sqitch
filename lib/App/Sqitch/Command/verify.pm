@@ -44,8 +44,6 @@ sub options {
         target|t=s
         from-change|from=s
         to-change|to=s
-        from-target=s
-        to-target=s
         set|s=s%
     );
 }
@@ -58,18 +56,6 @@ sub configure {
     } grep {
         exists $opt->{$_}
     } qw(target from_change to_change);
-
-    # Handle deprecated options.
-    for my $key (qw(from to)) {
-        if (my $val = $opt->{"$key\_target"}) {
-            App::Sqitch->warn(__x(
-                'Option --{old} has been deprecated; use --{new} instead',
-                old => "$key-target",
-                new => "$key-change",
-            ));
-            $params{"$key\_change"} ||= $val;
-        }
-    }
 
     if ( my $vars = $opt->{set} ) {
         $params{variables} = $vars;

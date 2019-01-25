@@ -82,13 +82,6 @@ is_deeply [$CLASS->options], [qw(
     without=s@
     use=s%
     open-editor|edit|e!
-
-    deploy-template=s
-    revert-template=s
-    verify-template=s
-    deploy!
-    revert!
-    verify!
     plan-file|f=s
     top-dir=s
 )], 'Options should be set up';

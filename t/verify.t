@@ -37,8 +37,6 @@ is_deeply [$CLASS->options], [qw(
     target|t=s
     from-change|from=s
     to-change|to=s
-    from-target=s
-    to-target=s
     set|s=s%
     plan-file|f=s
     top-dir=s

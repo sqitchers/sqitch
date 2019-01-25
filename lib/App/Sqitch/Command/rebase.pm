@@ -31,32 +31,15 @@ sub options {
     return qw(
         onto-change|onto=s
         upto-change|upto=s
-        onto-target=s
-        upto-target=s
     );
 }
 
 sub configure {
     my ( $class, $config, $opt ) = @_;
-
-    my $p = { map { $_ => $opt->{$_} } grep { exists $opt->{$_} } qw(
+    return { map { $_ => $opt->{$_} } grep { exists $opt->{$_} } qw(
         onto_change
         upto_change
     ) };
-
-    # Handle deprecated options.
-    for my $key (qw(onto upto)) {
-        if (my $val = $opt->{"$key\_target"}) {
-            App::Sqitch->warn(__x(
-                'Option --{old} has been deprecated; use --{new} instead',
-                old => "$key-target",
-                new => "$key-change",
-            ));
-            $p->{"$key\_change"} ||= $val;
-        }
-    }
-
-    return $p;
 }
 
 sub execute {

@@ -353,7 +353,7 @@ DBIEngineTest->run(
         return 0 unless $cmd_echo =~ m{Firebird}ims;
         # Skip if no DBD::Firebird.
         return 0 unless $have_fb_driver;
-        diag "Connected to Firebird $fb_version" if $fb_version;
+        say "# Connected to Firebird $fb_version" if $fb_version;
         return 1;
     },
     engine_err_regex  => qr/\QDynamic SQL Error\E/xms,

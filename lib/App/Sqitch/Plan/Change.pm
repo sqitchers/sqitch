@@ -143,35 +143,6 @@ has id => (
     }
 );
 
-has old_info => (
-    is       => 'ro',
-    isa      => Str,
-    lazy     => 1,
-    default  => sub {
-        my $self = shift;
-        return join "\n", (
-            'project ' . $self->project,
-            ( $self->uri ? ( 'uri ' . $self->uri->canonical ) : () ),
-            'change '  . $self->format_name,
-            'planner ' . $self->format_planner,
-            'date '    . $self->timestamp->as_string,
-        );
-    }
-);
-
-has old_id => (
-    is       => 'ro',
-    isa      => Str,
-    lazy     => 1,
-    default  => sub {
-        my $content = encode_utf8 shift->old_info;
-        require Digest::SHA;
-        return Digest::SHA->new(1)->add(
-            'change ' . length($content) . "\0" . $content
-        )->hexdigest;
-    }
-);
-
 has timestamp => (
     is       => 'ro',
     isa      => DateTime,

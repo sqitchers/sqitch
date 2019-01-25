@@ -48,38 +48,6 @@ has id => (
     }
 );
 
-has old_info => (
-    is       => 'ro',
-    isa      => Str,
-    lazy     => 1,
-    default  => sub {
-        my $self = shift;
-        my $plan = $self->plan;
-
-        return join "\n", (
-            'project ' . $self->project,
-            ( $self->uri ? ( 'uri ' . $self->uri->canonical ) : () ),
-            'tag '     . $self->format_name,
-            'change '  . $self->change->id,
-            'planner ' . $self->format_planner,
-            'date '    . $self->timestamp->as_string,
-        );
-    }
-);
-
-has old_id => (
-    is       => 'ro',
-    isa      => Str,
-    lazy     => 1,
-    default  => sub {
-        my $content = encode_utf8 shift->old_info;
-        require Digest::SHA;
-        return Digest::SHA->new(1)->add(
-            'tag ' . length($content) . "\0" . $content
-        )->hexdigest;
-    }
-);
-
 has change => (
     is       => 'ro',
     isa      => Change,
