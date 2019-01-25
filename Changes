@@ -62,6 +62,8 @@ Revision history for Perl extension App::Sqitch
      - Refactored config handling in tests to use a custom subclass of
        App::Sqitch::Config instead of various mocks, temporary files, and the
        like.
+     - Added advice to use the PL/pgSQL `ASSERT()` function for verify scripts
+       to the Postgres tutorial. Thanks to Sergii Tkachenko for the PR (#425).
 
      [Target Variables]
      - The `verify` command now reads `deploy.variables`, and individual
