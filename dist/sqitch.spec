@@ -307,6 +307,12 @@ also be installed.
 # No additional files required.
 
 %changelog
+* Fri Feb 1 2019 David E. Wheeler <david.wheeler@iovation.com> 0.9999-1
+- Upgrade to v0.9999.
+- Added requirement for IO::Pager 0.34 or higher.
+- Added Test::Warn build requirement.
+- Removed cross-project dependency patch, since it's part of v0.99999.
+
 * Wed Oct 3 2018 David E. Wheeler <david.wheeler@iovation.com> 0.9998-1
 - Upgrade to v0.9998.
 - Added sqitch-snowflake package.
