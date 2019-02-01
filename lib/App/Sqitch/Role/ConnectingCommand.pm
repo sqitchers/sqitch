@@ -7,7 +7,7 @@ use utf8;
 use Moo::Role;
 use App::Sqitch::Types qw(ArrayRef);
 
-our $VERSION = '0.9999';
+use SemVer; our $VERSION = SemVer->new('1.0.0-a1');
 
 requires 'options';
 requires 'configure';

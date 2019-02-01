@@ -14,7 +14,7 @@ use namespace::autoclean;
 extends 'App::Sqitch::Command';
 with 'App::Sqitch::Role::ContextCommand';
 
-our $VERSION = '0.9999';
+use SemVer; our $VERSION = SemVer->new('1.0.0-a1');
 
 has tag_name => (
     is  => 'ro',

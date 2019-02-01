@@ -1,5 +1,7 @@
 Revision history for Perl extension App::Sqitch
 
+1.0.0
+
 0.9999 2019-02-01T15:29:40Z
      [Bug Fixes]
      - Fixed a test failure with the MySQL max limit value, mostly exhibited

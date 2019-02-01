@@ -17,7 +17,7 @@ requires 'configure';
 with 'App::Sqitch::Role::ContextCommand';
 with 'App::Sqitch::Role::ConnectingCommand';
 
-our $VERSION = '0.9999';
+use SemVer; our $VERSION = SemVer->new('1.0.0-a1');
 
 has target => (
     is  => 'ro',

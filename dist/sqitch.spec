@@ -1,5 +1,5 @@
 Name:           sqitch
-Version:        0.9999
+Version:        1.0.1-a1
 Release:        1%{?dist}
 Summary:        Sane database change management
 License:        MIT
@@ -53,6 +53,7 @@ BuildRequires:  perl(Pod::Find)
 BuildRequires:  perl(Pod::Usage)
 BuildRequires:  perl(POSIX)
 BuildRequires:  perl(Scalar::Util)
+BuildRequires:  perl(SemVer)
 BuildRequires:  perl(StackTrace::Auto)
 BuildRequires:  perl(strict)
 BuildRequires:  perl(String::Formatter)
@@ -120,6 +121,7 @@ Requires:       perl(Pod::Find)
 Requires:       perl(Pod::Usage)
 Requires:       perl(POSIX)
 Requires:       perl(Scalar::Util)
+Requires:       perl(SemVer)
 Requires:       perl(StackTrace::Auto)
 Requires:       perl(strict)
 Requires:       perl(String::Formatter)
