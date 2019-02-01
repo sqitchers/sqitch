@@ -43,16 +43,15 @@ sub execute {
 
     my $engine = $target->engine;
 
-
     if ($engine->needs_upgrade) {
-        $self->info( __x(
+        $self->info(__x(
             'Upgrading registry {registry} to version {version}',
             registry => $engine->registry_destination,
             version  => $engine->registry_release,
         ));
         $engine->upgrade_registry;
     } else {
-        $self->info( __x(
+        $self->info(__x(
             'Registry {registry} is up-to-date at version {version}',
             registry => $engine->registry_destination,
             version  => $engine->registry_release,

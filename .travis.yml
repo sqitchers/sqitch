@@ -190,7 +190,7 @@ jobs:
     - &exasol
       stage: ☀️ Exasol
       if: branch = master
-      env: EXASOL=6.1.0-d1
+      env: EXASOL=6.1.1-d1
       before_install:
         - source dev/linux-exasol
         - source dev/linux-prereqs

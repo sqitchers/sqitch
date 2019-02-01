@@ -29,6 +29,8 @@ Revision history for Perl extension App::Sqitch
      - Fixed an issue with command argument parsing so that it truly never
        returns a target without an engine specified, as documented.
      - Removed documentation for methods that don't exist.
+     - Fixed test failures due to a change in Encode v2.99 that's stricter
+       about `undef` arguments that should be defined.
 
      [Improvements]
      - The Snowflake engine now consults the `connections.warehousename`,

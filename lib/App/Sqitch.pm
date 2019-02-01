@@ -28,7 +28,7 @@ our $VERSION = '0.9999';
 BEGIN {
     # Force Locale::TextDomain to encode in UTF-8 and to decode all messages.
     $ENV{OUTPUT_CHARSET} = 'UTF-8';
-    bind_textdomain_filter 'App-Sqitch' => \&Encode::decode_utf8;
+    bind_textdomain_filter 'App-Sqitch' => \&Encode::decode_utf8, Encode::FB_DEFAULT;
 }
 
 # Okay to load Sqitch classes now that types are created.
