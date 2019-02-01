@@ -10,8 +10,8 @@ Revision history for Perl extension App::Sqitch
        sources that we did not (e.g., the password and connection service
        files). Thanks to Tom Bloor for the report (issue #410).
      - Changed dependency validation to prevent an error when a change required
-       from a different project has been reworked. Previously, when a when
-       requiring a change such as `foo:greeble`, Sqitch would raise an error if
+       from a different project has been reworked. Previously, when requiring a
+       change such as `foo:greeble`, Sqitch would raise an error if
        `foo:greeble` was reworked, suggesting that the dependency be
        tag-qualified to eliminate ambiguity. Now reworked dependencies may be
        required without tag-qualification, though tag-qualification should still
