@@ -4,6 +4,8 @@ Revision history for Perl extension App::Sqitch
      - Fixed test failure due to a hard-coded error message that may be
        localized on non-en-US hosts. Thanks to Slaven Rezić for the catch
        (#427).
+     - Now require Test::MockModule 0.17 to silence a warning during testing.
+       Thanks to Slaven Rezić for the suggestion.
 
 0.9999 2019-02-01T15:29:40Z
      [Bug Fixes]

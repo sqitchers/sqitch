@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use Test::More tests => 158;
 #use Test::More 'no_plan';
-use Test::MockModule;
+use Test::MockModule 0.17;
 use Path::Class;
 use Test::Exception;
 use Test::NoWarnings;
