@@ -30,6 +30,7 @@ jobs:
         # Can't use dzil to make a dist on windows, so depend on the previous
         # release for dependencies.
         - cpanm --no-interactive --no-man-pages --notest --installdeps App::Sqitch
+        - cpanm --no-interactive --no-man-pages --notest SemVer
       script:
         # No prove: https://rt.cpan.org/Public/Bug/Display.html?id=128221
         - ./dev/prove -lr t
