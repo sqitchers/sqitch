@@ -1,6 +1,9 @@
 Revision history for Perl extension App::Sqitch
 
 1.0.0
+     - Fixed test failure due to a hard-coded error message that may be
+       localized on non-en-US hosts. Thanks to Slaven Rezić for the catch
+       (#427).
 
 0.9999 2019-02-01T15:29:40Z
      [Bug Fixes]

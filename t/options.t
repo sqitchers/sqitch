@@ -196,13 +196,14 @@ is_deeply $opts, {}, 'Should have preserved no opts';
 CHDIE: {
     local $! = 9;
     $chdir_fail = 1;
+    my $exp_err = do { chdir 'nonesuch'; $! };
     throws_ok { $CLASS->_parse_core_opts(['-C', 'nonesuch']) }
         'App::Sqitch::X', 'Should get error when chdir fails';
     is $@->ident, 'fs', 'Error ident should be "fs"';
     is $@->message, __x(
         'Cannot change to directory {directory}: {error}',
         directory => 'nonesuch',
-        error     => 'Bad file descriptor',
+        error     => $exp_err,
     ), 'Error message should be correct';
 }
 
