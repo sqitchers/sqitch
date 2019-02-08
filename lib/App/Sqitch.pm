@@ -189,7 +189,7 @@ sub go {
     my $sqitch = $class->new({ options => $opts, config  => $config });
 
     # 4. Find the command.
-    my $cmd = $sqitch->_find_cmd(\@args);
+    my $cmd = $class->_find_cmd(\@args);
 
     # 5. Instantiate the command object.
     my $command = $cmd->create({
@@ -292,7 +292,7 @@ sub _parse_core_opts {
 }
 
 sub _find_cmd {
-    my ( $self, $args ) = @_;
+    my ( $class, $args ) = @_;
     my (@tried, $prev);
     for (my $i = 0; $i <= $#$args; $i++) {
         my $arg = $args->[$i] or next;
@@ -305,17 +305,17 @@ sub _find_cmd {
             next;
         }
         push @tried => $arg;
-        my $cmd = try { App::Sqitch::Command->class_for($self, $arg) } or next;
+        my $cmd = try { App::Sqitch::Command->class_for($class, $arg) } or next;
         splice @{ $args }, $i, 1;
         return $cmd;
     }
 
     # No valid command found. Report those we tried.
-    $self->vent(__x(
+    $class->vent(__x(
         '"{command}" is not a valid command',
         command => $_,
     )) for @tried;
-    ref($self)->_pod2usage('sqitchcommands');
+    $class->_pod2usage('sqitchcommands');
 }
 
 sub _pod2usage {
