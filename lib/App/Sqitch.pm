@@ -315,7 +315,7 @@ sub _find_cmd {
         '"{command}" is not a valid command',
         command => $_,
     )) for @tried;
-    $self->_pod2usage('sqitchcommands');
+    ref($self)->_pod2usage('sqitchcommands');
 }
 
 sub _pod2usage {

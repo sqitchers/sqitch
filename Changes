@@ -6,6 +6,8 @@ Revision history for Perl extension App::Sqitch
        (#427).
      - Now require Test::MockModule 0.17 to silence a warning during testing.
        Thanks to Slaven Rezić for the suggestion.
+     - Fixed an error when Sqitch is run with no arguments. Thanks to Henrik
+       Tudborg for the report (#428).
 
 0.9999 2019-02-01T15:29:40Z
      [Bug Fixes]
