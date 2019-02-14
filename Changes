@@ -8,6 +8,7 @@ Revision history for Perl extension App::Sqitch
        Thanks to Slaven Rezić for the suggestion.
      - Fixed an error when Sqitch is run with no arguments. Thanks to Henrik
        Tudborg for the report (#428).
+     - Fixed missing dependency on IO::Pager in the distribution metadata.
 
 0.9999 2019-02-01T15:29:40Z
      [Bug Fixes]
