@@ -63,8 +63,8 @@ has _snowcfg => (
     isa     => HashRef,
     lazy    => 1,
     default => sub {
-        require File::HomeDir;
-        my $hd = File::HomeDir->my_home or return {};
+        my $hd = $^O eq 'MSWin32' && "$]" < '5.016' ? $ENV{HOME} || $ENV{USERPROFILE} : (glob('~'))[0];
+        return {} if not $hd;
         my $fn = dir $hd, '.snowsql', 'config';
         return {} unless -e $fn;
         my $data = App::Sqitch::Config->load_file($fn);

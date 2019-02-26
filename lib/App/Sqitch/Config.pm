@@ -21,10 +21,8 @@ has '+encoding' => ( default => 'UTF-8' );
 my $SYSTEM_DIR = undef;
 
 sub user_dir {
-    require File::HomeDir;
-    my $hd = File::HomeDir->my_home or hurl config => __(
-        "Could not determine home directory"
-    );
+    my $hd = $^O eq 'MSWin32' && "$]" < '5.016' ? $ENV{HOME} || $ENV{USERPROFILE} : (glob('~'))[0];
+    hurl config => __("Could not determine home directory") if not $hd;
     return dir $hd, '.sqitch';
 }
 

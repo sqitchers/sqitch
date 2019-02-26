@@ -20,6 +20,8 @@ delete @ENV{qw( SQITCH_CONFIG SQITCH_USER_CONFIG SQITCH_SYSTEM_CONFIG )};
 isa_ok my $config = $CLASS->new, $CLASS, 'New config object';
 is $config->confname, 'sqitch.conf', 'confname should be "sqitch.conf"';
 
+my $hd = $^O eq 'MSWin32' && "$]" < '5.016' ? $ENV{HOME} || $ENV{USERPROFILE} : (glob('~'))[0];
+
 SKIP: {
     skip 'System dir can be modified at build time', 1
         if $INC{'App/Sqitch/Config.pm'} =~ /\bblib\b/;
@@ -29,7 +31,7 @@ SKIP: {
 }
 
 is $config->user_dir, File::Spec->catfile(
-    File::HomeDir->my_home, '.sqitch'
+    $hd, '.sqitch'
 ), 'Default user directory should be correct';
 
 is $config->global_file, File::Spec->catfile(
@@ -43,7 +45,7 @@ is $config->global_file, $file,
 is $config->system_file, $config->global_file, 'system_file should alias global_file';
 
 is $config->user_file, File::Spec->catfile(
-    File::HomeDir->my_home, '.sqitch', 'sqitch.conf'
+    $hd, '.sqitch', 'sqitch.conf'
 ), 'Default user file name should be correct';
 
 $ENV{SQITCH_USER_CONFIG} = $file,
