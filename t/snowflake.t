@@ -38,10 +38,8 @@ BEGIN {
 }
 
 # Mock the home directory to prevent reading a user config file.
-require File::HomeDir;
 my $tmp_dir = dir tempdir CLEANUP => 1;
-my $mock_home = Test::MockModule->new('File::HomeDir');
-$mock_home->mock(my_home => $tmp_dir->stringify);
+local $ENV{HOME} = $tmp_dir->stringify;
 
 is_deeply [$CLASS->config_vars], [
     target   => 'any',
