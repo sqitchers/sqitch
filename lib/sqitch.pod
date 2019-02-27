@@ -2,7 +2,7 @@
 
 =head1 Name
 
-sqitch - Sane database change management
+sqitch - Sensible database change management
 
 =head1 Synopsis
 

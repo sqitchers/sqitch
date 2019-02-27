@@ -1,7 +1,7 @@
 Name:           sqitch
 Version:        1.0.1-a1
 Release:        1%{?dist}
-Summary:        Sane database change management
+Summary:        Sensible database change management
 License:        MIT
 Group:          Development/Libraries
 URL:            https://sqitch.org/
@@ -182,7 +182,7 @@ rm -rf $RPM_BUILD_ROOT
 %config %{etcdir}/*
 
 %package pg
-Summary:        Sane database change management for PostgreSQL
+Summary:        Sensible database change management for PostgreSQL
 Group:          Development/Libraries
 Requires:       sqitch >= %{version}
 Requires:       postgresql >= 8.4.0
@@ -199,7 +199,7 @@ package bundles the Sqitch PostgreSQL support.
 # No additional files required.
 
 %package sqlite
-Summary:        Sane database change management for SQLite
+Summary:        Sensible database change management for SQLite
 Group:          Development/Libraries
 Requires:       sqitch >= %{version}
 Requires:       sqlite
@@ -216,7 +216,7 @@ package bundles the Sqitch SQLite support.
 # No additional files required.
 
 %package oracle
-Summary:        Sane database change management for Oracle
+Summary:        Sensible database change management for Oracle
 Group:          Development/Libraries
 Requires:       sqitch >= %{version}
 Requires:       oracle-instantclient11.2-sqlplus
@@ -233,7 +233,7 @@ package bundles the Sqitch Oracle support.
 # No additional files required.
 
 %package mysql
-Summary:        Sane database change management for MySQL
+Summary:        Sensible database change management for MySQL
 Group:          Development/Libraries
 Requires:       sqitch >= %{version}
 Requires:       mysql >= 5.0.0
@@ -251,7 +251,7 @@ package bundles the Sqitch MySQL support.
 # No additional files required.
 
 %package firebird
-Summary:        Sane database change management for Firebird
+Summary:        Sensible database change management for Firebird
 Group:          Development/Libraries
 Requires:       sqitch >= %{version}
 Requires:       firebird >= 2.5.0
@@ -271,7 +271,7 @@ package bundles the Sqitch Firebird support.
 # No additional files required.
 
 %package vertica
-Summary:        Sane database change management for Vertica
+Summary:        Sensible database change management for Vertica
 Group:          Development/Libraries
 Requires:       sqitch >= %{version}
 Requires:       libverticaodbc.so
@@ -289,7 +289,7 @@ Sqitch Vertica support.
 # No additional files required.
 
 %package snowflake
-Summary:        Sane database change management for Snowflake
+Summary:        Sensible database change management for Snowflake
 Group:          Development/Libraries
 Requires:       sqitch >= %{version}
 Requires:       snowflake-odbc

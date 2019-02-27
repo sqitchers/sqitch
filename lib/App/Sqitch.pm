@@ -1,6 +1,6 @@
 package App::Sqitch;
 
-# ABSTRACT: Sane database change management
+# ABSTRACT: Sensible database change management
 
 use 5.010;
 use strict;
@@ -596,7 +596,7 @@ __END__
 
 =head1 Name
 
-App::Sqitch - Sane database change management
+App::Sqitch - Sensible database change management
 
 =head1 Synopsis
 
