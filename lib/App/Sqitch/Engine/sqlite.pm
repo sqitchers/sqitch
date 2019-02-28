@@ -239,9 +239,7 @@ sub run_upgrade {
 
 sub _read {
     my $self = shift;
-    my $cmd = '.read ' . $self->dbh->quote(shift);
-    return $cmd unless App::Sqitch::ISWIN;
-    return $self->sqitch->quote_shell($cmd);
+    return '.read ' . $self->dbh->quote(shift);
 }
 
 1;
