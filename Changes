@@ -9,7 +9,13 @@ Revision history for Perl extension App::Sqitch
      - Fixed an error when Sqitch is run with no arguments. Thanks to Henrik
        Tudborg for the report (#428).
      - Fixed missing dependency on IO::Pager in the distribution metadata.
-     - removed use of File::HomeDir
+     - Removed use of File::HomeDir, thanks to a PR from Karen Etheridge
+       (#433).
+     - Updated the tagline from "Sane database change management" to "Sensible
+       database change management" out of sensitivity to sufferers of mental
+       illness (#435).
+     - Removed double-quoting of SQLite commands on Windows inadvertentlly
+       added by the workaround for Windows qouting in v0.9999.
 
 0.9999 2019-02-01T15:29:40Z
      [Bug Fixes]
