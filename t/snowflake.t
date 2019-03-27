@@ -341,7 +341,7 @@ DBI: {
     local *DBI::state;
     ok !$snow->_no_table_error, 'Should have no table error';
     ok !$snow->_no_column_error, 'Should have no column error';
-    $DBI::state = '02000';
+    $DBI::state = '42S02';
     ok $snow->_no_table_error, 'Should now have table error';
     ok !$snow->_no_column_error, 'Still should have no column error';
     $DBI::state = '42703';
