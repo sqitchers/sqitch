@@ -300,7 +300,7 @@ sub initialize {
 }
 
 sub _no_table_error  {
-    return $DBI::state && $DBI::state eq '02000'; # ERRCODE_UNDEFINED_TABLE
+    return $DBI::state && $DBI::state eq '42S02'; # ERRCODE_UNDEFINED_TABLE
 }
 
 sub _no_column_error  {

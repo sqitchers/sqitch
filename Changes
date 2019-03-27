@@ -16,6 +16,9 @@ Revision history for Perl extension App::Sqitch
        illness (#435).
      - Removed double-quoting of SQLite commands on Windows inadvertentlly
        added by the workaround for Windows qouting in v0.9999.
+     - Fixed an Snowflake engine error where it failed to recognize the proper
+       error code for a missing table and therefore an uninitialized registry.
+       Thanks to @lerouxt and @kulmam92 for the report and fix (#439).
 
 0.9999 2019-02-01T15:29:40Z
      [Bug Fixes]
