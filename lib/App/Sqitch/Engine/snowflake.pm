@@ -67,7 +67,7 @@ has _snowcfg => (
         return {} if not $hd;
         my $fn = dir $hd, '.snowsql', 'config';
         return {} unless -e $fn;
-        my $data = App::Sqitch::Config->load_file($fn);
+        my $data = App::Sqitch::Config->new->load_file($fn);
         my $cfg = {};
         for my $k (keys %{ $data }) {
             # We only want the default connections config. No named config.

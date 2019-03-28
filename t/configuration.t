@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 17;
+use Test::More tests => 20;
 #use Test::More 'no_plan';
 use File::Spec;
 use Test::Exception;
@@ -19,6 +19,7 @@ delete @ENV{qw( SQITCH_CONFIG SQITCH_USER_CONFIG SQITCH_SYSTEM_CONFIG )};
 
 isa_ok my $config = $CLASS->new, $CLASS, 'New config object';
 is $config->confname, 'sqitch.conf', 'confname should be "sqitch.conf"';
+ok !$config->initialized, 'Should not be initialized';
 
 my $hd = $^O eq 'MSWin32' && "$]" < '5.016' ? $ENV{HOME} || $ENV{USERPROFILE} : (glob('~'))[0];
 
@@ -63,6 +64,8 @@ SQITCH_CONFIG: {
 }
 
 chdir 't';
+isa_ok $config = $CLASS->new, $CLASS, 'Another config object';
+ok $config->initialized, 'Should be initialized';
 is_deeply $config->get_section(section => 'core'), {
     engine    => "pg",
     extension => "ddl",
@@ -74,4 +77,3 @@ is_deeply $config->get_section(section => 'core'), {
 is_deeply $config->get_section(section => 'engine.pg'), {
     client => "/usr/local/pgsql/bin/psql",
 }, 'get_section("engine.pg") should work';
-
