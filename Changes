@@ -19,6 +19,10 @@ Revision history for Perl extension App::Sqitch
      - Fixed a Snowflake engine error where it failed to recognize the proper
        error code for a missing table and therefore an uninitialized registry.
        Thanks to @lerouxt and @kulmam92 for the report and fix (#439).
+     - Added check for project initialization when no engine config can be
+       found. Now reports that the project is not initialized instead of
+       complaining about no engine config when run from a directory with no
+       Sqitch configuration (#437).
 
 0.9999 2019-02-01T15:29:40Z
      [Bug Fixes]

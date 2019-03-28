@@ -208,8 +208,19 @@ CONSTRUCTOR: {
         'Should have error for no engine or target';
     is $@->ident, 'target', 'Should have target ident';
     is $@->message, __(
-        'No engine specified; specify via target or core.engine',
-    ), 'Should have message about no specified engine';
+        'No project configuration found. Run the "init" command to initialize a project',
+    ), 'Should have message about no configuration';
+
+    # Try it with a config file but no engine config.
+    MOCK: {
+        my $mock_init = TestConfig->mock(initialized => 1);
+        throws_ok { $CLASS->new(sqitch => $sqitch) } 'App::Sqitch::X',
+            'Should again have error for no engine or target';
+        is $@->ident, 'target', 'Should have target ident again';
+        is $@->message, __(
+            'No engine specified; specify via target or core.engine',
+        ), 'Should have message about no specified engine';
+    }
 
     # Try with engine-less URI.
     @get_params = ();

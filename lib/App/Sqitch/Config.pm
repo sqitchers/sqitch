@@ -73,6 +73,24 @@ sub initial_key {
     return ref $key ? $key->[0] : $key;
 }
 
+sub initialized {
+    my $self = shift;
+    $self->load unless $self->is_loaded;
+    return $self->{_initialized};
+}
+
+sub load_dirs {
+    my $self = shift;
+    local $self->{__loading_dirs} = 1;
+    $self->SUPER::load_dirs(@_);
+}
+
+sub load_file {
+    my $self = shift;
+    $self->{_initialized} ||= $self->{__loading_dirs};
+    $self->SUPER::load_file(@_);
+}
+
 1;
 
 =head1 Name
@@ -134,6 +152,14 @@ will be returned.
 =head3 C<dir_file>
 
 An alias for C<local_file()> for use by the parent class.
+
+=head3 C<initialized>
+
+  say 'Project not initialized' unless $config->initialized;
+
+Returns true if the project configuration file was found, and false if it was
+not. Useful for detecting when a command has been run from a directory with no
+Sqitch configuration.
 
 =head3 C<get_section>
 
