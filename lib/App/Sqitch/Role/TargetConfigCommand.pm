@@ -16,7 +16,7 @@ use File::Path qw(make_path);
 use namespace::autoclean;
 use constant extra_target_keys => ();
 
-use SemVer; our $VERSION = SemVer->new('1.0.0-a1');
+# VERSION
 
 requires 'command';
 requires 'options';

@@ -23,7 +23,7 @@ use IPC::System::Simple 1.17 qw(runx capturex $EXITVAL);
 use namespace::autoclean 0.16;
 use constant ISWIN => $^O eq 'MSWin32';
 
-use SemVer; our $VERSION = SemVer->new('1.0.0-a1');
+# VERSION
 
 BEGIN {
     # Force Locale::TextDomain to encode in UTF-8 and to decode all messages.

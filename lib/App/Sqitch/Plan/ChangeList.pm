@@ -7,7 +7,7 @@ use List::Util;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 
-our $VERSION = '0.970';
+# VERSION
 
 sub new {
     my $class = shift;

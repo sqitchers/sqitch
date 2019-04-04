@@ -11,7 +11,7 @@ use App::Sqitch::X qw(hurl);
 use List::Util qw(first);
 use constant ISWIN => $^O eq 'MSWin32';
 
-use SemVer; our $VERSION = SemVer->new('1.0.0-a1');
+# VERSION
 
 sub as_string_formats {
     return qw(

@@ -8,7 +8,7 @@ use App::Sqitch::Types qw(Str Plan);
 use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 
-use SemVer; our $VERSION = SemVer->new('1.0.0-a1');
+# VERSION
 
 has name => (
     is       => 'ro',

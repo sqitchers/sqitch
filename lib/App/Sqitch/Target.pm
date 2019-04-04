@@ -11,7 +11,7 @@ use Path::Class qw(dir file);
 use URI::db;
 use namespace::autoclean;
 
-use SemVer; our $VERSION = SemVer->new('1.0.0-a1');
+# VERSION
 
 has name => (
     is       => 'ro',
