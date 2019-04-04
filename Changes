@@ -1,7 +1,7 @@
 Revision history for Perl extension App::Sqitch
 
 1.0.0
-     - Fixed test failure due to a hard-coded error message that may be
+     - Fixed test failure due to a hard-coded system error that may be
        localized on non-en-US hosts. Thanks to Slaven Rezić for the catch
        (#427).
      - Now require Test::MockModule 0.17 to silence a warning during testing.
@@ -14,18 +14,18 @@ Revision history for Perl extension App::Sqitch
      - Updated the tagline from "Sane database change management" to "Sensible
        database change management" out of sensitivity to sufferers of mental
        illness (#435).
-     - Removed double-quoting of SQLite commands on Windows inadvertentlly
+     - Removed double-quoting of SQLite commands on Windows, inadvertentlly
        added by the workaround for Windows qouting in v0.9999.
-     - Fixed a Snowflake engine error where it failed to recognize the proper
+     - Fixed a Snowflake issue where Sqitch failed to recognize the proper
        error code for a missing table and therefore an uninitialized registry.
        Thanks to @lerouxt and @kulmam92 for the report and fix (#439).
      - Added check for project initialization when no engine config can be
-       found. Now reports that the project is not initialized instead of
-       complaining about no engine config when run from a directory with no
-       Sqitch configuration (#437).
+       found. When run from a directory with no configuration, Sqitch now
+       reports that the project is not initialized instead of complaining
+       about a lack of engine config (#437).
      - Documented Snowflake key pair authentication in
-       `sqitch-authentication`, as well as SNOWSQL_PRIVATE_KEY_PASSPHRASE in
-       `sqitch-environment`. Thanks to Casey Largent for figuring it out
+       `sqitch-authentication`, as well as `$SNOWSQL_PRIVATE_KEY_PASSPHRASE`
+       in `sqitch-environment`. Thanks to Casey Largent for figuring it out
        (#441).
 
 0.9999 2019-02-01T15:29:40Z
