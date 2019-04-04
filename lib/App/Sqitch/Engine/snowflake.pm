@@ -12,7 +12,7 @@ use App::Sqitch::Types qw(DBH ArrayRef HashRef URIDB Str);
 
 extends 'App::Sqitch::Engine';
 
-use SemVer; our $VERSION = SemVer->new('1.0.0-a1');
+# VERSION
 
 sub key    { 'snowflake' }
 sub name   { 'Snowflake' }

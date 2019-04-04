@@ -4,7 +4,7 @@ use 5.010;
 use strict;
 use utf8;
 
-use SemVer; our $VERSION = SemVer->new('1.0.0-a1');
+# VERSION
 
 sub new {
     my $class = shift;

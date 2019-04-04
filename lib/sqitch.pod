@@ -18,9 +18,9 @@ approaches? A few things:
 
 =item No opinions
 
-Sqitch is not integrated with any framework, ORM, or platform. Rather, it is a
+Sqitch is not tied to any framework, ORM, or platform. Rather, it is a
 standalone change management system with no opinions about your database
-engine, application framework, or your development environment.
+engine, application framework, or development environment.
 
 =item Native scripting
 
@@ -46,19 +46,24 @@ Database changes may declare dependencies on other changes -- even on changes
 from other Sqitch projects. This ensures proper order of execution, even when
 you've committed changes to your VCS out-of-order.
 
-=item No numbering
+=item Deployment integrity
 
-Change deployment is managed by maintaining a plan file. As such, there is no
-need to number your changes, although you can if you want. Sqitch doesn't much
-care how you name your changes.
+Sqitch manages changes and dependencies via a plan file, and employs a
+L<Merkle tree|https://en.wikipedia.org/wiki/Merkle_tree> pattern similar to
+L<Git|https://stackoverflow.com/a/18589734/> and
+L<Blockchain|https://medium.com/byzantine-studio/blockchain-fundamentals-what-is-a-merkle-tree-d44c529391d7>
+to ensure deployment integrity. As such, there is no need to number your
+changes, although you can if you want. Sqitch doesn't much care how you name
+your changes.
+
 
 =item Iterative Development
 
-Up until you tag and release your project, you can modify your change
-deployment scripts as often as you like. They're not locked in just because
-they've been committed to your VCS. This allows you to take an iterative
-approach to developing your database schema. Or, better, you can do
-test-driven database development.
+Up until you L<tag|sqitch-tag> and L<release|sqitch-bundle> your project, you
+can modify your change deployment scripts as often as you like. They're not
+locked in just because they've been committed to your VCS. This allows you to
+take an iterative approach to developing your database schema. Or, better, you
+can do test-driven database development.
 
 =begin comment
 

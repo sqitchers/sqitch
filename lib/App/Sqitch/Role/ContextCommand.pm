@@ -9,7 +9,7 @@ use Path::Class;
 use App::Sqitch::Types qw(ArrayRef);
 use Locale::TextDomain qw(App-Sqitch); # XXX Until deprecation removed below.
 
-use SemVer; our $VERSION = SemVer->new('1.0.0-a1');
+# VERSION
 
 requires 'options';
 requires 'configure';

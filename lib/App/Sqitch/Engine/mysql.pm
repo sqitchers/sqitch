@@ -16,7 +16,7 @@ use List::MoreUtils qw(firstidx);
 
 extends 'App::Sqitch::Engine';
 
-use SemVer; our $VERSION = SemVer->new('1.0.0-a1');
+# VERSION
 
 has uri => (
     is       => 'ro',

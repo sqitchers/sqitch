@@ -6,7 +6,7 @@ use namespace::autoclean;
 use Moo;
 extends 'App::Sqitch::Plan::Line';
 
-use SemVer; our $VERSION = SemVer->new('1.0.0-a1');
+# VERSION
 
 has '+name' => ( default => '', required => 0 );
 

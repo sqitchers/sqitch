@@ -14,7 +14,7 @@ use App::Sqitch::Types qw(Str Int Sqitch Plan Bool HashRef URI Maybe Target);
 use namespace::autoclean;
 use constant registry_release => '1.1';
 
-use SemVer; our $VERSION = SemVer->new('1.0.0-a1');
+# VERSION
 
 has sqitch => (
     is       => 'ro',

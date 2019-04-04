@@ -15,9 +15,9 @@ things:
 
 *   No opinions
 
-    Sqitch is not integrated with any framework, ORM, or platform. Rather, it
-    is a standalone change management system with no opinions about your
-    database engine, application framework, or your development environment.
+    Sqitch is not tied to any framework, ORM, or platform. Rather, it is a
+    standalone change management system with no opinions about your database
+    engine, application framework, or development environment.
 
 *   Native scripting
 
@@ -34,19 +34,25 @@ things:
     changes from other Sqitch projects. This ensures proper order of
     execution, even when you've committed changes to your VCS out-of-order.
 
-*   No numbering
+*   Deployment integrity
 
-    Change deployment is managed by maintaining a plan file. As such, there is
-    no need to number your changes, although you can if you want. Sqitch
-    doesn't much care how you name your changes.
+    Sqitch manages changes and dependencies via a plan file, and employs a
+    [Merkle tree](https://en.wikipedia.org/wiki/Merkle_tree "Wikipedia: “Merkle tree”")
+    pattern similar to
+    [Git](https://stackoverflow.com/a/18589734/ "Stack Overflow: “What is the mathematical structure that represents a Git repo”")
+    and [Blockchain](https://medium.com/byzantine-studio/blockchain-fundamentals-what-is-a-merkle-tree-d44c529391d7 "Medium: “Blockchain Fundamentals #1: What is a Merkle Tree?”")
+    to ensure deployment integrity.
+    As such, there is no need to number your changes, although you can if you
+    want. Sqitch doesn't much care how you name your changes.
 
 *   Iterative Development
 
-    Up until you tag and release your project, you can modify your change
-    deployment scripts as often as you like. They're not locked in just
-    because they've been committed to your VCS. This allows you to take an
-    iterative approach to developing your database schema. Or, better, you can
-    do test-driven database development.
+    Up until you [tag](https://sqitch.org/docs/manual/sqitch-tag/) and
+    [release](https://sqitch.org/docs/manual/sqitch-tag/) your project, you
+    can modify your change deployment scripts as often as you like. They're
+    not locked in just because they've been committed to your VCS. This allows
+    you to take an iterative approach to developing your database schema. Or,
+    better, you can do test-driven database development.
 
 Want to learn more? The best place to start is in the tutorials:
 

@@ -15,7 +15,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
 
-use SemVer; our $VERSION = SemVer->new('1.0.0-a1');
+# VERSION
 
 BEGIN {
     # We tell the Oracle connector which encoding to use. The last part of the

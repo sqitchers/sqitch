@@ -13,7 +13,7 @@ use App::Sqitch::Types qw(Bool Str);
 extends 'App::Sqitch::Command';
 with 'App::Sqitch::Role::ContextCommand';
 
-use SemVer; our $VERSION = SemVer->new('1.0.0-a1');
+# VERSION
 
 has target => (
     is      => 'ro',

@@ -15,7 +15,7 @@ use Type::Utils qw(enum);
 use namespace::autoclean;
 extends 'App::Sqitch::Command';
 
-use SemVer; our $VERSION = SemVer->new('1.0.0-a1');
+# VERSION
 
 has file => (
     is      => 'ro',

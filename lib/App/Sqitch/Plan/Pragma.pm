@@ -7,7 +7,7 @@ use Moo;
 use App::Sqitch::Types qw(Str);
 extends 'App::Sqitch::Plan::Line';
 
-use SemVer; our $VERSION = SemVer->new('1.0.0-a1');
+# VERSION
 
 has value => (
     is       => 'ro',
