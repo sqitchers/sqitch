@@ -191,9 +191,9 @@ Revision history for Perl extension App::Sqitch
        directories.
      - Removed the deprecated core `--engine` option. The `init` command still
        supports it, while other commands are able to parse the engine name as
-       an argument — e.g., `sqitch deploy mysql` — or implicitly as part of a
-       target, as in `sqitch revert db:pg:tryme`. When Sqitch is unable to
-       determine the engine for a command, the error message no longer
+       an argument --- e.g., `sqitch deploy mysql` --- or implicitly as part
+       of a target, as in `sqitch revert db:pg:tryme`. When Sqitch is unable
+       to determine the engine for a command, the error message no longer
        mentions `--engine` and instead suggests specifying the engine via the
        target. This option never triggered an error, but demonstration of its
        use has been limited to `init` examples.
