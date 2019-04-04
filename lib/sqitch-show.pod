@@ -1,6 +1,6 @@
 =head1 Name
 
-sqitch-show - Show object information or change file contents
+sqitch-show - Show object information or script contents
 
 =head1 Synopsis
 

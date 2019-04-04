@@ -1,6 +1,6 @@
 =head1 Name
 
-sqitch-log - Show Sqitch change logs
+sqitch-log - Show Sqitch change deployment logs
 
 =head1 Synopsis
 
