@@ -213,19 +213,20 @@ what sorts of things are available to edit.
 
 =head1 Examples
 
-Start a new Sqitch project using the SQLite engine, setting the top directory
-for the project to F<sqlite>:
+Start a new Sqitch project named "quack" using the SQLite engine, setting the
+top directory for the project to F<sqlite>:
 
-  sqitch init --engine sqlite --top-dir sqlite
+  sqitch init --engine sqlite --top-dir sqlite quack
 
-Start a new Sqitch project using the PostgreSQL engine, setting the top
-directory to F<postgres>, script extension to C<ddl>, reworked directory to
-C<reworked> and a version-specific client:
+Start a new Sqitch project named "bey" using the PostgreSQL engine, setting
+the top directory to F<postgres>, script extension to C<ddl>, reworked
+directory to C<reworked> and a version-specific client:
 
   sqitch init --engine  pg \
               --top-dir postgres \
               --client  /opt/pgsql-9.1/bin/psql \
-              --extension ddl --dir reworked=reworked
+              --extension ddl --dir reworked=reworked \
+              bey
 
 =head1 See Also
 

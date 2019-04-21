@@ -342,7 +342,7 @@ sub register_project {
     );
 
     if (@{ $res }) {
-        # A project with that name is already registreed. Compare URIs.
+        # A project with that name is already registered. Compare URIs.
         my $reg_uri = $res->[0];
         if ( defined $uri && !defined $reg_uri ) {
             hurl engine => __x(
