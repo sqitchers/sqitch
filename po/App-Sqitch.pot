@@ -43,6 +43,16 @@ msgid ""
 "Sqitch seems to be unattended and there is no default value for this question"
 msgstr ""
 
+#: lib/App/Sqitch.pm:428
+msgctxt "Confirm prompt answer yes"
+msgid "Yes"
+msgstr ""
+
+#: lib/App/Sqitch.pm:429
+msgctxt "Confirm prompt answer no"
+msgid "No"
+msgstr ""
+
 #: lib/App/Sqitch.pm:438
 msgid "Please answer \"y\" or \"n\"."
 msgstr ""

@@ -31,6 +31,11 @@ Revision history for Perl extension App::Sqitch
        request (#451).
      - Renamed the French localization from "fr" to "fr_FR", so that systems
        will actually find it.
+     - Added the `ask_yes_no()` method as a reaplcement for `ask_y_n()`, which
+       is now deprecated. The new method expects localized responses from the
+       user when translations are provided. Defaults to the English "yes" and
+       "no" when no translation is available. Suggested by German translator
+       Thomas Iguchi (#449).
 
 0.9999 2019-02-01T15:29:40Z
      [Bug Fixes]
