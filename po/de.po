@@ -49,10 +49,19 @@ msgstr ""
 "Sqitch scheint unbeaufsichtigt ausgeführt zu werden, und es steht leider "
 "keine Standardantwort für diese Frage zur Verfügung"
 
-# Possible to localize "y"? Would be "j" in German
+#: lib/App/Sqitch.pm:428
+msgctxt "Confirm prompt answer yes"
+msgid "Yes"
+msgstr "Ja"
+
+#: lib/App/Sqitch.pm:429
+msgctxt "Confirm prompt answer no"
+msgid "No"
+msgstr "Nein"
+
 #: lib/App/Sqitch.pm:438
 msgid "Please answer \"y\" or \"n\"."
-msgstr "Bitte antworte mit \"y\" oder \"n\""
+msgstr "Bitte antworte mit \"j\" oder \"n\""
 
 #: lib/App/Sqitch.pm:441
 msgid "No valid answer after 3 attempts; aborting"
@@ -91,7 +100,7 @@ msgid "Template {template} does not exist"
 msgstr "Vorlage {template} existiert nicht"
 
 #: lib/App/Sqitch/Command/add.pm:108
-#, fuzzy, perl-brace-format
+#, perl-brace-format
 msgid "Template {template} is not a file"
 msgstr "Vorlage {template} ist keine Datei"
 
@@ -111,13 +120,13 @@ msgid "\"{dir}\" is not a directory"
 msgstr "\"{dir}\" ist kein Verzeichnis"
 
 #: lib/App/Sqitch/Command/add.pm:283
-#, fuzzy, perl-brace-format
+#, perl-brace-format
 msgid ""
 "Name \"{name}\" identifies a target; use \"--change {name}\" to use it for "
 "the change name"
 msgstr ""
-"Der Name \"{name}\" bezeichnet ein Ziel. Verwende \"--change {name}\" um "
-"eine Änderung anzugeben"
+"Der Name \"{name}\" bezeichnet ein Ziel. Verwende \"--change {name}\" um ihn "
+"als Änderung anzugeben"
 
 #: lib/App/Sqitch/Command/add.pm:331
 msgid "add"
@@ -126,7 +135,7 @@ msgstr "hinzufügen"
 #: lib/App/Sqitch/Command/add.pm:349
 #, perl-brace-format
 msgid "Added \"{change}\" to {file}"
-msgstr "\"{change}\" zur Datei {file} hinzugefügt"
+msgstr "\"{change}\" der Datei {file} hinzugefügt"
 
 #: lib/App/Sqitch/Command/add.pm:368
 #, perl-brace-format
@@ -173,7 +182,7 @@ msgid ""
 msgstr ""
 "Es ist nicht empfehlenswert --to oder --from zum Kombinieren mehrerer Ziele "
 "zu verwenden.\n"
-"Stattdessen solltest du diese Argumente nach jedem einzelnen Ziel anhängen."
+"Stattdessen solltest du diese Argumente jedem einzelnen Ziel anhängen."
 
 #: lib/App/Sqitch/Command/bundle.pm:106
 msgid "Cannot specify both --from or --to and change arguments"
@@ -216,7 +225,7 @@ msgstr "Schreibe Plan von {from} nach {to}"
 
 #: lib/App/Sqitch/Command/bundle.pm:222 lib/App/Sqitch/Command/bundle.pm:229
 #: lib/App/Sqitch/Plan.pm:944 lib/App/Sqitch/Plan.pm:953
-#, fuzzy, perl-brace-format
+#, perl-brace-format
 msgid "Cannot find change {change}"
 msgstr "Kann Änderung {change} nicht finden"
 
@@ -360,7 +369,6 @@ msgstr "Überarbeitet"
 msgid "Script Directories"
 msgstr "Skriptverzeichnisse"
 
-# TODO adjective or past tense verb?
 #: lib/App/Sqitch/Command/engine.pm:196 lib/App/Sqitch/Command/target.pm:188
 msgid "Reworked Script Directories"
 msgstr "Überarbeitete Skriptverzeichnisse"
@@ -378,15 +386,14 @@ msgstr "Keine Variablen"
 msgid "Loading {file}"
 msgstr "Lade {file}"
 
-# TODO What is {section}? Influences spelling of "Veraltete"
 #: lib/App/Sqitch/Command/engine.pm:268
 #, perl-brace-format
 msgid ""
 "Deprecated {section} found in {file}; to remove it, run\n"
 "    {sqitch} config --file {file} --remove-section {section}"
 msgstr ""
-"Veraltete {section} gefunden in {file}. Zum Entfernen führe den folgenden "
-"Befehl aus:\n"
+"Veraltete Sektion {section} gefunden in {file}. Zum Entfernen führe den "
+"folgenden Befehl aus:\n"
 "    {sqitch} config --file {file} --remove-section {section}"
 
 #: lib/App/Sqitch/Command/engine.pm:280
@@ -411,7 +418,7 @@ msgstr ""
 #: lib/App/Sqitch/Command/help.pm:46
 #, perl-brace-format
 msgid "No manual entry for {command}"
-msgstr "Kein manueller Eintrag für {command} verfügbar"
+msgstr "Kein Hilfeeintrag für {command} verfügbar"
 
 #: lib/App/Sqitch/Command/init.pm:50 lib/App/Sqitch/Plan.pm:237
 #, perl-brace-format
@@ -440,7 +447,6 @@ msgstr "Datenbank {db} wurde noch nicht für Sqitch initialisiert"
 msgid "No events logged for {db}"
 msgstr "Keine Ereignisse für Datenbank {db} aufgezeichnet"
 
-# What's the context / full phrase example for this? Translation would change accordingly
 #: lib/App/Sqitch/Command/log.pm:252 lib/App/Sqitch/Command/status.pm:119
 #, perl-brace-format
 msgid "On database {db}"
@@ -482,7 +488,6 @@ msgstr ""
 msgid "Too many changes specified; reverting to \"{change}\""
 msgstr "Zu viele Änderungen angegeben. Setze zurück nach \"{change}\""
 
-# What's the full phrase using this word? Depending on context German translation would change
 #: lib/App/Sqitch/Command/rework.pm:153
 msgid "rework"
 msgstr "überarbeite"
@@ -564,7 +569,8 @@ msgstr "Keine Änderungen angewendet"
 #, perl-brace-format
 msgid "Status unknown. Use --plan-file to assess \"{project}\" status"
 msgstr ""
-"Unbekannter Status. Benutze --plan-file um \"{project}\"-Status zu überprüfen"
+"Unbekannter Status. Benutze --plan-file um Status für \"{project}\" zu "
+"überprüfen"
 
 #: lib/App/Sqitch/Command/status.pm:190
 #, perl-brace-format
@@ -705,7 +711,7 @@ msgstr "Unbekanntes Datumsformat \"{format}\""
 #: lib/App/Sqitch/Target.pm:252
 msgid "No engine specified; specify via target or core.engine"
 msgstr ""
-"Keine Engine angegeben. Bitte gib eine an via \"target\" oder \"core.engine\""
+"Keine Engine angegeben. Bitte gib eine via \"target\" oder \"core.engine\" an"
 
 #: lib/App/Sqitch/Engine.pm:167
 #, perl-brace-format
@@ -789,7 +795,7 @@ msgstr "Kehre alle Änderungen an {destination} um"
 #: lib/App/Sqitch/Engine.pm:327
 #, perl-brace-format
 msgid "Revert all changes from {destination}?"
-msgstr "Aller Änderungen an {destination} rückgängig machen?"
+msgstr "Alle Änderungen an {destination} rückgängig machen?"
 
 #: lib/App/Sqitch/Engine.pm:358
 #, perl-brace-format
@@ -806,7 +812,7 @@ msgstr "Angewandte Änderungen gefunden die ungeplant sind!"
 
 #: lib/App/Sqitch/Engine.pm:392
 msgid "Verify Summary Report"
-msgstr "Verifikationsreport"
+msgstr "Verifizierungsreport"
 
 #: lib/App/Sqitch/Engine.pm:395
 #, perl-brace-format
@@ -831,21 +837,19 @@ msgstr "Erfolgreich verifiziert"
 msgid "Change \"{change}\" has not been deployed"
 msgstr "Änderung \"{change}\" wurde noch nicht angewendet"
 
-# Kann {script} Template nicht finden
 #: lib/App/Sqitch/Engine.pm:418
 #, perl-brace-format
 msgid "Cannot find \"{change}\" in the database or the plan"
-msgstr "Cannot find {script} template"
+msgstr "Kann \"{change}\" weder in der Datenbank noch im Plan finden"
 
 #: lib/App/Sqitch/Engine.pm:425
 #, perl-brace-format
 msgid "Change \"{change}\" is deployed, but not planned"
 msgstr "Änderung \"{change}\" wurde angewendet, allerdings nicht geplant"
 
-# What's the context for this phrase? Is it an incorrect enumeration or a defective service?
 #: lib/App/Sqitch/Engine.pm:469
 msgid "Out of order"
-msgstr ""
+msgstr "Ungültige Reihenfolge"
 
 #: lib/App/Sqitch/Engine.pm:475
 msgid "Not present in the plan"
@@ -939,7 +943,7 @@ msgstr "Das Schema muss manuell repariert werden"
 
 #: lib/App/Sqitch/Engine.pm:833 lib/App/Sqitch/Engine.pm:961
 msgid "Deploy failed"
-msgstr "Anwendung fehlgeschlagen"
+msgstr "Anwendung der Änderung(en) fehlgeschlagen"
 
 #: lib/App/Sqitch/Engine.pm:890
 #, perl-brace-format
@@ -959,7 +963,7 @@ msgid ""
 "Registry version is {old} but {new} is the latest known. Please upgrade "
 "Sqitch"
 msgstr ""
-"Aktuelle Registry-Version ist {old} allerdings {new} ist die neueste "
+"Aktuelle Registry-Version ist {old} allerdings ist {new} die neueste "
 "bekannte Version. Bitte aktualisiere Sqitch"
 
 #: lib/App/Sqitch/Engine.pm:1041
@@ -968,7 +972,7 @@ msgid ""
 "Registry is at version {old} but latest is {new}. Please run the \"upgrade\" "
 "command"
 msgstr ""
-"Registry ist derzeit auf Version {old} aber neuste Version ist {new}. Bitte "
+"Registry ist derzeit auf Version {old} aber neueste Version ist {new}. Bitte "
 "führe den \"upgrade\"-Befehl aus"
 
 #: lib/App/Sqitch/Engine.pm:1056
@@ -977,14 +981,14 @@ msgid ""
 "Registry version is {old} but {new} is the latest known. Please upgrade "
 "Sqitch."
 msgstr ""
-"Aktuelle Registry-Version ist {old} allerdings {new} ist die neueste "
+"Aktuelle Registry-Version ist {old} allerdings ist {new} die neueste "
 "bekannte Version. Bitte aktualisiere Sqitch"
 
 #: lib/App/Sqitch/Engine.pm:1071
 #, perl-brace-format
 msgid "Cannot upgrade to {version}: Cannot find upgrade script \"{file}\""
 msgstr ""
-"Kann nicht nach {version} aktualisieren: Upgrade-Skript \"{file}\"nicht "
+"Kann nicht nach {version} aktualisieren: Upgrade-Skript \"{file}\" nicht "
 "gefunden"
 
 #: lib/App/Sqitch/Engine.pm:1078
@@ -1162,16 +1166,14 @@ msgstr "Benötigt: "
 msgid "Conflicts:"
 msgstr "Konflikte:"
 
-# Could I see a full example? Is the underscore a placeholder for something? Not sure what this means
 #: lib/App/Sqitch/ItemFormatter.pm:89
-#, fuzzy
 msgid "No label passed to the _ format"
-msgstr "Kein Label wurde dem Format _ zugewiesen"
+msgstr "Label fehlt im _ Formatierungsplatzhalter"
 
 #: lib/App/Sqitch/ItemFormatter.pm:93
-#, fuzzy, perl-brace-format
+#, perl-brace-format
 msgid "Unknown label \"{label}\" passed to the _ format"
-msgstr "Unbekanntes Label \"{label}\" dem Format _ zugewiesen"
+msgstr "Unbekanntes Label \"{label}\" im _ Formatierungsplatzhalter angegeben"
 
 #: lib/App/Sqitch/ItemFormatter.pm:150
 #, perl-brace-format
@@ -1225,7 +1227,7 @@ msgstr ""
 
 #: lib/App/Sqitch/Plan.pm:323
 msgid "Missing timestamp and planner name and email"
-msgstr "Fehlender Zeitstempel, Name des Planers und E-Mail-Adresse"
+msgstr "Zeitstempel, Name des Planers und E-Mail-Adresse fehlen"
 
 #: lib/App/Sqitch/Plan.pm:325
 msgid "Missing timestamp"
@@ -1233,7 +1235,7 @@ msgstr "Fehlender Zeitstempel"
 
 #: lib/App/Sqitch/Plan.pm:327
 msgid "Missing planner name and email"
-msgstr "Fehlender Name des Planers und E-Mail-Adresse"
+msgstr "Name des Planers und E-Mail-Adresse fehlen"
 
 #: lib/App/Sqitch/Plan.pm:332 lib/App/Sqitch/Plan.pm:897
 #, perl-brace-format
@@ -1440,8 +1442,8 @@ msgid ""
 "commands.\n"
 "  Use --chdir instead."
 msgstr ""
-"  Option --top-dir ist veraltet für {command} und andere Befehle die über "
-"Konfigurationseinstellungen hinausgehen.\n"
+"  Option --top-dir ist sowohl für {command} als auch andere Befehle "
+"veraltet.\n"
 "  Verwende stattdessen--chdir"
 
 #: lib/App/Sqitch/Role/DBIEngine.pm:349
