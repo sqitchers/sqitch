@@ -300,11 +300,11 @@ sub revert {
                 ident   => 'revert:confirm',
                 message => __ 'Nothing reverted',
                 exitval => 1,
-            } unless $sqitch->ask_y_n(__x(
+            } unless $sqitch->ask_yes_no(__x(
                 'Revert changes to {change} from {destination}?',
                 change      => $change->format_name_with_tags,
                 destination => $self->destination,
-            ), $self->prompt_accept ? 'Yes' : 'No' );
+            ), $self->prompt_accept );
         }
 
     } else {
@@ -323,10 +323,10 @@ sub revert {
                 ident   => 'revert',
                 message => __ 'Nothing reverted',
                 exitval => 1,
-            } unless $sqitch->ask_y_n(__x(
+            } unless $sqitch->ask_yes_no(__x(
                 'Revert all changes from {destination}?',
                 destination => $self->destination,
-            ), $self->prompt_accept ? 'Yes' : 'No' );
+            ), $self->prompt_accept );
         }
     }
 

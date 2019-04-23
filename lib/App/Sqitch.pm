@@ -421,24 +421,35 @@ sub prompt {
     return $ans;
 }
 
-sub ask_y_n {
-    my $self = shift;
-    my ($msg, $def)  = @_;
+sub ask_yes_no {
+    my ($self, @msg) = (shift, shift);
+    hurl 'ask_yes_no() called without a prompt message' unless $msg[0];
 
-    hurl 'ask_y_n() called without a prompt message' unless $msg;
-    hurl 'Invalid default value: ask_y_n() default must be "y" or "n"'
-        if $def && $def !~ /^[yn]/i;
+    my $y = __p 'Confirm prompt answer yes', 'Yes';
+    my $n = __p 'Confirm prompt answer no',  'No';
+    push @msg => $_[0] ? $y : $n if @_;
 
     my $answer;
     my $i = 3;
     while ($i--) {
-        $answer = $self->prompt(@_);
-        return 1 if $answer =~ /^y/i;
-        return 0 if $answer =~ /^n/i;
+        $answer = $self->prompt(@msg);
+        return 1 if $y =~ /^\Q$answer/i;
+        return 0 if $n =~ /^\Q$answer/i;
         $self->emit(__ 'Please answer "y" or "n".');
     }
 
     hurl io => __ 'No valid answer after 3 attempts; aborting';
+}
+
+sub ask_y_n {
+    my $self = shift;
+    $self->warn('The ask_y_n() method has been deprecated. Use ask_yes_no() instead.');
+    return $self->ask_yes_no(@_) unless @_ > 1;
+
+    my ($msg, $def) = @_;
+    hurl 'Invalid default value: ask_y_n() default must be "y" or "n"'
+        if $def && $def !~ /^[yn]/i;
+    return $self->ask_yes_no($msg, $def =~ /^y/i ? 1 : 0);
 }
 
 sub spool {
@@ -856,17 +867,29 @@ value for the user to accept or to be used if Sqitch is running unattended. An
 exception will be thrown if there is no prompt message or if Sqitch is
 unattended and there is no default value.
 
+=head3 C<ask_yes_no>
+
+  if ( $sqitch->ask_yes_no('Are you sure?', 1) ) { # do it! }
+
+Prompts the user with a "yes" or "no" question. Returns true if the user
+replies in the affirmative and false if the reply is in the negative. If the
+optional second argument is passed and true, the answer will default to the
+affirmative. If the second argument is passed but false, the answer will
+default to the negative. When a translation library is in use, the affirmative
+and negative replies from the user should be localized variants of "yes" and
+"no", and will be matched as such. If no translation library is in use, the
+answers will default to the English "yes" and "no".
+
+If the user inputs an invalid value three times, an exception will be thrown.
+An exception will also be thrown if there is no message. As with C<prompt()>,
+an exception will be thrown if Sqitch is running unattended and there is no
+default.
+
 =head3 C<ask_y_n>
 
-  if ( $sqitch->ask_y_no('Are you sure?', 'y') ) { # do it! }
+This method has been deprecated in favor of C<ask_yes_no()> and will be
+removed in a future version of Sqitch.
 
-Prompts the user with a "yes" or "no" question. Returns true for "yes" and
-false for "no". Any answer that begins with case-insensitive "y" or "n" will
-be accepted as valid. If the user inputs an invalid value three times, an
-exception will be thrown. An exception will also be thrown if there is no
-message or if the optional default value does not begin with "y" or "n". As
-with C<prompt()> an exception will be thrown if Sqitch is running unattended
-and there is no default.
 
 =head2 Constants
 

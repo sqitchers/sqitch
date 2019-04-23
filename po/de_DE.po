@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Sqitch 0.932\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-01-25 10:09-0500\n"
+"POT-Creation-Date: 2019-04-23 10:11-0400\n"
 "PO-Revision-Date: 2012-08-31 17:15-0700\n"
 "Last-Translator: Thomas Iguchi <ti@nobu-games.com>\n"
 "Language-Team: German <david@justatheory.com>\n"
@@ -67,17 +67,17 @@ msgstr "Bitte antworte mit \"j\" oder \"n\""
 msgid "No valid answer after 3 attempts; aborting"
 msgstr "Drei ungültige Antworten in Folge. Breche ab"
 
-#: lib/App/Sqitch.pm:451 lib/App/Sqitch.pm:458
+#: lib/App/Sqitch.pm:462 lib/App/Sqitch.pm:469
 #, perl-brace-format
 msgid "Cannot exec {command}: {error}"
 msgstr "Konnte den Befehl {command} nicht ausführen: {error}"
 
-#: lib/App/Sqitch.pm:474
+#: lib/App/Sqitch.pm:485
 #, perl-brace-format
 msgid "Error closing pipe to {command}: {error}"
 msgstr "Fehler beim Schließen der Pipeline nach {command}: {error}"
 
-#: lib/App/Sqitch.pm:478 lib/App/Sqitch/Engine/oracle.pm:758
+#: lib/App/Sqitch.pm:489 lib/App/Sqitch/Engine/oracle.pm:758
 #, perl-brace-format
 msgid "{command} unexpectedly returned exit value {exitval}"
 msgstr "{command} brach unerwartet ab mit Rückgabewert {exitval}"
@@ -682,12 +682,12 @@ msgstr ""
 msgid "URI"
 msgstr "URI"
 
-#: lib/App/Sqitch/Command/upgrade.pm:49
+#: lib/App/Sqitch/Command/upgrade.pm:48
 #, perl-brace-format
 msgid "Upgrading registry {registry} to version {version}"
 msgstr "Aktualisiere Registry {registry} nach Version {version}"
 
-#: lib/App/Sqitch/Command/upgrade.pm:56
+#: lib/App/Sqitch/Command/upgrade.pm:55
 #, perl-brace-format
 msgid "Registry {registry} is up-to-date at version {version}"
 msgstr "Registry {registry} auf Version {version} aktualisiert"
@@ -698,7 +698,7 @@ msgid "Too many changes specified; verifying from \"{from}\" to \"{to}\""
 msgstr ""
 "Zu viele Änderungen angegeben. Verifiziere von \"{from}\" nach \"{to}\""
 
-#: lib/App/Sqitch/Config.pm:26
+#: lib/App/Sqitch/Config.pm:25
 msgid "Could not determine home directory"
 msgstr "Konnte Benutzerverzeichnis nicht finden"
 
@@ -708,7 +708,7 @@ msgid "Unknown date format \"{format}\""
 msgstr "Unbekanntes Datumsformat \"{format}\""
 
 #: lib/App/Sqitch/Engine.pm:133 lib/App/Sqitch/Engine.pm:145
-#: lib/App/Sqitch/Target.pm:252
+#: lib/App/Sqitch/Target.pm:251
 msgid "No engine specified; specify via target or core.engine"
 msgstr ""
 "Keine Engine angegeben. Bitte gib eine via \"target\" oder \"core.engine\" an"
@@ -1375,8 +1375,8 @@ msgstr ""
 #: lib/App/Sqitch/Plan.pm:908
 #, perl-brace-format
 msgid ""
-"\"{name}\" is invalid: changes must not begin with punctuation, contain "
-"\"@\", \":\", \"#\", or blanks, or end in punctuation or digits following "
+"\"{name}\" is invalid: changes must not begin with punctuation, contain \"@"
+"\", \":\", \"#\", or blanks, or end in punctuation or digits following "
 "punctuation"
 msgstr ""
 "\"{name}\" ist ungültig. Änderungen dürfen nicht mit Satzzeichen beginnen, "
@@ -1529,17 +1529,23 @@ msgstr ""
 "Kann nicht initialisieren da Projekt \"{project}\" bereits in {file} "
 "initialisiert wurde"
 
-#: lib/App/Sqitch/Target.pm:273
+#: lib/App/Sqitch/Target.pm:254
+msgid ""
+"No project configuration found. Run the \"init\" command to initialize a "
+"project"
+msgstr ""
+
+#: lib/App/Sqitch/Target.pm:276
 #, perl-brace-format
 msgid "Cannot find target \"{target}\""
 msgstr "Kann Ziel \"{target}\" nicht finden"
 
-#: lib/App/Sqitch/Target.pm:279
+#: lib/App/Sqitch/Target.pm:282
 #, perl-brace-format
 msgid "No URI associated with target \"{target}\""
 msgstr "Keine URI mit Ziel \"{target}\" verknüpft"
 
-#: lib/App/Sqitch/Target.pm:288
+#: lib/App/Sqitch/Target.pm:291
 #, perl-brace-format
 msgid "No engine specified by URI {uri}; URI must start with \"db:$engine:\""
 msgstr ""

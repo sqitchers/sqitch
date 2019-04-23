@@ -1859,7 +1859,7 @@ my @dbchanges;
     $params;
 } @changes[0..3];
 
-MockOutput->ask_y_n_returns(1);
+MockOutput->ask_yes_no_returns(1);
 ok $engine->revert, 'Revert all changes';
 is_deeply $engine->seen, [
     [deployed_changes => undef],
@@ -1873,11 +1873,11 @@ is_deeply $engine->seen, [
     [run_file => $dbchanges[0]->revert_file ],
     [log_revert_change => $dbchanges[0] ],
 ], 'Should have reverted the changes in reverse order';
-is_deeply +MockOutput->get_ask_y_n, [
+is_deeply +MockOutput->get_ask_yes_no, [
     [__x(
         'Revert all changes from {destination}?',
         destination => $engine->destination,
-    ), 'Yes'],
+    ), 1],
 ], 'Should have prompted to revert all changes';
 is_deeply +MockOutput->get_info_literal, [
     ['  - lolz ..', '.........', ' '],
@@ -1904,11 +1904,11 @@ is_deeply $engine->seen, [
     [log_revert_change => $dbchanges[1] ],
     [log_revert_change => $dbchanges[0] ],
 ], 'Log-only Should have reverted the changes in reverse order';
-is_deeply +MockOutput->get_ask_y_n, [
+is_deeply +MockOutput->get_ask_yes_no, [
     [__x(
         'Revert all changes from {destination}?',
         destination => $engine->destination,
-    ), 'Yes'],
+    ), 1],
 ], 'Log-only should have prompted to revert all changes';
 is_deeply +MockOutput->get_info_literal, [
     ['  - lolz ..', '.........', ' '],
@@ -1924,7 +1924,7 @@ is_deeply +MockOutput->get_info, [
 ], 'And the revert successes should be emitted';
 
 # Should exit if the revert is declined.
-MockOutput->ask_y_n_returns(0);
+MockOutput->ask_yes_no_returns(0);
 throws_ok { $engine->revert } 'App::Sqitch::X', 'Should abort declined revert';
 is $@->ident, 'revert', 'Declined revert ident should be "revert"';
 is $@->exitval, 1, 'Should have exited with value 1';
@@ -1932,17 +1932,17 @@ is $@->message, __ 'Nothing reverted', 'Should have exited with proper message';
 is_deeply $engine->seen, [
     [deployed_changes => undef],
 ], 'Should have called deployed_changes only';
-is_deeply +MockOutput->get_ask_y_n, [
+is_deeply +MockOutput->get_ask_yes_no, [
     [__x(
         'Revert all changes from {destination}?',
         destination => $engine->destination,
-    ), 'Yes'],
+    ), 1],
 ], 'Should have prompt to revert all changes';
 is_deeply +MockOutput->get_info, [
 ], 'It should have emitted nothing else';
 
 # Revert all changes with no prompt.
-MockOutput->ask_y_n_returns(1);
+MockOutput->ask_yes_no_returns(1);
 $engine->log_only(0);
 $engine->no_prompt(1);
 ok $engine->revert, 'Revert all changes with no prompt';
@@ -1958,7 +1958,7 @@ is_deeply $engine->seen, [
     [run_file => $dbchanges[0]->revert_file ],
     [log_revert_change => $dbchanges[0] ],
 ], 'Should have reverted the changes in reverse order';
-is_deeply +MockOutput->get_ask_y_n, [], 'Should have no prompt';
+is_deeply +MockOutput->get_ask_yes_no, [], 'Should have no prompt';
 
 is_deeply +MockOutput->get_info_literal, [
     ['  - lolz ..', '.........', ' '],
@@ -1995,12 +1995,12 @@ is_deeply $engine->seen, [
     [run_file => $dbchanges[2]->revert_file ],
     [log_revert_change => $dbchanges[2] ],
 ], 'Should have reverted only changes after @alpha';
-is_deeply +MockOutput->get_ask_y_n, [
+is_deeply +MockOutput->get_ask_yes_no, [
     [__x(
         'Revert changes to {change} from {destination}?',
         destination => $engine->destination,
         change      => $dbchanges[1]->format_name_with_tags,
-    ), 'Yes'],
+    ), 1],
 ], 'Should have prompt to revert to change';
 is_deeply +MockOutput->get_info_literal, [
     ['  - lolz ..', '.........', ' '],
@@ -2011,7 +2011,7 @@ is_deeply +MockOutput->get_info, [
     [__ 'ok'],
 ], 'And the revert successes should be emitted';
 
-MockOutput->ask_y_n_returns(0);
+MockOutput->ask_yes_no_returns(0);
 $offset_change = $dbchanges[1];
 push @resolved => $offset_change->id;
 throws_ok { $engine->revert('@alpha') } 'App::Sqitch::X',
@@ -2024,18 +2024,18 @@ is_deeply $engine->seen, [
     [change_offset_from_id => [$dbchanges[1]->id, 0] ],
     [deployed_changes_since => $dbchanges[1]],
 ], 'Should have called revert methods';
-is_deeply +MockOutput->get_ask_y_n, [
+is_deeply +MockOutput->get_ask_yes_no, [
     [__x(
         'Revert changes to {change} from {destination}?',
         change      => $dbchanges[1]->format_name_with_tags,
         destination => $engine->destination,
-    ), 'Yes'],
+    ), 1],
 ], 'Should have prompt to revert to @alpha';
 is_deeply +MockOutput->get_info, [
 ], 'It should have emitted nothing else';
 
 # Try to revert just the last change with no prompt
-MockOutput->ask_y_n_returns(1);
+MockOutput->ask_yes_no_returns(1);
 $engine->no_prompt(1);
 my $rev_file = $dbchanges[-1]->revert_file; # Grab before deleting _rework_tags.
 my $rtags = delete $dbchanges[-1]->{_rework_tags}; # These need to be invisible.
@@ -2051,7 +2051,7 @@ is_deeply $engine->seen, [
     [run_file => $rev_file ],
     [log_revert_change => { %{ $dbchanges[-1] }, _rework_tags => $rtags } ],
 ], 'Should have reverted one changes for @HEAD^';
-is_deeply +MockOutput->get_ask_y_n, [], 'Should have no prompt';
+is_deeply +MockOutput->get_ask_yes_no, [], 'Should have no prompt';
 is_deeply +MockOutput->get_info_literal, [
     ['  - lolz ..', '', ' '],
 ], 'Output should show what it reverts to';
