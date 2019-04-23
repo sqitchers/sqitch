@@ -27,6 +27,10 @@ Revision history for Perl extension App::Sqitch
        `sqitch-authentication`, as well as `$SNOWSQL_PRIVATE_KEY_PASSPHRASE`
        in `sqitch-environment`. Thanks to Casey Largent for figuring it out
        (#441).
+     - Added the German localization. Thanks to Thomas Iguchi for the pull
+       request (#451).
+     - Renamed the French localization from "fr" to "fr_FR", so that systems
+       will actually find it.
 
 0.9999 2019-02-01T15:29:40Z
      [Bug Fixes]
