@@ -872,7 +872,7 @@ msgstr "Nicht angewendet"
 #: lib/App/Sqitch/Engine.pm:532
 #, perl-brace-format
 msgid "Verify script \"{script}\" failed."
-msgstr "Verifizierungsskript {file} fehlgeschlagen."
+msgstr "Verifizierungsskript {script} fehlgeschlagen."
 
 #: lib/App/Sqitch/Engine.pm:541
 #, perl-brace-format
@@ -1307,8 +1307,8 @@ msgstr "Unbekannte Änderung \"{required}\" wird vorausgesetzt von \"{change}\""
 #, perl-brace-format
 msgid "HINT: move \"{change}\" down {num} line in {plan}"
 msgid_plural "HINT: move \"{change}\" down {num} lines in {plan}"
-msgstr[0] "Hinweis: schiebe \"{change}\" {num} Zeilen herunter in {plan}"
-msgstr[1] ""
+msgstr[0] "Hinweis: schiebe \"{change}\" {num} Zeile herunter in {plan}"
+msgstr[1] "Hinweis: schiebe \"{change}\" {num} Zeilen herunter in {plan}"
 
 #: lib/App/Sqitch/Plan.pm:579
 msgid "Dependency error detected:"
