@@ -1862,8 +1862,8 @@ throws an exception
 
 Registers the current project plan in the registry database. The
 implementation should insert the project name and URI if they have not already
-been inserted. If a project with the same name but different URI already
-exists, an exception should be thrown.
+been inserted. If a project already exists with the same name but different
+URI, or a different name and the same URI, an exception should be thrown.
 
 =head3 C<is_deployed_tag>
 

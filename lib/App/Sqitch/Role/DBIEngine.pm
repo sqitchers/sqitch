@@ -367,20 +367,21 @@ sub register_project {
             # Both are undef, so cool.
         }
     } else {
-        # Does the URI already exist?
-        my $res = defined $uri ? $dbh->selectcol_arrayref(
-            'SELECT project FROM projects WHERE uri = ?',
-            undef, $uri
-        ) : $dbh->selectcol_arrayref(
-            'SELECT project FROM projects WHERE uri IS NULL',
-        );
+        # No project with that name exists. Check to see if the URI does.
+        if (defined $uri) {
+            # Does the URI already exist?
+            my $res = $dbh->selectcol_arrayref(
+                'SELECT project FROM projects WHERE uri = ?',
+                undef, $uri
+            );
 
-        hurl engine => __x(
-            'Cannot register "{project}" with URI {uri}: project "{reg_proj}" already using that URI',
-            project => $proj,
-            uri     => $uri,
-            reg_proj => $res->[0],
-        ) if @{ $res };
+            hurl engine => __x(
+                'Cannot register "{project}" with URI {uri}: project "{reg_proj}" already using that URI',
+                project => $proj,
+                uri     => $uri,
+                reg_proj => $res->[0],
+            ) if @{ $res };
+        }
 
         # Insert the project.
         my $ts = $self->_ts_default;

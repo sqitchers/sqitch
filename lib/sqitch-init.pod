@@ -25,7 +25,8 @@ things that are already there.
 
 Optional URI to associate with the project. If present, the URI will be
 written to the project plan and used for added uniqueness in hashed object
-IDs.
+IDs, as well as to prevent the deployment of another project with the same
+name but different URI.
 
 =item C<--engine>
 
