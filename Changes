@@ -36,6 +36,11 @@ Revision history for Perl extension App::Sqitch
        user when translations are provided. Defaults to the English "yes" and
        "no" when no translation is available. Suggested by German translator
        Thomas Iguchi (#449).
+     - Fixed a bug where only project without a URI was allowed in the
+       registry. Thanks to Conding-Brunna for the report (#450).
+     - Clarified the role of project URIs for uniqueness: They don't allow
+       multiple projects with the same name, but do prevent the deployment of
+       a project with the same name but different URI.
 
 0.9999 2019-02-01T15:29:40Z
      [Bug Fixes]
