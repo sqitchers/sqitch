@@ -14,7 +14,7 @@ BuildRequires:  perl(Carp)
 BuildRequires:  perl(Class::XSAccessor) >= 1.18
 BuildRequires:  perl(Clone)
 BuildRequires:  perl(Config)
-BuildRequires:  perl(Config::GitLike) >= 1.11
+BuildRequires:  perl(Config::GitLike) >= 1.15
 BuildRequires:  perl(constant)
 BuildRequires:  perl(DateTime) >= 1.04
 BuildRequires:  perl(DateTime::TimeZone)
@@ -85,7 +85,7 @@ BuildRequires:  perl(warnings)
 Requires:       perl(Class::XSAccessor) >= 1.18
 Requires:       perl(Clone)
 Requires:       perl(Config)
-Requires:       perl(Config::GitLike) >= 1.11
+Requires:       perl(Config::GitLike) >= 1.15
 Requires:       perl(constant)
 Requires:       perl(DateTime) >= 1.04
 Requires:       perl(DateTime::TimeZone)

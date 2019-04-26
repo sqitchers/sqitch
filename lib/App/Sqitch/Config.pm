@@ -7,7 +7,7 @@ use warnings;
 use Path::Class;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
-use Config::GitLike 1.11;
+use Config::GitLike 1.15;
 use utf8;
 
 extends 'Config::GitLike';
@@ -54,10 +54,19 @@ sub local_file {
 
 sub dir_file { shift->local_file }
 
+# Section keys always have the top section lowercase, and subsections are
+# left as-is.
+sub _skey($) {
+    my $key = shift // return '';
+    my ($sec, $sub, $name) = Config::GitLike::_split_key($key);
+    return lc $key unless $sec;
+    return lc($sec) . '.' . join '.',   grep { defined } $sub, $name;
+}
+
 sub get_section {
     my ( $self, %p ) = @_;
     $self->load unless $self->is_loaded;
-    my $section = lc $p{section} // '';
+    my $section = _skey $p{section};
     my $data    = $self->data;
     return {
         map  {
@@ -180,17 +189,6 @@ Adds a comment to the configuration file.
 Given the lowercase key from the loaded data, this method returns it in its
 original case. This is like C<original_key>, only in the case where there are
 multiple keys (for multivalue keys), only the first key is returned.
-
-=begin comment
-
-Hide <original_key>: It is defined in Config::GitLike 1.10, and only defined
-here for older versions.
-
-=head3 C<original_key>
-
-Only provided if not inherited from Config::GitLike.
-
-=end comment
 
 =head1 See Also
 

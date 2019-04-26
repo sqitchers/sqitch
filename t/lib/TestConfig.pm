@@ -4,14 +4,6 @@ use warnings;
 use base 'App::Sqitch::Config';
 use Path::Class;
 
-BEGIN {
-    # Circumvent Config::Gitlike bug on Windows.
-    # https://rt.cpan.org/Ticket/Display.html?id=96670
-    if (!$ENV{HOME} && Config::GitLike->VERSION < 1.15) {
-        $ENV{HOME} = '~';
-    }
-}
-
 # Creates and returns a new TestConfig, which inherits from
 # App::Sqitch::Config. Sets nonexistent values for the file locations and
 # calls update() on remaining args.
