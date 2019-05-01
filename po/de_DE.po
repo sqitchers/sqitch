@@ -403,7 +403,7 @@ msgstr "  - Keine Engines zum Aktualisieren verfügbar"
 #: lib/App/Sqitch/Command/engine.pm:287
 #, perl-brace-format
 msgid "Cannot update {file}. Please make it writable"
-msgstr "Kann {file} nicht verändern. Bitte mache die Datei schreibbar"
+msgstr "Kann {file} nicht aktualisieren. Bitte mache die Datei schreibbar"
 
 #: lib/App/Sqitch/Command/engine.pm:343
 #, perl-brace-format
@@ -1534,6 +1534,8 @@ msgid ""
 "No project configuration found. Run the \"init\" command to initialize a "
 "project"
 msgstr ""
+"Fehlende Projektkonfiguration. Bitte führe den \"init\"-Befehl aus, um das "
+"Projekt zu initialisieren"
 
 #: lib/App/Sqitch/Target.pm:276
 #, perl-brace-format
