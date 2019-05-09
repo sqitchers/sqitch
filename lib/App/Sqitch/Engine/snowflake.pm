@@ -112,6 +112,10 @@ sub _def_user {
 }
 
 sub _def_pass { $ENV{SNOWSQL_PWD} || shift->_snowcfg->{password} }
+sub _def_acct {
+    return $ENV{SNOWSQL_ACCOUNT} || shift->_snowcfg->{accountname}
+        || hurl engine => __('Cannot determine Snowflake account name');
+}
 
 has account => (
     is      => 'ro',
@@ -124,9 +128,7 @@ has account => (
             $host =~ s/[.].+//;
             return $host;
         }
-        return $ENV{SNOWSQL_ACCOUNT} || $self->_snowcfg->{accountname} || hurl engine => __(
-            'Cannot determine Snowflake account name'
-        );
+        return $self->_def_acct;
     },
 );
 
@@ -139,7 +141,7 @@ sub _host {
     }
     return $ENV{SNOWSQL_HOST} if $ENV{SNOWSQL_HOST};
     return join '.', (
-        ($ENV{SNOWSQL_ACCOUNT} || $self->_snowcfg->{accountname}),
+        $self->_def_acct,
         (grep { $_ } $ENV{SNOWSQL_REGION} || $self->_snowcfg->{region} || ()),
         'snowflakecomputing.com',
     );
