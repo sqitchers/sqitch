@@ -366,9 +366,13 @@ sub capture {
         ( my $msg = shift ) =~ s/\s+at\s+.+/\n/ms;
         die $msg;
     };
-    return capturex ( shift, $self->quote_shell(@_) )
-        if ISWIN && IPC::System::Simple->VERSION <= 1.25;
-    capturex @_;
+    my $ret;
+    if ( ISWIN && IPC::System::Simple->VERSION <= 1.25 ){
+      $ret = capturex ( shift, $self->quote_shell(@_) );
+    } else {
+      $ret = capturex @_;
+    }
+    return $ret;
 }
 
 sub _is_interactive {
