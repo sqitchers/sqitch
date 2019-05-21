@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 20;
+use Test::More tests => 22;
 #use Test::More 'no_plan';
 use File::Spec;
 use Test::Exception;
@@ -77,3 +77,14 @@ is_deeply $config->get_section(section => 'core'), {
 is_deeply $config->get_section(section => 'engine.pg'), {
     client => "/usr/local/pgsql/bin/psql",
 }, 'get_section("engine.pg") should work';
+
+# Make sure it works with irregular casing.
+is_deeply $config->get_section(section => 'foo.BAR'), {
+    baz => 'hello'
+}, 'get_section() whould work with capitalized subsection';
+
+# Should work with multiple subsections and case-preserved keys.
+is_deeply $config->get_section(section => 'guess.Yes.No'), {
+    red => 'true',
+    Calico => 'false',
+}, 'get_section() whould work with mixed case subsections';

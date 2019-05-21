@@ -41,6 +41,14 @@ Revision history for Perl extension App::Sqitch
      - Clarified the role of project URIs for uniqueness: They don't allow
        multiple projects with the same name, but do prevent the deployment of
        a project with the same name but different URI.
+     - Fixed an issue where target variables could not be found when a target
+       name was not lowercase. Thanks to @maximejanssens for the report
+       (#454).
+     - Now require Config::GitLike 1.15 or higher.
+     - Fixed the indentation of variables emitted by the `show` actions of the
+       `target` and `engine` commands, fixing a "Negative repeat count does
+       nothing" warning in the process. Thanks to @maximejanssens for the
+       report (#454).
 
 0.9999 2019-02-01T15:29:40Z
      [Bug Fixes]

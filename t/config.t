@@ -476,6 +476,9 @@ engine.pg.target=mydb
 engine.sqlite.client=/opt/local/bin/sqlite3
 engine.sqlite.registry=meta
 engine.sqlite.target=devdb
+foo.BAR.baz=hello
+guess.Yes.No.calico=false
+guess.Yes.No.red=true
 revert.count=2
 revert.revision=1.1
 revert.to=gamma
@@ -507,6 +510,9 @@ core.pager=less -r
 core.top_dir=migrations
 core.uri=https://github.com/sqitchers/sqitch/
 engine.pg.client=/usr/local/pgsql/bin/psql
+foo.BAR.baz=hello
+guess.Yes.No.calico=false
+guess.Yes.No.red=true
 revert.count=2
 revert.revision=1.1
 revert.to=gamma
@@ -775,8 +781,7 @@ throws_ok { $cmd->execute('revert.revision') } 'App::Sqitch::X',
 is $@->ident, 'config', 'Num int cast exception ident should be "config"';
 
 ok $cmd->execute('bundle.tags_only'), 'Get bundle.tags_only as bool';
-is_deeply \@emit, [[$Config::GitLike::VERSION > 1.08 ? 'true' : 1]],
-    'Should have emitted bundle.tags_only as a bool';
+is_deeply \@emit, [['true']], 'Should have emitted bundle.tags_only as a bool';
 @emit = ();
 
 # Make sure bool-or-int data type works.
@@ -797,8 +802,7 @@ is_deeply \@emit, [[1]],
 @emit = ();
 
 ok $cmd->execute('bundle.tags_only'), 'Get bundle.tags_only as bool-or-int';
-is_deeply \@emit, [[$Config::GitLike::VERSION > 1.08 ? 'true' : 1]],
-    'Should have emitted bundle.tags_only as a bool';
+is_deeply \@emit, [['true']], 'Should have emitted bundle.tags_only as a bool';
 @emit = ();
 
 ##############################################################################
@@ -903,7 +907,7 @@ throws_ok { $cmd->execute('revert.revision') } 'App::Sqitch::X',
 is $@->ident, 'config', 'Num int cast exception ident should be "config"';
 
 ok $cmd->execute('bundle.tags_only'), 'Get bundle.tags_only as bool';
-is_deeply \@emit, [['bundle.tags_only=' . ($Config::GitLike::VERSION > 1.08 ? 'true' : 1)]],
+is_deeply \@emit, [['bundle.tags_only=true']],
     'Should have emitted bundle.tags_only as a bool';
 @emit = ();
 
@@ -925,7 +929,7 @@ is_deeply \@emit, [['revert.revision=1']],
 @emit = ();
 
 ok $cmd->execute('bundle.tags_only'), 'Get bundle.tags_only as bool-or-int';
-is_deeply \@emit, [['bundle.tags_only=' . ($Config::GitLike::VERSION > 1.08 ? 'true' : 1)]],
+is_deeply \@emit, [['bundle.tags_only=true']],
     'Should have emitted bundle.tags_only as a bool';
 @emit = ();
 
