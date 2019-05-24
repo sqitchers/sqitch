@@ -74,8 +74,10 @@ my $client = 'snowsql' . (App::Sqitch::ISWIN ? '.exe' : '');
 is $snow->client, $client, 'client should default to snowsql';
 
 is $snow->registry, 'sqitch', 'Registry default should be "sqitch"';
-my $exp_uri = sprintf 'db:snowflake://%s.snowflakecomputing.com/%s',
-    $ENV{SNOWSQL_ACCOUNT}, $sqitch->sysuser;
+my $exp_uri = URI->new(
+    sprintf 'db:snowflake://%s.snowflakecomputing.com/%s',
+    $ENV{SNOWSQL_ACCOUNT}, $sqitch->sysuser,
+)->as_string;
 is $snow->uri, $exp_uri, 'DB URI should be filled in';
 is $snow->destination, $exp_uri, 'Destination should be URI string';
 is $snow->registry_destination, $snow->destination,
