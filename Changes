@@ -49,6 +49,9 @@ Revision history for Perl extension App::Sqitch
        `target` and `engine` commands, fixing a "Negative repeat count does
        nothing" warning in the process. Thanks to @maximejanssens for the
        report (#454).
+     - Fixed a Snowflake test failure when the current system username has a
+       space or other character requiring URI escaping. Thanks to Ralph
+       Andrade for the report (#463).
 
 0.9999 2019-02-01T15:29:40Z
      [Bug Fixes]
