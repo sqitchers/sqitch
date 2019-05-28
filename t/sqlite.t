@@ -52,7 +52,7 @@ is $sqlite->registry_destination, $sqlite->registry_uri->as_string,
 # Pretend for now that we always have a valid SQLite.
 my $mock_sqitch = Test::MockModule->new(ref $sqitch);
 my $sqlite_version = '3.7.12 2012-04-03 19:43:07 86b8481be7e76cccc92d14ce762d21bfb69504af';
-$mock_sqitch->mock(probe => sub { $sqlite_version });
+$mock_sqitch->mock(capture => sub { return $sqlite_version });
 
 my @std_opts = (
     '-noheader',
@@ -205,7 +205,7 @@ can_ok $sqlite, qw(_run _capture _spool);
 
 my (@run, @capture, @spool);
 $mock_sqitch->mock(run     => sub { shift; @run = @_ });
-$mock_sqitch->mock(capture => sub { shift; @capture = @_ });
+$mock_sqitch->mock(capture => sub { shift; @capture = @_; return $sqlite_version });
 $mock_sqitch->mock(spool   => sub { shift; @spool = @_ });
 
 ok $sqlite->_run(qw(foo bar baz)), 'Call _run';
@@ -313,6 +313,21 @@ for my $v (qw(
 $mock_sqitch->unmock_all;
 
 ##############################################################################
+# Test against extra newline in capture.
+$sqlite_version = '3.7.12 2012-04-03 19:43:07 86b8481be7e76cccc92d14ce762d21bfb69504af';
+$mock_sqitch->mock(capture => sub { return ( "\n",$sqlite_version) });
+{
+    ok my $sqlite = $CLASS->new(
+        sqitch => $sqitch,
+        target => $target,
+    ), "Create command for v3.7.12 with newline";
+    ok $sqlite->sqlite3, "Should be okay with sqlite version v3.7.12 with newline";
+}
+
+# Un-mock for live tests below
+$mock_sqitch->unmock_all;
+
+##############################################################################
 my $alt_db = $db_name->dir->file('sqitchtest.db');
 # Can we do live tests?
 END {
@@ -345,7 +360,7 @@ DBIEngineTest->run(
         die "SQLite >= 3.7.11 required; DBD::SQLite built with $version\n"
             unless $v[0] > 3 || ($v[0] == 3 && ($v[1] > 7 || ($v[1] == 7 && $v[2] >= 11)));
 
-        $version =  (split / / => $self->sqitch->probe( $self->client, '-version' ))[0];
+        $version =  (split / / => scalar $self->sqitch->capture( $self->client, '-version' ))[0];
         @v = split /[.]/ => $version;
             die "SQLite >= 3.3.9 required; CLI is $version\n"
             unless $v[0] > 3 || ($v[0] == 3 && ($v[1] > 3 || ($v[1] == 3 && $v[2] >= 9)));
