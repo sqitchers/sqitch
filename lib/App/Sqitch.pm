@@ -83,7 +83,7 @@ has user_name => (
             || $ENV{ SQITCH_ORIG_FULLNAME }
         || do {
             my $sysname = $self->sysuser || hurl user => __(
-                    'Cannot find your name; run sqitch config --user user.name "YOUR NAME"'
+                'Cannot find your name; run sqitch config --user user.name "YOUR NAME"'
             );
             if (ISWIN) {
                 try { require Win32API::Net } || return $sysname;
@@ -93,10 +93,9 @@ has user_name => (
                 return Encode::decode( locale => $info->{fullName} );
             }
             require User::pwent;
-            my $name = (User::pwent::getpwnam($sysname)->gecos)[0]
-                || return $sysname;
+            my $name = User::pwent::getpwnam($sysname) || return $sysname;
             require Encode::Locale;
-            return Encode::decode( locale => $name );
+            return Encode::decode( locale => ($name->gecos)[0] );
         };
     }
 );
