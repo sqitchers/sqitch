@@ -52,6 +52,12 @@ Revision history for Perl extension App::Sqitch
      - Fixed a Snowflake test failure when the current system username has a
        space or other character requiring URI escaping. Thanks to Ralph
        Andrade for the report (#463).
+     - Fixed an issue where a wayward newline in some versions of SQLite
+       prevented Sqitch from parsing the version. Thanks to Kivanc Yazan
+       for the report (#465) and the fix (#465)!
+     - Fixed an error when Sqitch was run on a system without a valid username,
+       such as some Docker environments. Thanks to Ferdinand Salis for the
+       report (#459)!
 
 0.9999 2019-02-01T15:29:40Z
      [Bug Fixes]
