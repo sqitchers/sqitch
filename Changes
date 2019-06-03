@@ -58,6 +58,10 @@ Revision history for Perl extension App::Sqitch
      - Fixed an error when Sqitch was run on a system without a valid username,
        such as some Docker environments. Thanks to Ferdinand Salis for the
        report (#459)!
+     - When Sqitch finds the registry does not exist on PostgreSQL, it now sends
+       a warning to the PostgreSQL log reporting that it will initialize the
+       database. This is to reduce confusion for folks watching the PostgreSQL
+       error log while Sqitch runs (#314).
 
 0.9999 2019-02-01T15:29:40Z
      [Bug Fixes]
