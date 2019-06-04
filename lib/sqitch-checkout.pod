@@ -77,7 +77,7 @@ Don't verify each change. This is the default.
 Set a variable name and value for use by the database engine client, if it
 supports variables. The format must be C<name=value>, e.g.,
 C<--set defuser='Homer Simpson'>. Overrides any values loaded from
-L</configuration Variables>.
+L</Configuration Variables>.
 
 =item C<-e>
 
@@ -86,7 +86,7 @@ L</configuration Variables>.
 Set a variable name and value for use by the database engine client when
 deploying, if it supports variables. The format must be C<name=value>, e.g.,
 C<--set defuser='Homer Simpson'>. Overrides any values from C<--set> or values
-loaded from L</configuration Variables>.
+loaded from L</Configuration Variables>.
 
 =item C<-r>
 
@@ -95,7 +95,7 @@ loaded from L</configuration Variables>.
 Sets a variable name to be used by the database engine client during when
 reverting, if it supports variables. The format must be C<name=value>, e.g.,
 C<--set defuser='Homer Simpson'>. Overrides any values from C<--set> or values
-loaded from L</configuration Variables>.
+loaded from L</Configuration Variables>.
 
 =item C<--log-only>
 
