@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Sqitch 0.932\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-04-23 10:11-0400\n"
+"POT-Creation-Date: 2019-06-04 07:43-0400\n"
 "PO-Revision-Date: 2012-08-31 17:15-0700\n"
 "Last-Translator: Thomas Iguchi <ti@nobu-games.com>\n"
 "Language-Team: German <david@justatheory.com>\n"
@@ -24,7 +24,7 @@ msgstr ""
 "Kann deinen Namen nicht finden. Führe den folgenden Befehl aus: sqitch "
 "config --user user.name \"DEIN NAME\""
 
-#: lib/App/Sqitch.pm:115
+#: lib/App/Sqitch.pm:114
 msgid ""
 "Cannot infer your email address; run sqitch config --user user.email "
 "you@host.com"
@@ -32,52 +32,52 @@ msgstr ""
 "Kann deine E-Mail-Adresse nicht finden. Führe den folgenden Befehl aus: "
 "sqitch config --user user.email dein.name@domain.com"
 
-#: lib/App/Sqitch.pm:281
+#: lib/App/Sqitch.pm:280
 #, perl-brace-format
 msgid "Cannot change to directory {directory}: {error}"
 msgstr "Konnte nicht in das folgende Verzeichnis wechseln {directory}: {error}"
 
-#: lib/App/Sqitch.pm:315 lib/App/Sqitch/Command.pm:112
+#: lib/App/Sqitch.pm:314 lib/App/Sqitch/Command.pm:112
 #, perl-brace-format
 msgid "\"{command}\" is not a valid command"
 msgstr "\"{command}\" ist ein ungültiger Befehl"
 
-#: lib/App/Sqitch.pm:409
+#: lib/App/Sqitch.pm:408
 msgid ""
 "Sqitch seems to be unattended and there is no default value for this question"
 msgstr ""
 "Sqitch scheint unbeaufsichtigt ausgeführt zu werden, und es steht leider "
 "keine Standardantwort für diese Frage zur Verfügung"
 
-#: lib/App/Sqitch.pm:428
+#: lib/App/Sqitch.pm:427
 msgctxt "Confirm prompt answer yes"
 msgid "Yes"
 msgstr "Ja"
 
-#: lib/App/Sqitch.pm:429
+#: lib/App/Sqitch.pm:428
 msgctxt "Confirm prompt answer no"
 msgid "No"
 msgstr "Nein"
 
-#: lib/App/Sqitch.pm:438
+#: lib/App/Sqitch.pm:437
 msgid "Please answer \"y\" or \"n\"."
 msgstr "Bitte antworte mit \"j\" oder \"n\""
 
-#: lib/App/Sqitch.pm:441
+#: lib/App/Sqitch.pm:440
 msgid "No valid answer after 3 attempts; aborting"
 msgstr "Drei ungültige Antworten in Folge. Breche ab"
 
-#: lib/App/Sqitch.pm:462 lib/App/Sqitch.pm:469
+#: lib/App/Sqitch.pm:461 lib/App/Sqitch.pm:468
 #, perl-brace-format
 msgid "Cannot exec {command}: {error}"
 msgstr "Konnte den Befehl {command} nicht ausführen: {error}"
 
-#: lib/App/Sqitch.pm:485
+#: lib/App/Sqitch.pm:484
 #, perl-brace-format
 msgid "Error closing pipe to {command}: {error}"
 msgstr "Fehler beim Schließen der Pipeline nach {command}: {error}"
 
-#: lib/App/Sqitch.pm:489 lib/App/Sqitch/Engine/oracle.pm:758
+#: lib/App/Sqitch.pm:488 lib/App/Sqitch/Engine/oracle.pm:758
 #, perl-brace-format
 msgid "{command} unexpectedly returned exit value {exitval}"
 msgstr "{command} brach unerwartet ab mit Rückgabewert {exitval}"
@@ -381,12 +381,12 @@ msgstr "Variablen"
 msgid "No Variables"
 msgstr "Keine Variablen"
 
-#: lib/App/Sqitch/Command/engine.pm:255
+#: lib/App/Sqitch/Command/engine.pm:253
 #, perl-brace-format
 msgid "Loading {file}"
 msgstr "Lade {file}"
 
-#: lib/App/Sqitch/Command/engine.pm:268
+#: lib/App/Sqitch/Command/engine.pm:266
 #, perl-brace-format
 msgid ""
 "Deprecated {section} found in {file}; to remove it, run\n"
@@ -396,16 +396,16 @@ msgstr ""
 "folgenden Befehl aus:\n"
 "    {sqitch} config --file {file} --remove-section {section}"
 
-#: lib/App/Sqitch/Command/engine.pm:280
+#: lib/App/Sqitch/Command/engine.pm:278
 msgid "  - No engines to update"
 msgstr "  - Keine Engines zum Aktualisieren verfügbar"
 
-#: lib/App/Sqitch/Command/engine.pm:287
+#: lib/App/Sqitch/Command/engine.pm:285
 #, perl-brace-format
 msgid "Cannot update {file}. Please make it writable"
 msgstr "Kann {file} nicht aktualisieren. Bitte mache die Datei schreibbar"
 
-#: lib/App/Sqitch/Command/engine.pm:343
+#: lib/App/Sqitch/Command/engine.pm:341
 #, perl-brace-format
 msgid ""
 "Migrated {old} to {new}; To remove {old}, run\n"
@@ -1074,13 +1074,24 @@ msgstr ""
 msgid "Database name missing in URI \"{uri}\""
 msgstr "Name der Datenbank fehlt in URI \"{uri}\""
 
-#: lib/App/Sqitch/Engine/pg.pm:189 lib/App/Sqitch/Engine/snowflake.pm:293
+#: lib/App/Sqitch/Engine/pg.pm:189 lib/App/Sqitch/Engine/snowflake.pm:295
 #: lib/App/Sqitch/Engine/vertica.pm:142
 #, perl-brace-format
 msgid "Sqitch schema \"{schema}\" already exists"
 msgstr "Sqitch-Schema \"{schema}\" existiert bereits"
 
-#: lib/App/Sqitch/Engine/snowflake.pm:128
+#: lib/App/Sqitch/Engine/pg.pm:386
+#, fuzzy
+msgid "Sqitch registry not initialized"
+msgstr "Sqitch ist bereits initialisiert"
+
+#: lib/App/Sqitch/Engine/pg.pm:387
+msgid ""
+"Because the \"changes\" table does not exist, Sqitch will now initialize the "
+"database to create its registry tables."
+msgstr ""
+
+#: lib/App/Sqitch/Engine/snowflake.pm:117
 msgid "Cannot determine Snowflake account name"
 msgstr "Kann Namen für Snowflake-Benutzerkonto nicht herausfinden"
 
