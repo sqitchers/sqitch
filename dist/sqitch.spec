@@ -305,6 +305,13 @@ also be installed.
 # No additional files required.
 
 %changelog
+* Tue Jun 4 2019 David E. Wheeler <david.wheeler@iovation.com> 1.0.0-1
+- Upgrade to v1.0.0.
+- Config::GitLike now requires v1.15.
+- Test::MockModule now requires v0.17.
+- Removed File::HomeDir.
+- Changed "sane" to "sensible" in the summary.
+
 * Fri Feb 1 2019 David E. Wheeler <david.wheeler@iovation.com> 0.9999-1
 - Upgrade to v0.9999.
 - Added requirement for IO::Pager 0.34 or higher.
