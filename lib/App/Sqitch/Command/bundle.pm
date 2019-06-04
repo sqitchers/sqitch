@@ -17,7 +17,7 @@ use namespace::autoclean;
 extends 'App::Sqitch::Command';
 with 'App::Sqitch::Role::ContextCommand';
 
-our $VERSION = '0.9999';
+# VERSION
 
 has from => (
     is       => 'ro',

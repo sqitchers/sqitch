@@ -14,7 +14,7 @@ use App::Sqitch::Types qw(Str Int Sqitch Plan Bool HashRef URI Maybe Target);
 use namespace::autoclean;
 use constant registry_release => '1.1';
 
-our $VERSION = '0.9999';
+# VERSION
 
 has sqitch => (
     is       => 'ro',
@@ -300,11 +300,11 @@ sub revert {
                 ident   => 'revert:confirm',
                 message => __ 'Nothing reverted',
                 exitval => 1,
-            } unless $sqitch->ask_y_n(__x(
+            } unless $sqitch->ask_yes_no(__x(
                 'Revert changes to {change} from {destination}?',
                 change      => $change->format_name_with_tags,
                 destination => $self->destination,
-            ), $self->prompt_accept ? 'Yes' : 'No' );
+            ), $self->prompt_accept );
         }
 
     } else {
@@ -323,10 +323,10 @@ sub revert {
                 ident   => 'revert',
                 message => __ 'Nothing reverted',
                 exitval => 1,
-            } unless $sqitch->ask_y_n(__x(
+            } unless $sqitch->ask_yes_no(__x(
                 'Revert all changes from {destination}?',
                 destination => $self->destination,
-            ), $self->prompt_accept ? 'Yes' : 'No' );
+            ), $self->prompt_accept );
         }
     }
 
@@ -1862,8 +1862,8 @@ throws an exception
 
 Registers the current project plan in the registry database. The
 implementation should insert the project name and URI if they have not already
-been inserted. If a project with the same name but different URI already
-exists, an exception should be thrown.
+been inserted. If a project already exists with the same name but different
+URI, or a different name and the same URI, an exception should be thrown.
 
 =head3 C<is_deployed_tag>
 

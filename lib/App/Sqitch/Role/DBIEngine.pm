@@ -11,7 +11,7 @@ use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 use namespace::autoclean;
 
-our $VERSION = '0.9999';
+# VERSION
 
 requires 'dbh';
 requires 'sqitch';
@@ -342,7 +342,7 @@ sub register_project {
     );
 
     if (@{ $res }) {
-        # A project with that name is already registreed. Compare URIs.
+        # A project with that name is already registered. Compare URIs.
         my $reg_uri = $res->[0];
         if ( defined $uri && !defined $reg_uri ) {
             hurl engine => __x(
@@ -367,20 +367,21 @@ sub register_project {
             # Both are undef, so cool.
         }
     } else {
-        # Does the URI already exist?
-        my $res = defined $uri ? $dbh->selectcol_arrayref(
-            'SELECT project FROM projects WHERE uri = ?',
-            undef, $uri
-        ) : $dbh->selectcol_arrayref(
-            'SELECT project FROM projects WHERE uri IS NULL',
-        );
+        # No project with that name exists. Check to see if the URI does.
+        if (defined $uri) {
+            # Does the URI already exist?
+            my $res = $dbh->selectcol_arrayref(
+                'SELECT project FROM projects WHERE uri = ?',
+                undef, $uri
+            );
 
-        hurl engine => __x(
-            'Cannot register "{project}" with URI {uri}: project "{reg_proj}" already using that URI',
-            project => $proj,
-            uri     => $uri,
-            reg_proj => $res->[0],
-        ) if @{ $res };
+            hurl engine => __x(
+                'Cannot register "{project}" with URI {uri}: project "{reg_proj}" already using that URI',
+                project => $proj,
+                uri     => $uri,
+                reg_proj => $res->[0],
+            ) if @{ $res };
+        }
 
         # Insert the project.
         my $ts = $self->_ts_default;

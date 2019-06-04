@@ -11,7 +11,7 @@ use Path::Class qw(dir file);
 use URI::db;
 use namespace::autoclean;
 
-our $VERSION = '0.9999';
+# VERSION
 
 has name => (
     is       => 'ro',
@@ -246,11 +246,14 @@ sub BUILDARGS {
             }
 
             # No core target, look for an engine key.
-            $ekey = $config->get(
-                key => 'core.engine'
-            ) or hurl target => __(
-                'No engine specified; specify via target or core.engine'
-            );
+            $ekey = $config->get( key => 'core.engine' ) or do {
+                hurl target => __(
+                    'No engine specified; specify via target or core.engine'
+                ) if $config->initialized;
+                hurl target => __(
+                    'No project configuration found. Run the "init" command to initialize a project'
+                );
+            };
             $ekey =~ s/\s+$//;
 
             # Find the name in the engine config, or fall back on a simple URI.

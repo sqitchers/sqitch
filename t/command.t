@@ -528,8 +528,8 @@ ARGS: {
             'Should have error for no engine or target';
         is $@->ident, 'target', 'Should have target ident';
         is $@->message, __(
-            'No engine specified; specify via target or core.engine',
-        ), 'Should have message about no specified engine';
+            'No project configuration found. Run the "init" command to initialize a project',
+        ), 'Should have message about no config';
 
         # But it should be okay if we pass an engine or valid target.
         is_deeply $parsem->(args => ['pg']),

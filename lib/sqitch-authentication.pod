@@ -154,7 +154,34 @@ other options, see the L<documentation|https://www.exasol.com/portal/display/DOC
 
 =item Snowflake
 
-Snowflake does not support password-less authentication.
+Snowflake does not support password-less authentication, but does support
+key-pair authentication. Follow
+L<the instructions|https://docs.snowflake.net/manuals/user-guide/snowsql-start.html#using-key-pair-authentication>
+to create a key pair, then set the following variables in the F<~/.snowsql/config>
+file:
+
+  authenticator = SNOWFLAKE_JWT
+  private_key_path = "path/to/privatekey.p8"
+
+To connect, set the C<$SNOWSQL_PRIVATE_KEY_PASSPHRASE> environment variable to
+the passphrase for the private key, and add these parameters to the query part
+of your connection URI:
+
+=over
+
+=item * C<authenticator=SNOWFLAKE_JWT>
+
+=item * C<uid=$username>
+
+=item * C<priv_key_file=path/to/privatekey.p8>
+
+=item * C<priv_key_file_pwd=$private_key_password>
+
+=back
+
+For example:
+
+  db:snowflake://movera@example.snowflakecomputing.com/flipr?Driver=Snowflake;warehouse=sqitch;authenticator=SNOWFLAKE_JWT;uid=movera;priv_key_file=path/to/privatekey.p8;priv_key_file_pwd=s0up3rs3cre7
 
 =back
 

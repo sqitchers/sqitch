@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: App-Sqitch 0.9999\n"
+"Project-Id-Version: App-Sqitch v1.0.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-01-25 10:09-0500\n"
+"POT-Creation-Date: 2019-06-04 07:43-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -22,46 +22,56 @@ msgstr ""
 msgid "Cannot find your name; run sqitch config --user user.name \"YOUR NAME\""
 msgstr ""
 
-#: lib/App/Sqitch.pm:115
+#: lib/App/Sqitch.pm:114
 msgid ""
 "Cannot infer your email address; run sqitch config --user user.email "
 "you@host.com"
 msgstr ""
 
-#: lib/App/Sqitch.pm:281
+#: lib/App/Sqitch.pm:280
 #, perl-brace-format
 msgid "Cannot change to directory {directory}: {error}"
 msgstr ""
 
-#: lib/App/Sqitch.pm:315 lib/App/Sqitch/Command.pm:112
+#: lib/App/Sqitch.pm:314 lib/App/Sqitch/Command.pm:112
 #, perl-brace-format
 msgid "\"{command}\" is not a valid command"
 msgstr ""
 
-#: lib/App/Sqitch.pm:409
+#: lib/App/Sqitch.pm:408
 msgid ""
 "Sqitch seems to be unattended and there is no default value for this question"
 msgstr ""
 
-#: lib/App/Sqitch.pm:438
+#: lib/App/Sqitch.pm:427
+msgctxt "Confirm prompt answer yes"
+msgid "Yes"
+msgstr ""
+
+#: lib/App/Sqitch.pm:428
+msgctxt "Confirm prompt answer no"
+msgid "No"
+msgstr ""
+
+#: lib/App/Sqitch.pm:437
 msgid "Please answer \"y\" or \"n\"."
 msgstr ""
 
-#: lib/App/Sqitch.pm:441
+#: lib/App/Sqitch.pm:440
 msgid "No valid answer after 3 attempts; aborting"
 msgstr ""
 
-#: lib/App/Sqitch.pm:451 lib/App/Sqitch.pm:458
+#: lib/App/Sqitch.pm:461 lib/App/Sqitch.pm:468
 #, perl-brace-format
 msgid "Cannot exec {command}: {error}"
 msgstr ""
 
-#: lib/App/Sqitch.pm:474
+#: lib/App/Sqitch.pm:484
 #, perl-brace-format
 msgid "Error closing pipe to {command}: {error}"
 msgstr ""
 
-#: lib/App/Sqitch.pm:478 lib/App/Sqitch/Engine/oracle.pm:758
+#: lib/App/Sqitch.pm:488 lib/App/Sqitch/Engine/oracle.pm:758
 #, perl-brace-format
 msgid "{command} unexpectedly returned exit value {exitval}"
 msgstr ""
@@ -351,28 +361,28 @@ msgstr ""
 msgid "No Variables"
 msgstr ""
 
-#: lib/App/Sqitch/Command/engine.pm:255
+#: lib/App/Sqitch/Command/engine.pm:253
 #, perl-brace-format
 msgid "Loading {file}"
 msgstr ""
 
-#: lib/App/Sqitch/Command/engine.pm:268
+#: lib/App/Sqitch/Command/engine.pm:266
 #, perl-brace-format
 msgid ""
 "Deprecated {section} found in {file}; to remove it, run\n"
 "    {sqitch} config --file {file} --remove-section {section}"
 msgstr ""
 
-#: lib/App/Sqitch/Command/engine.pm:280
+#: lib/App/Sqitch/Command/engine.pm:278
 msgid "  - No engines to update"
 msgstr ""
 
-#: lib/App/Sqitch/Command/engine.pm:287
+#: lib/App/Sqitch/Command/engine.pm:285
 #, perl-brace-format
 msgid "Cannot update {file}. Please make it writable"
 msgstr ""
 
-#: lib/App/Sqitch/Command/engine.pm:343
+#: lib/App/Sqitch/Command/engine.pm:341
 #, perl-brace-format
 msgid ""
 "Migrated {old} to {new}; To remove {old}, run\n"
@@ -631,12 +641,12 @@ msgstr ""
 msgid "URI"
 msgstr ""
 
-#: lib/App/Sqitch/Command/upgrade.pm:49
+#: lib/App/Sqitch/Command/upgrade.pm:48
 #, perl-brace-format
 msgid "Upgrading registry {registry} to version {version}"
 msgstr ""
 
-#: lib/App/Sqitch/Command/upgrade.pm:56
+#: lib/App/Sqitch/Command/upgrade.pm:55
 #, perl-brace-format
 msgid "Registry {registry} is up-to-date at version {version}"
 msgstr ""
@@ -646,7 +656,7 @@ msgstr ""
 msgid "Too many changes specified; verifying from \"{from}\" to \"{to}\""
 msgstr ""
 
-#: lib/App/Sqitch/Config.pm:26
+#: lib/App/Sqitch/Config.pm:25
 msgid "Could not determine home directory"
 msgstr ""
 
@@ -656,7 +666,7 @@ msgid "Unknown date format \"{format}\""
 msgstr ""
 
 #: lib/App/Sqitch/Engine.pm:133 lib/App/Sqitch/Engine.pm:145
-#: lib/App/Sqitch/Target.pm:252
+#: lib/App/Sqitch/Target.pm:251
 msgid "No engine specified; specify via target or core.engine"
 msgstr ""
 
@@ -999,13 +1009,23 @@ msgstr ""
 msgid "Database name missing in URI \"{uri}\""
 msgstr ""
 
-#: lib/App/Sqitch/Engine/pg.pm:189 lib/App/Sqitch/Engine/snowflake.pm:293
+#: lib/App/Sqitch/Engine/pg.pm:189 lib/App/Sqitch/Engine/snowflake.pm:295
 #: lib/App/Sqitch/Engine/vertica.pm:142
 #, perl-brace-format
 msgid "Sqitch schema \"{schema}\" already exists"
 msgstr ""
 
-#: lib/App/Sqitch/Engine/snowflake.pm:128
+#: lib/App/Sqitch/Engine/pg.pm:386
+msgid "Sqitch registry not initialized"
+msgstr ""
+
+#: lib/App/Sqitch/Engine/pg.pm:387
+msgid ""
+"Because the \"changes\" table does not exist, Sqitch will now initialize the "
+"database to create its registry tables."
+msgstr ""
+
+#: lib/App/Sqitch/Engine/snowflake.pm:117
 msgid "Cannot determine Snowflake account name"
 msgstr ""
 
@@ -1404,17 +1424,23 @@ msgid ""
 "Cannot initialize because project \"{project}\" already initialized in {file}"
 msgstr ""
 
-#: lib/App/Sqitch/Target.pm:273
+#: lib/App/Sqitch/Target.pm:254
+msgid ""
+"No project configuration found. Run the \"init\" command to initialize a "
+"project"
+msgstr ""
+
+#: lib/App/Sqitch/Target.pm:276
 #, perl-brace-format
 msgid "Cannot find target \"{target}\""
 msgstr ""
 
-#: lib/App/Sqitch/Target.pm:279
+#: lib/App/Sqitch/Target.pm:282
 #, perl-brace-format
 msgid "No URI associated with target \"{target}\""
 msgstr ""
 
-#: lib/App/Sqitch/Target.pm:288
+#: lib/App/Sqitch/Target.pm:291
 #, perl-brace-format
 msgid "No engine specified by URI {uri}; URI must start with \"db:$engine:\""
 msgstr ""

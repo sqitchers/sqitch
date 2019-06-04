@@ -12,7 +12,7 @@ use App::Sqitch::Types qw(DBH ArrayRef HashRef URIDB Str);
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.9999';
+# VERSION
 
 sub key    { 'snowflake' }
 sub name   { 'Snowflake' }
@@ -63,11 +63,11 @@ has _snowcfg => (
     isa     => HashRef,
     lazy    => 1,
     default => sub {
-        require File::HomeDir;
-        my $hd = File::HomeDir->my_home or return {};
+        my $hd = $^O eq 'MSWin32' && "$]" < '5.016' ? $ENV{HOME} || $ENV{USERPROFILE} : (glob('~'))[0];
+        return {} if not $hd;
         my $fn = dir $hd, '.snowsql', 'config';
         return {} unless -e $fn;
-        my $data = App::Sqitch::Config->load_file($fn);
+        my $data = App::Sqitch::Config->new->load_file($fn);
         my $cfg = {};
         for my $k (keys %{ $data }) {
             # We only want the default connections config. No named config.
@@ -112,6 +112,10 @@ sub _def_user {
 }
 
 sub _def_pass { $ENV{SNOWSQL_PWD} || shift->_snowcfg->{password} }
+sub _def_acct {
+    return $ENV{SNOWSQL_ACCOUNT} || shift->_snowcfg->{accountname}
+        || hurl engine => __('Cannot determine Snowflake account name');
+}
 
 has account => (
     is      => 'ro',
@@ -124,9 +128,7 @@ has account => (
             $host =~ s/[.].+//;
             return $host;
         }
-        return $ENV{SNOWSQL_ACCOUNT} || $self->_snowcfg->{accountname} || hurl engine => __(
-            'Cannot determine Snowflake account name'
-        );
+        return $self->_def_acct;
     },
 );
 
@@ -139,7 +141,7 @@ sub _host {
     }
     return $ENV{SNOWSQL_HOST} if $ENV{SNOWSQL_HOST};
     return join '.', (
-        ($ENV{SNOWSQL_ACCOUNT} || $self->_snowcfg->{accountname}),
+        $self->_def_acct,
         (grep { $_ } $ENV{SNOWSQL_REGION} || $self->_snowcfg->{region} || ()),
         'snowflakecomputing.com',
     );
@@ -300,7 +302,7 @@ sub initialize {
 }
 
 sub _no_table_error  {
-    return $DBI::state && $DBI::state eq '02000'; # ERRCODE_UNDEFINED_TABLE
+    return $DBI::state && $DBI::state eq '42S02'; # ERRCODE_UNDEFINED_TABLE
 }
 
 sub _no_column_error  {

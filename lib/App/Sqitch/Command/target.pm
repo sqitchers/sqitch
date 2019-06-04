@@ -18,7 +18,7 @@ use constant extra_target_keys => qw(uri);
 extends 'App::Sqitch::Command';
 with 'App::Sqitch::Role::TargetConfigCommand';
 
-our $VERSION = '0.9999';
+# VERSION
 
 sub configure {
     # No config; target config is actually targets.
@@ -213,11 +213,9 @@ sub show {
         $self->emit('    ', $label_for{verify}, $target->reworked_verify_dir);
         my $vars = $target->variables;
         if (%{ $vars }) {
-            my $len = max map { length } values %{ $vars };
-            $len--;
-            $_ .= ': ' . ' ' x ($len - length $_) for keys %{ $vars };
+            my $len = max map { length } keys %{ $vars };
             $self->emit('    ', $label_for{variables});
-            $self->emit("  $_:" . (' ' x ($len - length $_)) . $vars->{$_})
+            $self->emit("  $_: " . (' ' x ($len - length $_)) . $vars->{$_})
                 for sort { lc $a cmp lc $b } keys %{ $vars };
         } else {
             $self->emit('    ', $label_for{no_variables});

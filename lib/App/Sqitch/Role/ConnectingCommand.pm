@@ -7,7 +7,7 @@ use utf8;
 use Moo::Role;
 use App::Sqitch::Types qw(ArrayRef);
 
-our $VERSION = '0.9999';
+# VERSION
 
 requires 'options';
 requires 'configure';

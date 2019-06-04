@@ -10,7 +10,7 @@ use App::Sqitch::Plan::Depend;
 use Locale::TextDomain qw(App-Sqitch);
 extends 'App::Sqitch::Plan::Line';
 
-our $VERSION = '0.970';
+# VERSION
 
 has _requires => (
     is       => 'ro',

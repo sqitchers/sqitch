@@ -2,9 +2,9 @@
 
 use strict;
 use warnings;
-use Test::More tests => 158;
+use Test::More tests => 189;
 #use Test::More 'no_plan';
-use Test::MockModule;
+use Test::MockModule 0.17;
 use Path::Class;
 use Test::Exception;
 use Test::NoWarnings;
@@ -28,6 +28,7 @@ can_ok $CLASS, qw(
     user_email
     verbosity
     prompt
+    ask_yes_no
     ask_y_n
 );
 
@@ -536,12 +537,69 @@ is capture_stdout {
 }, "hi [yo] yo\n", 'Prompt should show default as selected when unattended';
 
 ##############################################################################
+# Test ask_yes_no().
+throws_ok { $sqitch->ask_yes_no } 'App::Sqitch::X',
+    'Should get error for no ask_yes_no message';
+is $@->ident, 'DEV', 'No ask_yes_no ident should be "DEV"';
+is $@->message, 'ask_yes_no() called without a prompt message',
+    'No ask_yes_no error message should be correct';
+
+my $yes = __ 'Yes';
+my $no = __ 'No';
+
+# Test affermation.
+for my $variant ($yes, lc $yes, uc $yes, lc substr($yes, 0, 1), substr($yes, 0, 2)) {
+    $input = $variant;
+    $unattended = 0;
+    is capture_stdout {
+        ok $sqitch->ask_yes_no('hi'),
+            qq{ask_yes_no() should return true for "$variant" input};
+    }, 'hi ', qq{ask_yes_no() should prompt for "$variant"};
+}
+
+# Test negation.
+for my $variant ($no, lc $no, uc $no, lc substr($no, 0, 1), substr($no, 0, 2)) {
+    $input = $variant;
+    $unattended = 0;
+    is capture_stdout {
+        ok !$sqitch->ask_yes_no('hi'),
+            qq{ask_yes_no() should return false for "$variant" input};
+    }, 'hi ', qq{ask_yes_no() should prompt for "$variant"};
+}
+
+# Test defaults.
+$input = '';
+is capture_stdout {
+    ok $sqitch->ask_yes_no('whu?', 1),
+        'ask_yes_no() should return true for true default'
+}, "whu? [$yes] ", 'ask_yes_no() should prompt and show default "Yes"';
+is capture_stdout {
+    ok !$sqitch->ask_yes_no('whu?', 0),
+        'ask_yes_no() should return false for false default'
+}, "whu? [$no] ", 'ask_yes_no() should prompt and show default "No"';
+
+my $please = __ 'Please answer "y" or "n".';
+$input = 'ha!';
+throws_ok {
+    is capture_stdout { $sqitch->ask_yes_no('hi')  },
+        "hi  \n$please\nhi  \n$please\nhi  \n",
+         'Should get prompts for repeated bad answers';
+} 'App::Sqitch::X', 'Should get error for bad answers';
+is $@->ident, 'io', 'Bad answers ident should be "IO"';
+is $@->message, __ 'No valid answer after 3 attempts; aborting',
+    'Bad answers message should be correct';
+
+##############################################################################
 # Test ask_y_n().
+my $warning;
+$sqitch_mock->mock(warn => sub { shift; $warning = "@_" });
 throws_ok { $sqitch->ask_y_n } 'App::Sqitch::X',
     'Should get error for no ask_y_n message';
 is $@->ident, 'DEV', 'No ask_y_n ident should be "DEV"';
-is $@->message, 'ask_y_n() called without a prompt message',
+is $@->message, 'ask_yes_no() called without a prompt message',
     'No ask_y_n error message should be correct';
+is $warning, 'The ask_y_n() method has been deprecated. Use ask_yes_no() instead.',
+    'Should get a deprecation warning from ask_y_n';
 
 throws_ok { $sqitch->ask_y_n('hi', 'b') } 'App::Sqitch::X',
     'Should get error for invalid ask_y_n default';
@@ -549,36 +607,42 @@ is $@->ident, 'DEV', 'Invalid ask_y_n default ident should be "DEV"';
 is $@->message, 'Invalid default value: ask_y_n() default must be "y" or "n"',
     'Invalid ask_y_n default error message should be correct';
 
-$input = 'y';
+$input = lc substr $yes, 0, 1;
 $unattended = 0;
 is capture_stdout {
-    ok $sqitch->ask_y_n('hi'), 'ask_y_n should return true for "y" input';
+    ok $sqitch->ask_y_n('hi'),
+        qq{ask_y_n should return true for "$input" input}
 }, 'hi ', 'ask_y_n() should prompt';
 
-$input = 'no';
+$input = lc substr $no, 0, 1;
 is capture_stdout {
-    ok !$sqitch->ask_y_n('howdy'), 'ask_y_n should return false for "no" input';
+    ok !$sqitch->ask_y_n('howdy'),
+        qq{ask_y_n should return false for "$input" input}
 }, 'howdy ', 'ask_y_n() should prompt for no';
 
-$input = 'Nein';
+$input = uc substr $no, 0, 1;
 is capture_stdout {
-    ok !$sqitch->ask_y_n('howdy'), 'ask_y_n should return false for "Nein"';
+    ok !$sqitch->ask_y_n('howdy'),
+        qq{ask_y_n should return false for "$input" input}
 }, 'howdy ', 'ask_y_n() should prompt for no';
 
-$input = 'Yep';
+$input = uc substr $yes, 0, 2;
 is capture_stdout {
-    ok $sqitch->ask_y_n('howdy'), 'ask_y_n should return true for "Yep"';
+    ok $sqitch->ask_y_n('howdy'),
+        qq{ask_y_n should return true for "$input" input}
 }, 'howdy ', 'ask_y_n() should prompt for yes';
 
 $input = '';
 is capture_stdout {
-    ok $sqitch->ask_y_n('whu?', 'y'), 'ask_y_n should return true default "y"';
-}, 'whu? [y] ', 'ask_y_n() should prompt and show default "y"';
-is capture_stdout {
-    ok !$sqitch->ask_y_n('whu?', 'n'), 'ask_y_n should return false default "n"';
-}, 'whu? [n] ', 'ask_y_n() should prompt and show default "n"';
+    ok $sqitch->ask_y_n('whu?', 'y'),
+        qq{ask_y_n should return true default "$yes"}
+}, "whu? [$yes] ", 'ask_y_n() should prompt and show default "Yes"';
 
-my $please = __ 'Please answer "y" or "n".';
+is capture_stdout {
+    ok !$sqitch->ask_y_n('whu?', 'n'),
+        qq{ask_y_n should return false default "$no"};
+}, "whu? [$no] ", 'ask_y_n() should prompt and show default "No"';
+
 $input = 'ha!';
 throws_ok {
     is capture_stdout { $sqitch->ask_y_n('hi')  },

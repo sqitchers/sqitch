@@ -1,6 +1,6 @@
 package App::Sqitch;
 
-# ABSTRACT: Sane database change management
+# ABSTRACT: Sensible database change management
 
 use 5.010;
 use strict;
@@ -23,7 +23,7 @@ use IPC::System::Simple 1.17 qw(runx capturex $EXITVAL);
 use namespace::autoclean 0.16;
 use constant ISWIN => $^O eq 'MSWin32';
 
-our $VERSION = '0.9999';
+# VERSION
 
 BEGIN {
     # Force Locale::TextDomain to encode in UTF-8 and to decode all messages.
@@ -83,7 +83,7 @@ has user_name => (
             || $ENV{ SQITCH_ORIG_FULLNAME }
         || do {
             my $sysname = $self->sysuser || hurl user => __(
-                    'Cannot find your name; run sqitch config --user user.name "YOUR NAME"'
+                'Cannot find your name; run sqitch config --user user.name "YOUR NAME"'
             );
             if (ISWIN) {
                 try { require Win32API::Net } || return $sysname;
@@ -93,10 +93,9 @@ has user_name => (
                 return Encode::decode( locale => $info->{fullName} );
             }
             require User::pwent;
-            my $name = (User::pwent::getpwnam($sysname)->gecos)[0]
-                || return $sysname;
+            my $name = User::pwent::getpwnam($sysname) || return $sysname;
             require Encode::Locale;
-            return Encode::decode( locale => $name );
+            return Encode::decode( locale => ($name->gecos)[0] );
         };
     }
 );
@@ -189,7 +188,7 @@ sub go {
     my $sqitch = $class->new({ options => $opts, config  => $config });
 
     # 4. Find the command.
-    my $cmd = $sqitch->_find_cmd(\@args);
+    my $cmd = $class->_find_cmd(\@args);
 
     # 5. Instantiate the command object.
     my $command = $cmd->create({
@@ -292,7 +291,7 @@ sub _parse_core_opts {
 }
 
 sub _find_cmd {
-    my ( $self, $args ) = @_;
+    my ( $class, $args ) = @_;
     my (@tried, $prev);
     for (my $i = 0; $i <= $#$args; $i++) {
         my $arg = $args->[$i] or next;
@@ -305,17 +304,17 @@ sub _find_cmd {
             next;
         }
         push @tried => $arg;
-        my $cmd = try { App::Sqitch::Command->class_for($self, $arg) } or next;
+        my $cmd = try { App::Sqitch::Command->class_for($class, $arg) } or next;
         splice @{ $args }, $i, 1;
         return $cmd;
     }
 
     # No valid command found. Report those we tried.
-    $self->vent(__x(
+    $class->vent(__x(
         '"{command}" is not a valid command',
         command => $_,
     )) for @tried;
-    $self->_pod2usage('sqitchcommands');
+    $class->_pod2usage('sqitchcommands');
 }
 
 sub _pod2usage {
@@ -421,24 +420,35 @@ sub prompt {
     return $ans;
 }
 
-sub ask_y_n {
-    my $self = shift;
-    my ($msg, $def)  = @_;
+sub ask_yes_no {
+    my ($self, @msg) = (shift, shift);
+    hurl 'ask_yes_no() called without a prompt message' unless $msg[0];
 
-    hurl 'ask_y_n() called without a prompt message' unless $msg;
-    hurl 'Invalid default value: ask_y_n() default must be "y" or "n"'
-        if $def && $def !~ /^[yn]/i;
+    my $y = __p 'Confirm prompt answer yes', 'Yes';
+    my $n = __p 'Confirm prompt answer no',  'No';
+    push @msg => $_[0] ? $y : $n if @_;
 
     my $answer;
     my $i = 3;
     while ($i--) {
-        $answer = $self->prompt(@_);
-        return 1 if $answer =~ /^y/i;
-        return 0 if $answer =~ /^n/i;
+        $answer = $self->prompt(@msg);
+        return 1 if $y =~ /^\Q$answer/i;
+        return 0 if $n =~ /^\Q$answer/i;
         $self->emit(__ 'Please answer "y" or "n".');
     }
 
     hurl io => __ 'No valid answer after 3 attempts; aborting';
+}
+
+sub ask_y_n {
+    my $self = shift;
+    $self->warn('The ask_y_n() method has been deprecated. Use ask_yes_no() instead.');
+    return $self->ask_yes_no(@_) unless @_ > 1;
+
+    my ($msg, $def) = @_;
+    hurl 'Invalid default value: ask_y_n() default must be "y" or "n"'
+        if $def && $def !~ /^[yn]/i;
+    return $self->ask_yes_no($msg, $def =~ /^y/i ? 1 : 0);
 }
 
 sub spool {
@@ -596,7 +606,7 @@ __END__
 
 =head1 Name
 
-App::Sqitch - Sane database change management
+App::Sqitch - Sensible database change management
 
 =head1 Synopsis
 
@@ -856,17 +866,29 @@ value for the user to accept or to be used if Sqitch is running unattended. An
 exception will be thrown if there is no prompt message or if Sqitch is
 unattended and there is no default value.
 
+=head3 C<ask_yes_no>
+
+  if ( $sqitch->ask_yes_no('Are you sure?', 1) ) { # do it! }
+
+Prompts the user with a "yes" or "no" question. Returns true if the user
+replies in the affirmative and false if the reply is in the negative. If the
+optional second argument is passed and true, the answer will default to the
+affirmative. If the second argument is passed but false, the answer will
+default to the negative. When a translation library is in use, the affirmative
+and negative replies from the user should be localized variants of "yes" and
+"no", and will be matched as such. If no translation library is in use, the
+answers will default to the English "yes" and "no".
+
+If the user inputs an invalid value three times, an exception will be thrown.
+An exception will also be thrown if there is no message. As with C<prompt()>,
+an exception will be thrown if Sqitch is running unattended and there is no
+default.
+
 =head3 C<ask_y_n>
 
-  if ( $sqitch->ask_y_no('Are you sure?', 'y') ) { # do it! }
+This method has been deprecated in favor of C<ask_yes_no()> and will be
+removed in a future version of Sqitch.
 
-Prompts the user with a "yes" or "no" question. Returns true for "yes" and
-false for "no". Any answer that begins with case-insensitive "y" or "n" will
-be accepted as valid. If the user inputs an invalid value three times, an
-exception will be thrown. An exception will also be thrown if there is no
-message or if the optional default value does not begin with "y" or "n". As
-with C<prompt()> an exception will be thrown if Sqitch is running unattended
-and there is no default.
 
 =head2 Constants
 

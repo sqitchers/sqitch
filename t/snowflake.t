@@ -38,10 +38,8 @@ BEGIN {
 }
 
 # Mock the home directory to prevent reading a user config file.
-require File::HomeDir;
 my $tmp_dir = dir tempdir CLEANUP => 1;
-my $mock_home = Test::MockModule->new('File::HomeDir');
-$mock_home->mock(my_home => $tmp_dir->stringify);
+local $ENV{HOME} = $tmp_dir->stringify;
 
 is_deeply [$CLASS->config_vars], [
     target   => 'any',
@@ -76,8 +74,10 @@ my $client = 'snowsql' . (App::Sqitch::ISWIN ? '.exe' : '');
 is $snow->client, $client, 'client should default to snowsql';
 
 is $snow->registry, 'sqitch', 'Registry default should be "sqitch"';
-my $exp_uri = sprintf 'db:snowflake://%s.snowflakecomputing.com/%s',
-    $ENV{SNOWSQL_ACCOUNT}, $sqitch->sysuser;
+my $exp_uri = URI->new(
+    sprintf 'db:snowflake://%s.snowflakecomputing.com/%s',
+    $ENV{SNOWSQL_ACCOUNT}, $sqitch->sysuser,
+)->as_string;
 is $snow->uri, $exp_uri, 'DB URI should be filled in';
 is $snow->destination, $exp_uri, 'Destination should be URI string';
 is $snow->registry_destination, $snow->destination,
@@ -343,7 +343,7 @@ DBI: {
     local *DBI::state;
     ok !$snow->_no_table_error, 'Should have no table error';
     ok !$snow->_no_column_error, 'Should have no column error';
-    $DBI::state = '02000';
+    $DBI::state = '42S02';
     ok $snow->_no_table_error, 'Should now have table error';
     ok !$snow->_no_column_error, 'Still should have no column error';
     $DBI::state = '42703';

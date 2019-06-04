@@ -1,5 +1,68 @@
 Revision history for Perl extension App::Sqitch
 
+1.0.0  2019-06-04T12:56:22Z
+     - Fixed test failure due to a hard-coded system error that may be
+       localized on non-en-US hosts. Thanks to Slaven Rezić for the catch
+       (#427).
+     - Now require Test::MockModule 0.17 to silence a warning during testing.
+       Thanks to Slaven Rezić for the suggestion.
+     - Fixed an error when Sqitch is run with no arguments. Thanks to Henrik
+       Tudborg for the report (#428).
+     - Fixed missing dependency on IO::Pager in the distribution metadata.
+     - Removed use of File::HomeDir, thanks to a PR from Karen Etheridge
+       (#433).
+     - Updated the tagline from "Sane database change management" to "Sensible
+       database change management" out of sensitivity to those subject to
+       mental illness (#435).
+     - Removed double-quoting of SQLite commands on Windows, inadvertently
+       added by the workaround for Windows quoting in v0.9999.
+     - Fixed a Snowflake issue where Sqitch failed to recognize the proper
+       error code for a missing table and therefore an uninitialized registry.
+       Thanks to @lerouxt and @kulmam92 for the report and fix (#439).
+     - Added check for project initialization when no engine config can be
+       found. When run from a directory with no configuration, Sqitch now
+       reports that the project is not initialized instead of complaining
+       about a lack of engine config (#437).
+     - Documented Snowflake key pair authentication in
+       `sqitch-authentication`, as well as `$SNOWSQL_PRIVATE_KEY_PASSPHRASE`
+       in `sqitch-environment`. Thanks to Casey Largent for figuring it out
+       (#441).
+     - Added the German localization. Thanks to Thomas Iguchi for the pull
+       request (#451).
+     - Renamed the French localization from "fr" to "fr_FR", so that systems
+       will actually find it.
+     - Added the `ask_yes_no()` method as a replacement for `ask_y_n()`, which
+       is now deprecated. The new method expects localized responses from the
+       user when translations are provided. Defaults to the English "yes" and
+       "no" when no translation is available. Suggested by German translator
+       Thomas Iguchi (#449).
+     - Fixed a bug where only project without a URI was allowed in the
+       registry. Thanks to Conding-Brunna for the report (#450).
+     - Clarified the role of project URIs for uniqueness: They don't allow
+       multiple projects with the same name, but do prevent the deployment of
+       a project with the same name but different URI.
+     - Fixed an issue where target variables could not be found when a target
+       name was not lowercase. Thanks to @maximejanssens for the report
+       (#454).
+     - Now require Config::GitLike 1.15 or higher.
+     - Fixed the indentation of variables emitted by the `show` actions of the
+       `target` and `engine` commands, fixing a "Negative repeat count does
+       nothing" warning in the process. Thanks to @maximejanssens for the
+       report (#454).
+     - Fixed a Snowflake test failure when the current system username has a
+       space or other character requiring URI escaping. Thanks to Ralph
+       Andrade for the report (#463).
+     - Fixed an issue where a wayward newline in some versions of SQLite
+       prevented Sqitch from parsing the version. Thanks to Kivanc Yazan
+       for the report (#465) and the fix (#465)!
+     - Fixed an error when Sqitch was run on a system without a valid
+       username, such as some Docker environments. Thanks to Ferdinand Salis
+       for the report (#459)!
+     - When Sqitch finds the registry does not exist on PostgreSQL, it now
+       sends a warning to the PostgreSQL log reporting that it will initialize
+       the database. This is to reduce confusion for folks watching the
+       PostgreSQL error log while Sqitch runs (#314).
+
 0.9999 2019-02-01T15:29:40Z
      [Bug Fixes]
      - Fixed a test failure with the MySQL max limit value, mostly exhibited
@@ -163,9 +226,9 @@ Revision history for Perl extension App::Sqitch
        directories.
      - Removed the deprecated core `--engine` option. The `init` command still
        supports it, while other commands are able to parse the engine name as
-       an argument — e.g., `sqitch deploy mysql` — or implicitly as part of a
-       target, as in `sqitch revert db:pg:tryme`. When Sqitch is unable to
-       determine the engine for a command, the error message no longer
+       an argument --- e.g., `sqitch deploy mysql` --- or implicitly as part
+       of a target, as in `sqitch revert db:pg:tryme`. When Sqitch is unable
+       to determine the engine for a command, the error message no longer
        mentions `--engine` and instead suggests specifying the engine via the
        target. This option never triggered an error, but demonstration of its
        use has been limited to `init` examples.

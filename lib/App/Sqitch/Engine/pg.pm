@@ -15,7 +15,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.9999';
+# VERSION
 
 sub destination {
     my $self = shift;
@@ -380,7 +380,19 @@ sub _dt($) {
 }
 
 sub _no_table_error  {
-    return $DBI::state && $DBI::state eq '42P01'; # undefined_table
+    return 0 unless $DBI::state && $DBI::state eq '42P01'; # undefined_table
+    my $dbh = shift->dbh;
+    my @msg = map { $dbh->quote($_) } (
+        __ 'Sqitch registry not initialized',
+        __ 'Because the "changes" table does not exist, Sqitch will now initialize the database to create its registry tables.',
+    );
+    $dbh->do(sprintf q{DO $$
+        BEGIN
+            SET LOCAL client_min_messages = 'ERROR';
+            RAISE WARNING USING ERRCODE = 'undefined_table', MESSAGE = %s, DETAIL = %s;
+        END;
+    $$}, @msg) if $dbh->{pg_server_version} >= 90000;
+    return 1;
 }
 
 sub _no_column_error  {

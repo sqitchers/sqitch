@@ -15,7 +15,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.9999';
+# VERSION
 
 has registry_uri => (
     is       => 'ro',
@@ -115,7 +115,7 @@ has _sqlite3 => (
 
         # Make sure we can use this version of SQLite.
         my @v = split /[.]/ => (
-            split / / => $self->sqitch->probe( $self->client, '-version' )
+            split / / => scalar $self->sqitch->capture( $self->client, '-version' )
         )[0];
         hurl sqlite => __x(
             'Sqitch requires SQLite 3.3.9 or later; {client} is {version}',
@@ -239,9 +239,7 @@ sub run_upgrade {
 
 sub _read {
     my $self = shift;
-    my $cmd = '.read ' . $self->dbh->quote(shift);
-    return $cmd unless App::Sqitch::ISWIN;
-    return $self->sqitch->quote_shell($cmd);
+    return '.read ' . $self->dbh->quote(shift);
 }
 
 1;
