@@ -14,6 +14,7 @@ use Test::File qw(file_not_exists_ok file_exists_ok);
 use Test::NoWarnings;
 use File::Copy;
 use Path::Class;
+use List::Util qw(max);
 use File::Temp 'tempdir';
 use lib 't/lib';
 use MockOutput;
@@ -143,18 +144,22 @@ throws_ok { $CLASS->new($CLASS->configure({}, {
     dir => { foo => 'bar' },
 })) } 'App::Sqitch::X',  'Should fail on invalid directory name';
 is $@->ident, 'engine', 'Invalid directory ident should be "engine"';
-is $@->message, __x(
-    'Unknown directory name: {prop}',
-    prop => 'foo',
+is $@->message,  __nx(
+    'Unknown directory name: {dirs}',
+    'Unknown directory names: {dirs}',
+    1,
+    dirs => 'foo',
 ), 'The invalid directory messsage should be correct';
 
 throws_ok { $CLASS->new($CLASS->configure({}, {
     dir => { foo => 'bar', cavort => 'ha' },
 })) } 'App::Sqitch::X',  'Should fail on invalid directory names';
 is $@->ident, 'engine', 'Invalid directories ident should be "engine"';
-is $@->message, __x(
-    'Unknown directory names: {props}',
-    props => 'cavort, foo',
+is $@->message, __nx(
+    'Unknown directory name: {dirs}',
+    'Unknown directory names: {dirs}',
+    2,
+    dirs => 'cavort, foo',
 ), 'The invalid properties messsage should be correct';
 
 ##############################################################################
@@ -426,83 +431,106 @@ is_deeply +MockOutput->get_emit, [
     ['firebird'], ['pg'], ['sqlite'], ['vertica']
 ], 'Show with no names should emit the list of engines';
 
+# Set up labels.
+my %lbl = (
+    target       => __ 'Target',
+    registry     => __ 'Registry',
+    client       => __ 'Client',
+    top_dir      => __ 'Top Directory',
+    plan_file    => __ 'Plan File',
+    extension    => __ 'Extension',
+    revert       => '  ' . __ 'Revert',
+    deploy       => '  ' . __ 'Deploy',
+    verify       => '  ' . __ 'Verify',
+    reworked     => '  ' . __ 'Reworked',
+);
+
+my $len = max map { length } values %lbl;
+$_ .= ': ' . ' ' x ($len - length $_) for values %lbl;
+
+# Header labels.
+$lbl{script_dirs} = __('Script Directories') . ':';
+$lbl{reworked_dirs} = __('Reworked Script Directories') . ':';
+$lbl{variables} = __('Variables') . ':';
+$lbl{no_variables} = __('No Variables');
+
 # Try one engine.
 ok $cmd->show('sqlite'), 'Show sqlite';
 is_deeply +MockOutput->get_emit, [
-    ['* sqlite'],
-    ['    ', 'Target:        ', 'widgets'],
-    ['    ', 'Registry:      ', 'sqitch'],
-    ['    ', 'Client:        ', '/usr/sbin/sqlite3'],
-    ['    ', 'Top Directory: ', '.'],
-    ['    ', 'Plan File:     ', 'foo.plan'],
-    ['    ', 'Extension:     ', 'sql'],
-    ['    ', 'Script Directories:'],
-    ['    ', '  Deploy:      ', 'deploy'],
-    ['    ', '  Revert:      ', 'revert'],
-    ['    ', '  Verify:      ', 'verify'],
-    ['    ', 'Reworked Script Directories:'],
-    ['    ', '  Reworked:    ', '.'],
-    ['    ', '  Deploy:      ', 'deploy'],
-    ['    ', '  Revert:      ', 'revert'],
-    ['    ', '  Verify:      ', 'verify'],
-    ['    ', 'No Variables'],
+    ['* sqlite'                                     ],
+    ['    ', $lbl{target},       'widgets'          ],
+    ['    ', $lbl{registry},     'sqitch'           ],
+    ['    ', $lbl{client},       '/usr/sbin/sqlite3'],
+    ['    ', $lbl{top_dir},      '.'                ],
+    ['    ', $lbl{plan_file},    'foo.plan'         ],
+    ['    ', $lbl{extension},    'sql'              ],
+    ['    ', $lbl{script_dirs}                      ],
+    ['    ', $lbl{deploy},       'deploy'           ],
+    ['    ', $lbl{revert},       'revert'           ],
+    ['    ', $lbl{verify},       'verify'           ],
+    ['    ', $lbl{reworked_dirs}                    ],
+    ['    ', $lbl{reworked},     '.'                ],
+    ['    ', $lbl{deploy},       'deploy'           ],
+    ['    ', $lbl{revert},       'revert'           ],
+    ['    ', $lbl{verify},       'verify'           ],
+    ['    ', $lbl{no_variables}                     ],
 ], 'The full "sqlite" engine should have been shown';
 
 # Try multiples.
 $config->update('engine.vertica.client' => 'vsql.exe');
 ok $cmd->show(qw(sqlite vertica firebird)), 'Show three engines';
 is_deeply +MockOutput->get_emit, [
-    ['* sqlite'],
-    ['    ', 'Target:        ', 'widgets'],
-    ['    ', 'Registry:      ', 'sqitch'],
-    ['    ', 'Client:        ', '/usr/sbin/sqlite3'],
-    ['    ', 'Top Directory: ', '.'],
-    ['    ', 'Plan File:     ', 'foo.plan'],
-    ['    ', 'Extension:     ', 'sql'],
-    ['    ', 'Script Directories:'],
-    ['    ', '  Deploy:      ', 'deploy'],
-    ['    ', '  Revert:      ', 'revert'],
-    ['    ', '  Verify:      ', 'verify'],
-    ['    ', 'Reworked Script Directories:'],
-    ['    ', '  Reworked:    ', '.'],
-    ['    ', '  Deploy:      ', 'deploy'],
-    ['    ', '  Revert:      ', 'revert'],
-    ['    ', '  Verify:      ', 'verify'],
-    ['    ', 'No Variables'],
-    ['* vertica'],
-    ['    ', 'Target:        ', 'db:vertica:'],
-    ['    ', 'Registry:      ', 'sqitch'],
-    ['    ', 'Client:        ', 'vsql.exe'],
-    ['    ', 'Top Directory: ', '.'],
-    ['    ', 'Plan File:     ', 'sqitch.plan'],
-    ['    ', 'Extension:     ', 'sql'],
-    ['    ', 'Script Directories:'],
-    ['    ', '  Deploy:      ', 'deploy'],
-    ['    ', '  Revert:      ', 'revert'],
-    ['    ', '  Verify:      ', 'verify'],
-    ['    ', 'Reworked Script Directories:'],
-    ['    ', '  Reworked:    ', '.'],
-    ['    ', '  Deploy:      ', 'deploy'],
-    ['    ', '  Revert:      ', 'revert'],
-    ['    ', '  Verify:      ', 'verify'],
-    ['    ', 'No Variables'],
-    ['* firebird'],
-    ['    ', 'Target:        ', 'db:firebird:bar'],
-    ['    ', 'Registry:      ', 'migrations'],
-    ['    ', 'Client:        ', 'argh'],
-    ['    ', 'Top Directory: ', 'fb'],
-    ['    ', 'Plan File:     ', 'fb.plan'],
-    ['    ', 'Extension:     ', 'fbsql'],
-    ['    ', 'Script Directories:'],
-    ['    ', '  Deploy:      ', dir 'fb/dep'],
-    ['    ', '  Revert:      ', dir 'fb/rev'],
-    ['    ', '  Verify:      ', dir 'fb/ver'],
-    ['    ', 'Reworked Script Directories:'],
-    ['    ', '  Reworked:    ', dir 'fb/r'],
-    ['    ', '  Deploy:      ', dir 'fb/r/d'],
-    ['    ', '  Revert:      ', dir 'fb/r/revert'],
-    ['    ', '  Verify:      ', dir 'fb/r/verify'],
-    ['    ', 'Variables:'],
+    ['* sqlite'                                     ],
+    ['    ', $lbl{target},       'widgets'          ],
+    ['    ', $lbl{registry},     'sqitch'           ],
+    ['    ', $lbl{client},       '/usr/sbin/sqlite3'],
+    ['    ', $lbl{top_dir},      '.'                ],
+    ['    ', $lbl{plan_file},    'foo.plan'         ],
+    ['    ', $lbl{extension},    'sql'              ],
+    ['    ', $lbl{script_dirs}                      ],
+    ['    ', $lbl{deploy},       'deploy'           ],
+    ['    ', $lbl{revert},       'revert'           ],
+    ['    ', $lbl{verify},       'verify'           ],
+    ['    ', $lbl{reworked_dirs}                    ],
+    ['    ', $lbl{reworked},     '.'                ],
+    ['    ', $lbl{deploy},       'deploy'           ],
+    ['    ', $lbl{revert},       'revert'           ],
+    ['    ', $lbl{verify},       'verify'           ],
+    ['    ', $lbl{no_variables}                     ],
+    ['* vertica'                                    ],
+    ['    ', $lbl{target},       'db:vertica:'      ],
+    ['    ', $lbl{registry},     'sqitch'           ],
+    ['    ', $lbl{client},       'vsql.exe'         ],
+    ['    ', $lbl{top_dir},      '.'                ],
+    ['    ', $lbl{plan_file},    'sqitch.plan'      ],
+    ['    ', $lbl{extension},    'sql'              ],
+    ['    ', $lbl{script_dirs}                      ],
+    ['    ', $lbl{deploy},       'deploy'           ],
+    ['    ', $lbl{revert},       'revert'           ],
+    ['    ', $lbl{verify},       'verify'           ],
+    ['    ', $lbl{reworked_dirs}                    ],
+    ['    ', $lbl{reworked},     '.'                ],
+    ['    ', $lbl{deploy},       'deploy'           ],
+    ['    ', $lbl{revert},       'revert'           ],
+    ['    ', $lbl{verify},       'verify'           ],
+    ['    ', $lbl{no_variables}                     ],
+    ['* firebird'                                   ],
+    ['    ', $lbl{target},       'db:firebird:bar'  ],
+    ['    ', $lbl{registry},     'migrations'       ],
+    ['    ', $lbl{client},       'argh'             ],
+    ['    ', $lbl{top_dir},      'fb'               ],
+    ['    ', $lbl{plan_file},    'fb.plan'          ],
+    ['    ', $lbl{extension},    'fbsql'            ],
+    ['    ', $lbl{script_dirs}                      ],
+    ['    ', $lbl{deploy},       dir 'fb/dep'       ],
+    ['    ', $lbl{revert},       dir 'fb/rev'       ],
+    ['    ', $lbl{verify},       dir 'fb/ver'       ],
+    ['    ', $lbl{reworked_dirs}                    ],
+    ['    ', $lbl{reworked},     dir 'fb/r'         ],
+    ['    ', $lbl{deploy},       dir 'fb/r/d'       ],
+    ['    ', $lbl{revert},       dir 'fb/r/revert'  ],
+    ['    ', $lbl{verify},       dir 'fb/r/verify'  ],
+    ['    ', $lbl{variables}                        ],
     ['  ay:   x'],
     ['  Bee:  second'],
     ['  ceee: third'],

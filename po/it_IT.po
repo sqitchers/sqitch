@@ -550,7 +550,7 @@ msgstr "Usa --project per selezionare quale progetto interrogare: {projects}"
 #: lib/App/Sqitch/Command/status.pm:83 lib/App/Sqitch/Command/status.pm:206
 #: lib/App/Sqitch/Role/TargetConfigCommand.pm:99
 msgid ", "
-msgstr ","
+msgstr ", "
 
 #: lib/App/Sqitch/Command/status.pm:138 lib/App/Sqitch/Engine.pm:364
 msgid "No changes deployed"

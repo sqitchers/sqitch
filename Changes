@@ -1,6 +1,10 @@
 Revision history for Perl extension App::Sqitch
 
 1.0.1
+     - Fixed Perl Pod errors, thanks to a pull request from Mohammad S Anwar
+       (#470).
+     - Fixed test failures when running with the localization set to German
+       or Italian. Thanks to Slaven Rezić for the report (#472).
 
 1.0.0  2019-06-04T12:56:22Z
      - Fixed test failure due to a hard-coded system error that may be

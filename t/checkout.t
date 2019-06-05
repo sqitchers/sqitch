@@ -633,16 +633,20 @@ is_deeply +MockOutput->get_warn, [[__x(
 throws_ok { $checkout->execute(qw(master greg)) } 'App::Sqitch::X',
     'Should get an exception for unknown arg';
 is $@->ident, 'checkout', 'Unknow arg ident should be "checkout"';
-is $@->message, __x(
+is $@->message, __nx(
     'Unknown argument "{arg}"',
+    'Unknown arguments: {arg}',
+    1,
     arg => 'greg',
 ), 'Should get an exeption for two unknown arg';
 
 throws_ok { $checkout->execute(qw(master greg widgets)) } 'App::Sqitch::X',
     'Should get an exception for unknown args';
 is $@->ident, 'checkout', 'Unknow args ident should be "checkout"';
-is $@->message, __x(
+is $@->message, __nx(
+    'Unknown argument "{arg}"',
     'Unknown arguments: {arg}',
+    2,
     arg => 'greg, widgets',
 ), 'Should get an exeption for two unknown args';
 
