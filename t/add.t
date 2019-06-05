@@ -590,8 +590,10 @@ is_deeply +MockOutput->get_info, [
 throws_ok { $add->execute(qw(foo bar)) } 'App::Sqitch::X',
     'Should get an error on unkonwn argument';
 is $@->ident, 'add', 'Unkown argument error ident should be "add"';
-is $@->message, __x(
+is $@->message, __nx(
+    'Unknown argument "{arg}"',
     'Unknown arguments: {arg}',
+    2,
     arg => 'foo, bar',
 ), 'Unknown argument error message should be correct';
 

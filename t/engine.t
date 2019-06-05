@@ -2788,7 +2788,7 @@ is $engine->_verify_changes(1, 1, 0, $changes[1]), 0,
 is_deeply +MockOutput->get_emit_literal, [[
     '  * users @alpha ..', '', ' ',
 ]], 'Declared output should list the change';
-is_deeply +MockOutput->get_emit, [['ok']],
+is_deeply +MockOutput->get_emit, [[__ 'ok']],
     'Emitted Output should reflect the verification of the change';
 is_deeply +MockOutput->get_comment, [], 'Should have no comments';
 is_deeply $engine->seen, [
@@ -2801,7 +2801,7 @@ is $engine->_verify_changes(0, 0, 0, $changes[0]), 0,
 is_deeply +MockOutput->get_emit_literal, [[
     '  * roles ..', '', ' ',
 ]], 'Declared output should list the change';
-is_deeply +MockOutput->get_emit, [['ok']],
+is_deeply +MockOutput->get_emit, [[__ 'ok']],
     'Emitted Output should reflect the verification of the change';
 is_deeply +MockOutput->get_comment, [], 'Should have no comments';
 is_deeply +MockOutput->get_vent, [
@@ -2817,7 +2817,7 @@ is_deeply +MockOutput->get_emit_literal, [
     ['  * roles ..', '.......', ' '],
     ['  * users @alpha ..', '', ' '],
 ], 'Declared output should list both changes';
-is_deeply +MockOutput->get_emit, [['ok'], ['ok']],
+is_deeply +MockOutput->get_emit, [[__ 'ok'], [__ 'ok']],
     'Emitted Output should reflect the verification of the changes';
 
 is_deeply +MockOutput->get_comment, [], 'Should have no comments';
@@ -2837,7 +2837,7 @@ is_deeply +MockOutput->get_emit_literal, [
     ['  * users @alpha ..', '', ' '],
 ], 'Delcared output should list deployed changes';
 is_deeply +MockOutput->get_emit, [
-    ['ok'], ['ok'],
+    [__ 'ok'], [__ 'ok'],
     [__n 'Undeployed change:', 'Undeployed changes:', 2],
     map { [ '  * ', $_->format_name_with_tags] } @plan_changes[2..$#plan_changes]
 ], 'Emitted output should include list of pending changes';
@@ -2856,7 +2856,7 @@ is $engine->_verify_changes(1, 0, 0, $change), 1,
 is_deeply +MockOutput->get_emit_literal, [[
     '  * nonexistent ..', '', ' '
 ]], 'Declared Output should reflect the verification of the change';
-is_deeply +MockOutput->get_emit, [['not ok']],
+is_deeply +MockOutput->get_emit, [[__ 'not ok']],
     'Emitted Output should reflect the failure of the verify';
 is_deeply +MockOutput->get_comment, [[__ 'Not present in the plan' ]],
     'Should have a comment about the change missing from the plan';
@@ -2870,7 +2870,7 @@ is $engine->_verify_changes(1, 0, 0, $changes[1]), 1,
 is_deeply +MockOutput->get_emit_literal, [
     ['  * users @alpha ..', '', ' '],
 ], 'Declared output should reflect the verification of the change';
-is_deeply +MockOutput->get_emit, [['not ok']],
+is_deeply +MockOutput->get_emit, [[__ 'not ok']],
     'Emitted Output should reflect the failure of the verify';
 is_deeply +MockOutput->get_comment, [[__ 'Out of order' ]],
     'Should have a comment about the out-of-order change';
@@ -2885,7 +2885,7 @@ is $engine->_verify_changes(1, 0, 0, $changes[1]), 2,
 is_deeply +MockOutput->get_emit_literal, [
     ['  * users @alpha ..', '', ' '],
 ], 'Declared output should reflect the verification of the change';
-is_deeply +MockOutput->get_emit, [['not ok']],
+is_deeply +MockOutput->get_emit, [[__ 'not ok']],
     'Emitted Output should reflect the failure of the verify';
 is_deeply +MockOutput->get_comment, [
     [__ 'Out of order' ],
@@ -2901,7 +2901,7 @@ is_deeply +MockOutput->get_emit_literal, [
     ['  * roles ..', '.......', ' '],
     ['  * users @alpha ..', '', ' '],
 ], 'Declraed output should reflect the verification of both changes';
-is_deeply +MockOutput->get_emit, [['not ok'], ['not ok']],
+is_deeply +MockOutput->get_emit, [[__ 'not ok'], [__ 'not ok']],
     'Emitted Output should reflect the failure of both verifies';
 is_deeply +MockOutput->get_comment, [
     [__ 'Out of order' ],
@@ -2920,10 +2920,10 @@ is $engine->_verify_changes($#changes, $plan->count - 1, 0, $changes[-1]), 2,
     '_verify_changes with two undeployed changes should returne 2';
 is_deeply +MockOutput->get_emit_literal, [
     ['  * dr_evil ..', '', ' '],
-    ['  * foo ..', '....', ' ' , 'not ok', ' '],
-    ['  * blah ..', '...', ' ' , 'not ok', ' '],
+    ['  * foo ..', '....', ' ' , __ 'not ok', ' '],
+    ['  * blah ..', '...', ' ' , __ 'not ok', ' '],
 ], 'Listed changes should be both deployed and undeployed';
-is_deeply +MockOutput->get_emit, [['ok']],
+is_deeply +MockOutput->get_emit, [[__ 'ok']],
     'Emitted Output should reflect 1 pass';
 is_deeply +MockOutput->get_comment, [
     [__ 'Not deployed' ],
@@ -2980,7 +2980,7 @@ is_deeply +MockOutput->get_emit_literal, [
     ['  * ' . $changes[1]->format_name_with_tags . ' ..', '', ' ' ],
 ], 'The one change name should be declared';
 is_deeply +MockOutput->get_emit, [
-    ['ok'],
+    [__ 'ok'],
     [__ 'Verify successful'],
 ], 'Success should be emitted';
 is_deeply +MockOutput->get_comment, [], 'Should have no comments';
@@ -2998,7 +2998,7 @@ is_deeply +MockOutput->get_emit_literal, [
     ['  * users @alpha ..', '', ' ' ],
 ], 'The two change names should be declared';
 is_deeply +MockOutput->get_emit, [
-    ['ok'], ['ok'],
+    [__ 'ok'], [__ 'ok'],
     [__ 'Verify successful'],
 ], 'Both successes should be emitted';
 is_deeply +MockOutput->get_comment, [], 'Should have no comments';
@@ -3022,7 +3022,7 @@ is_deeply +MockOutput->get_emit_literal, [
     ['  * users @alpha ..', '', ' ' ],
 ], 'The two change names should be emitted';
 is_deeply +MockOutput->get_emit, [
-    ['ok'], ['ok'],
+    [__ 'ok'], [__ 'ok'],
     [__ 'Verify successful'],
 ], 'Both successes should be emitted';
 is_deeply +MockOutput->get_comment, [], 'Should have no comments';
@@ -3042,7 +3042,7 @@ is_deeply +MockOutput->get_emit_literal, [
     ['  * widgets @beta ..', '', ' ' ],
 ], 'The two change names should be emitted';
 is_deeply +MockOutput->get_emit, [
-    ['ok'], ['ok'],
+    [__ 'ok'], [__ 'ok'],
     [__ 'Verify successful'],
 ], 'Both successes should be emitted';
 is_deeply +MockOutput->get_comment, [], 'Should have no comments';
@@ -3071,7 +3071,7 @@ is_deeply +MockOutput->get_emit_literal, [
     ['  * widgets @beta ..', '', ' ' ],
 ], 'Both change names should be declared';
 is_deeply +MockOutput->get_emit, [
-    ['not ok'], ['not ok'],
+    [__ 'not ok'], [__ 'not ok'],
     [ "\n", $msg ],
     [ '-' x length $msg ],
     [__x 'Changes: {number}', number => 2 ],

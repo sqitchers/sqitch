@@ -331,16 +331,20 @@ is_deeply +MockOutput->get_warn, [[__x(
 throws_ok { $revert->execute(qw(greg)) } 'App::Sqitch::X',
     'Should get an exception for unknown arg';
 is $@->ident, 'revert', 'Unknow arg ident should be "revert"';
-is $@->message, __x(
+is $@->message, __nx(
     'Unknown argument "{arg}"',
+    'Unknown arguments: {arg}',
+    1,
     arg => 'greg',
 ), 'Should get an exeption for two unknown arg';
 
 throws_ok { $revert->execute(qw(greg jon)) } 'App::Sqitch::X',
     'Should get an exception for unknown args';
 is $@->ident, 'revert', 'Unknow args ident should be "revert"';
-is $@->message, __x(
+is $@->message, __nx(
+    'Unknown argument "{arg}"',
     'Unknown arguments: {arg}',
+    2,
     arg => 'greg, jon',
 ), 'Should get an exeption for two unknown args';
 

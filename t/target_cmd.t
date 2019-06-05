@@ -14,6 +14,7 @@ use Test::File qw(file_not_exists_ok file_exists_ok);
 use Test::NoWarnings;
 use File::Copy;
 use Path::Class;
+use List::Util qw(max);
 use File::Temp 'tempdir';
 use lib 't/lib';
 use MockOutput;
@@ -142,18 +143,22 @@ throws_ok { $CLASS->new($CLASS->configure({}, {
     dir => { foo => 'bar' },
 })) } 'App::Sqitch::X',  'Should fail on invalid directory name';
 is $@->ident, 'target', 'Invalid directory ident should be "target"';
-is $@->message, __x(
-    'Unknown directory name: {prop}',
-    prop => 'foo',
+is $@->message,  __nx(
+    'Unknown directory name: {dirs}',
+    'Unknown directory names: {dirs}',
+    1,
+    dirs => 'foo',
 ), 'The invalid directory messsage should be correct';
 
 throws_ok { $CLASS->new($CLASS->configure({}, {
     dir => { foo => 'bar', cavort => 'ha' },
 })) } 'App::Sqitch::X',  'Should fail on invalid directory names';
 is $@->ident, 'target', 'Invalid directories ident should be "target"';
-is $@->message, __x(
-    'Unknown directory names: {props}',
-    props => 'cavort, foo',
+is $@->message,  __nx(
+    'Unknown directory name: {dirs}',
+    'Unknown directory names: {dirs}',
+    2,
+    dirs => 'cavort, foo',
 ), 'The invalid properties messsage should be correct';
 
 ##############################################################################
@@ -537,152 +542,174 @@ is_deeply +MockOutput->get_emit, [
     ['dev'], ['prod'], ['qa'], ['withall'], ['withcli'], ['withreg']
 ], 'Show with no names should emit the list of targets';
 
+my %lbl = (
+    uri        => __('URI'),
+    registry   => __('Registry'),
+    client     => __('Client'),
+    top_dir    => __('Top Directory'),
+    plan_file  => __('Plan File'),
+    extension  => __('Extension'),
+    revert     => '  ' . __ 'Revert',
+    deploy     => '  ' . __ 'Deploy',
+    verify     => '  ' . __ 'Verify',
+    reworked   => '  ' . __ 'Reworked',
+);
+
+my $len = max map { length } values %lbl;
+$_ .= ': ' . ' ' x ($len - length $_) for values %lbl;
+
+# Header labels.
+$lbl{script_dirs} = __('Script Directories') . ':';
+$lbl{reworked_dirs} = __('Reworked Script Directories') . ':';
+$lbl{variables} = __('Variables') . ':';
+$lbl{no_variables} = __('No Variables');
+
 # Try one target.
 ok $cmd->show('dev'), 'Show dev';
 is_deeply +MockOutput->get_emit, [
-    ['* dev'],
-    ['    ', 'URI:           ', 'db:pg:widgets'],
-    ['    ', 'Registry:      ', 'sqitch'],
-    ['    ', 'Client:        ', $psql],
-    ['    ', 'Top Directory: ', '.'],
-    ['    ', 'Plan File:     ', 'sqitch.plan'],
-    ['    ', 'Extension:     ', 'sql'],
-    ['    ', 'Script Directories:'],
-    ['    ', '  Deploy:      ', 'deploy'],
-    ['    ', '  Revert:      ', 'revert'],
-    ['    ', '  Verify:      ', 'verify'],
-    ['    ', 'Reworked Script Directories:'],
-    ['    ', '  Reworked:    ', '.'],
-    ['    ', '  Deploy:      ', 'deploy'],
-    ['    ', '  Revert:      ', 'revert'],
-    ['    ', '  Verify:      ', 'verify'],
-    ['    ', 'No Variables'],
+    ['* dev'                                        ],
+    ['    ', $lbl{uri},          'db:pg:widgets'    ],
+    ['    ', $lbl{registry},     'sqitch'           ],
+    ['    ', $lbl{client},       $psql              ],
+    ['    ', $lbl{top_dir},      '.'                ],
+    ['    ', $lbl{plan_file},    'sqitch.plan'      ],
+    ['    ', $lbl{extension},    'sql'              ],
+    ['    ', $lbl{script_dirs}                      ],
+    ['    ', $lbl{deploy},       'deploy'           ],
+    ['    ', $lbl{revert},       'revert'           ],
+    ['    ', $lbl{verify},       'verify'           ],
+    ['    ', $lbl{reworked_dirs}                    ],
+    ['    ', $lbl{reworked},     '.'                ],
+    ['    ', $lbl{deploy},       'deploy'           ],
+    ['    ', $lbl{revert},       'revert'           ],
+    ['    ', $lbl{verify},       'verify'           ],
+    ['    ', $lbl{no_variables}                     ],
 ], 'The "dev" target should have been shown';
 
 # Try a target with a non-default client.
 ok $cmd->show('withcli'), 'Show withcli';
 is_deeply +MockOutput->get_emit, [
-    ['* withcli'],
-    ['    ', 'URI:           ', 'db:pg:withcli'],
-    ['    ', 'Registry:      ', 'sqitch'],
-    ['    ', 'Client:        ', 'hi.exe'],
-    ['    ', 'Top Directory: ', '.'],
-    ['    ', 'Plan File:     ', 'sqitch.plan'],
-    ['    ', 'Extension:     ', 'sql'],
-    ['    ', 'Script Directories:'],
-    ['    ', '  Deploy:      ', 'deploy'],
-    ['    ', '  Revert:      ', 'revert'],
-    ['    ', '  Verify:      ', 'verify'],
-    ['    ', 'Reworked Script Directories:'],
-    ['    ', '  Reworked:    ', '.'],
-    ['    ', '  Deploy:      ', 'deploy'],
-    ['    ', '  Revert:      ', 'revert'],
-    ['    ', '  Verify:      ', 'verify'],
-    ['    ', 'No Variables'],
+    ['* withcli'                                    ],
+    ['    ', $lbl{uri},          'db:pg:withcli'    ],
+    ['    ', $lbl{registry},     'sqitch'           ],
+    ['    ', $lbl{client},       'hi.exe'           ],
+    ['    ', $lbl{top_dir},      '.'                ],
+    ['    ', $lbl{plan_file},    'sqitch.plan'      ],
+    ['    ', $lbl{extension},    'sql'              ],
+    ['    ', $lbl{script_dirs}                      ],
+    ['    ', $lbl{deploy},       'deploy'           ],
+    ['    ', $lbl{revert},       'revert'           ],
+    ['    ', $lbl{verify},       'verify'           ],
+    ['    ', $lbl{reworked_dirs}                    ],
+    ['    ', $lbl{reworked},     '.'                ],
+    ['    ', $lbl{deploy},       'deploy'           ],
+    ['    ', $lbl{revert},       'revert'           ],
+    ['    ', $lbl{verify},       'verify'           ],
+    ['    ', $lbl{no_variables}                     ],
 ], 'The "with_cli" target should have been shown';
 
 # Try a target with a non-default registry.
 ok $cmd->show('withreg'), 'Show withreg';
 is_deeply +MockOutput->get_emit, [
-    ['* withreg'],
-    ['    ', 'URI:           ', 'db:pg:withreg'],
-    ['    ', 'Registry:      ', 'meta'],
-    ['    ', 'Client:        ', $psql],
-    ['    ', 'Top Directory: ', '.'],
-    ['    ', 'Plan File:     ', 'sqitch.plan'],
-    ['    ', 'Extension:     ', 'sql'],
-    ['    ', 'Script Directories:'],
-    ['    ', '  Deploy:      ', 'deploy'],
-    ['    ', '  Revert:      ', 'revert'],
-    ['    ', '  Verify:      ', 'verify'],
-    ['    ', 'Reworked Script Directories:'],
-    ['    ', '  Reworked:    ', '.'],
-    ['    ', '  Deploy:      ', 'deploy'],
-    ['    ', '  Revert:      ', 'revert'],
-    ['    ', '  Verify:      ', 'verify'],
-    ['    ', 'No Variables'],
+    ['* withreg'                                    ],
+    ['    ', $lbl{uri},          'db:pg:withreg'    ],
+    ['    ', $lbl{registry},     'meta'             ],
+    ['    ', $lbl{client},       $psql              ],
+    ['    ', $lbl{top_dir},      '.'                ],
+    ['    ', $lbl{plan_file},    'sqitch.plan'      ],
+    ['    ', $lbl{extension},    'sql'              ],
+    ['    ', $lbl{script_dirs}                      ],
+    ['    ', $lbl{deploy},       'deploy'           ],
+    ['    ', $lbl{revert},       'revert'           ],
+    ['    ', $lbl{verify},       'verify'           ],
+    ['    ', $lbl{reworked_dirs}                    ],
+    ['    ', $lbl{reworked},     '.'                ],
+    ['    ', $lbl{deploy},       'deploy'           ],
+    ['    ', $lbl{revert},       'revert'           ],
+    ['    ', $lbl{verify},       'verify'           ],
+    ['    ', $lbl{no_variables}                     ],
 ], 'The "withreg" target should have been shown';
 
 # Try a target with variables.
 ok $cmd->show('withall'), 'Show withall';
 #use Data::Dump; ddx +MockOutput->get_emit;
 is_deeply +MockOutput->get_emit, [
-    ['* withall'],
-    ['    ', 'URI:           ', 'db:firebird:bar'],
-    ['    ', 'Registry:      ', 'migrations'],
-    ['    ', 'Client:        ', 'argh'],
-    ['    ', 'Top Directory: ', 'big'],
-    ['    ', 'Plan File:     ', 'fb.plan'],
-    ['    ', 'Extension:     ', 'fbsql'],
-    ['    ', 'Script Directories:'],
-    ['    ', '  Deploy:      ', dir qw(fb dep)],
-    ['    ', '  Revert:      ', dir qw(fb rev)],
-    ['    ', '  Verify:      ', dir qw(fb ver)],
-    ['    ', 'Reworked Script Directories:'],
-    ['    ', '  Reworked:    ', dir qw(fb r)],
-    ['    ', '  Deploy:      ', dir qw(fb r d)],
-    ['    ', '  Revert:      ', dir qw(fb r revert)],
-    ['    ', '  Verify:      ', dir qw(fb r verify)],
-    ['    ', 'Variables:'],
-    ['  ay:   x'],
-    ['  Bee:  second'],
-    ['  ceee: third'],
+    ['* withall'                                    ],
+    ['    ', $lbl{uri},          'db:firebird:bar'  ],
+    ['    ', $lbl{registry},     'migrations'       ],
+    ['    ', $lbl{client},       'argh'             ],
+    ['    ', $lbl{top_dir},      'big'              ],
+    ['    ', $lbl{plan_file},    'fb.plan'          ],
+    ['    ', $lbl{extension},    'fbsql'            ],
+    ['    ', $lbl{script_dirs}                      ],
+    ['    ', $lbl{deploy},       dir 'fb/dep'       ],
+    ['    ', $lbl{revert},       dir 'fb/rev'       ],
+    ['    ', $lbl{verify},       dir 'fb/ver'       ],
+    ['    ', $lbl{reworked_dirs}                    ],
+    ['    ', $lbl{reworked},     dir 'fb/r'         ],
+    ['    ', $lbl{deploy},       dir 'fb/r/d'       ],
+    ['    ', $lbl{revert},       dir 'fb/r/revert'  ],
+    ['    ', $lbl{verify},       dir 'fb/r/verify'  ],
+    ['    ', $lbl{variables}                        ],
+    ['  ay:   x'                                    ],
+    ['  Bee:  second'                               ],
+    ['  ceee: third'                                ],
 ], 'The "withall" target should have been shown with variables';
 
 # Try multiples.
 ok $cmd->show(qw(dev qa withreg)), 'Show three targets';
 is_deeply +MockOutput->get_emit, [
-    ['* dev'],
-    ['    ', 'URI:           ', 'db:pg:widgets'],
-    ['    ', 'Registry:      ', 'sqitch'],
-    ['    ', 'Client:        ', $psql],
-    ['    ', 'Top Directory: ', '.'],
-    ['    ', 'Plan File:     ', 'sqitch.plan'],
-    ['    ', 'Extension:     ', 'sql'],
-    ['    ', 'Script Directories:'],
-    ['    ', '  Deploy:      ', 'deploy'],
-    ['    ', '  Revert:      ', 'revert'],
-    ['    ', '  Verify:      ', 'verify'],
-    ['    ', 'Reworked Script Directories:'],
-    ['    ', '  Reworked:    ', '.'],
-    ['    ', '  Deploy:      ', 'deploy'],
-    ['    ', '  Revert:      ', 'revert'],
-    ['    ', '  Verify:      ', 'verify'],
-    ['    ', 'No Variables'],
+    ['* dev'                                        ],
+    ['    ', $lbl{uri},          'db:pg:widgets'    ],
+    ['    ', $lbl{registry},     'sqitch'           ],
+    ['    ', $lbl{client},       $psql              ],
+    ['    ', $lbl{top_dir},      '.'                ],
+    ['    ', $lbl{plan_file},    'sqitch.plan'      ],
+    ['    ', $lbl{extension},    'sql'              ],
+    ['    ', $lbl{script_dirs}                      ],
+    ['    ', $lbl{deploy},       'deploy'           ],
+    ['    ', $lbl{revert},       'revert'           ],
+    ['    ', $lbl{verify},       'verify'           ],
+    ['    ', $lbl{reworked_dirs}                    ],
+    ['    ', $lbl{reworked},     '.'                ],
+    ['    ', $lbl{deploy},       'deploy'           ],
+    ['    ', $lbl{revert},       'revert'           ],
+    ['    ', $lbl{verify},       'verify'           ],
+    ['    ', $lbl{no_variables}                     ],
     ['* qa'],
-    ['    ', 'URI:           ', 'db:pg://qa.example.com/qa_widgets'],
-    ['    ', 'Registry:      ', 'meta'],
-    ['    ', 'Client:        ', '/usr/sbin/psql'],
-    ['    ', 'Top Directory: ', '.'],
-    ['    ', 'Plan File:     ', 'sqitch.plan'],
-    ['    ', 'Extension:     ', 'sql'],
-    ['    ', 'Script Directories:'],
-    ['    ', '  Deploy:      ', 'deploy'],
-    ['    ', '  Revert:      ', 'revert'],
-    ['    ', '  Verify:      ', 'verify'],
-    ['    ', 'Reworked Script Directories:'],
-    ['    ', '  Reworked:    ', '.'],
-    ['    ', '  Deploy:      ', 'deploy'],
-    ['    ', '  Revert:      ', 'revert'],
-    ['    ', '  Verify:      ', 'verify'],
-    ['    ', 'No Variables'],
-    ['* withreg'],
-    ['    ', 'URI:           ', 'db:pg:withreg'],
-    ['    ', 'Registry:      ', 'meta'],
-    ['    ', 'Client:        ', $psql],
-    ['    ', 'Top Directory: ', '.'],
-    ['    ', 'Plan File:     ', 'sqitch.plan'],
-    ['    ', 'Extension:     ', 'sql'],
-    ['    ', 'Script Directories:'],
-    ['    ', '  Deploy:      ', 'deploy'],
-    ['    ', '  Revert:      ', 'revert'],
-    ['    ', '  Verify:      ', 'verify'],
-    ['    ', 'Reworked Script Directories:'],
-    ['    ', '  Reworked:    ', '.'],
-    ['    ', '  Deploy:      ', 'deploy'],
-    ['    ', '  Revert:      ', 'revert'],
-    ['    ', '  Verify:      ', 'verify'],
-    ['    ', 'No Variables'],
+    ['    ', $lbl{uri},          'db:pg://qa.example.com/qa_widgets'],
+    ['    ', $lbl{registry},     'meta'             ],
+    ['    ', $lbl{client},       '/usr/sbin/psql'   ],
+    ['    ', $lbl{top_dir},      '.'                ],
+    ['    ', $lbl{plan_file},    'sqitch.plan'      ],
+    ['    ', $lbl{extension},    'sql'              ],
+    ['    ', $lbl{script_dirs}                      ],
+    ['    ', $lbl{deploy},       'deploy'           ],
+    ['    ', $lbl{revert},       'revert'           ],
+    ['    ', $lbl{verify},       'verify'           ],
+    ['    ', $lbl{reworked_dirs}                    ],
+    ['    ', $lbl{reworked},     '.'                ],
+    ['    ', $lbl{deploy},       'deploy'           ],
+    ['    ', $lbl{revert},       'revert'           ],
+    ['    ', $lbl{verify},       'verify'           ],
+    ['    ', $lbl{no_variables}                     ],
+    ['* withreg'                                    ],
+    ['    ', $lbl{uri},          'db:pg:withreg'    ],
+    ['    ', $lbl{registry},     'meta'             ],
+    ['    ', $lbl{client},       $psql              ],
+    ['    ', $lbl{top_dir},      '.'                ],
+    ['    ', $lbl{plan_file},    'sqitch.plan'      ],
+    ['    ', $lbl{extension},    'sql'              ],
+    ['    ', $lbl{script_dirs}                      ],
+    ['    ', $lbl{deploy},       'deploy'           ],
+    ['    ', $lbl{revert},       'revert'           ],
+    ['    ', $lbl{verify},       'verify'           ],
+    ['    ', $lbl{reworked_dirs}                    ],
+    ['    ', $lbl{reworked},     '.'                ],
+    ['    ', $lbl{deploy},       'deploy'           ],
+    ['    ', $lbl{revert},       'revert'           ],
+    ['    ', $lbl{verify},       'verify'           ],
+    ['    ', $lbl{no_variables}                     ],
 ], 'All three targets should have been shown';
 
 ##############################################################################
