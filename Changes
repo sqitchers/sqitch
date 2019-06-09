@@ -5,6 +5,9 @@ Revision history for Perl extension App::Sqitch
        (#470).
      - Fixed test failures when running with the localization set to German
        or Italian. Thanks to Slaven Rezić for the report (#472).
+     - Fixed an issue when the full name of the current user is not set so
+       that it properly falls back on the username. Thanks to Slaven Rezić and
+       Matthieu Foucault for the report and testing various fixes (#473).
 
 1.0.0  2019-06-04T12:56:22Z
      - Fixed test failure due to a hard-coded system error that may be

@@ -94,8 +94,9 @@ has user_name => (
             }
             require User::pwent;
             my $name = User::pwent::getpwnam($sysname) || return $sysname;
+            $name = ($name->gecos)[0] || return $sysname;
             require Encode::Locale;
-            return Encode::decode( locale => ($name->gecos)[0] );
+            return Encode::decode( locale => $name );
         };
     }
 );
