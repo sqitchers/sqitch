@@ -1,0 +1,113 @@
+=head1 Name
+
+sqitch-check - Runs checks
+
+=head1 Synopsis
+
+  sqitch check [options] [<database>]
+
+=head1 Description
+
+Runs various checks on the state of the working directory and the database.
+The SHA1 hashes of the deployed scripts are compared the the ones from the
+working directory. Where discrepancies are found, messages are printed,
+indicating to the user that the working directory deploy scripts are different
+from the scripts that were used to deploy to the database.
+
+The C<< <database> >> parameter specifies the database to which to connect,
+and may also be specified as the C<--target> option. It can be target name,
+a URI, an engine name, or plan file path.
+
+=head1 Options
+
+=over
+
+=item C<-t>
+
+=item C<--target>
+
+The target database to which to connect. This option can be either a URI or
+the name of a target in the configuration.
+
+=item C<--project>
+
+Project for which to retrieve the status. Defaults to the status of the
+current project, if a plan can be found.
+
+=item C<--registry>
+
+  sqitch check --registry registry
+
+The name of the Sqitch registry schema or database in which sqitch stores its
+own data.
+
+=item C<--db-client>
+
+=item C<--client>
+
+  sqitch check --client /usr/local/pgsql/bin/psql
+
+Path to the command-line client for the database engine. Defaults to a client
+in the current path named appropriately for the database engine.
+
+=item C<-d>
+
+=item C<--db-name>
+
+  sqitch check --db-name widgets
+  sqitch check -d bricolage
+
+Name of the database. In general, L<targets|sqitch-target> and URIs are
+preferred, but this option can be used to override the database name in a
+target.
+
+=item C<-u>
+
+=item C<--db-user>
+
+=item C<--db-username>
+
+  sqitch check --db-username root
+  sqitch check --db-user postgres
+  sqitch check -u Mom
+
+User name to use when connecting to the database. Does not apply to all
+engines. In general, L<targets|sqitch-target> and URIs are preferred, but this
+option can be used to override the user name in a target.
+
+=item C<-h>
+
+=item C<--db-host>
+
+  sqitch check --db-host db.example.com
+  sqitch check -h appdb.example.net
+
+Host name to use when connecting to the database. Does not apply to all
+engines. In general, L<targets|sqitch-target> and URIs are preferred, but this
+option can be used to override the host name in a target.
+
+=item C<-p>
+
+=item C<--db-port>
+
+  sqitch check --db-port 7654
+  sqitch check -p 5431
+
+Port number to connect to. Does not apply to all engines. In general,
+L<targets|sqitch-target> and URIs are preferred, but this option can be used
+to override the port in a target.
+
+=item C<--plan-file>
+
+=item C<-f>
+
+  sqitch check --plan-file my.plan
+
+Path to the deployment plan file. Overrides target, engine, and core
+configuration values. Defaults to F<$top_dir/sqitch.plan>.
+
+=back
+
+=head1 Sqitch
+
+Part of the L<sqitch> suite.
