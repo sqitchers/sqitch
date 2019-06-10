@@ -9,7 +9,6 @@ use App::Sqitch::X qw(hurl);
 use Moo;
 use App::Sqitch::Types qw(Str Target Engine Change);
 use Try::Tiny;
-use Data::Dumper;
 use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
