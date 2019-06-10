@@ -756,7 +756,7 @@ sub deployed_changes {
     } @{ $self->dbh->selectall_arrayref(qq{
         SELECT c.change_id AS id, c.change AS name, c.project, c.note,
                $tscol AS "timestamp", c.planner_name, c.planner_email,
-               $tagcol AS tags
+               $tagcol AS tags, c.script_hash
           FROM changes   c
           LEFT JOIN tags t ON c.change_id = t.change_id
          WHERE c.project = ?
@@ -779,13 +779,13 @@ sub deployed_changes_since {
     } @{ $self->dbh->selectall_arrayref(qq{
         SELECT c.change_id AS id, c.change AS name, c.project, c.note,
                $tscol AS "timestamp", c.planner_name, c.planner_email,
-               $tagcol AS tags
+               $tagcol AS tags, c.script_hash
           FROM changes   c
           LEFT JOIN tags t ON c.change_id = t.change_id
          WHERE c.project = ?
            AND c.committed_at > (SELECT committed_at FROM changes WHERE change_id = ?)
          GROUP BY c.change_id, c.change, c.project, c.note, c.planned_at,
-               c.planner_name, c.planner_email, c.committed_at
+               c.planner_name, c.planner_email, c.committed_at, c.script_hash
          ORDER BY c.committed_at ASC
     }, { Slice => {} }, $self->plan->project, $change->id) };
 }
@@ -797,12 +797,12 @@ sub load_change {
     my $change = $self->dbh->selectrow_hashref(qq{
         SELECT c.change_id AS id, c.change AS name, c.project, c.note,
                $tscol AS "timestamp", c.planner_name, c.planner_email,
-                $tagcol AS tags
+                $tagcol AS tags, c.script_hash
           FROM changes   c
           LEFT JOIN tags t ON c.change_id = t.change_id
          WHERE c.change_id = ?
          GROUP BY c.change_id, c.change, c.project, c.note, c.planned_at,
-               c.planner_name, c.planner_email
+               c.planner_name, c.planner_email, c.script_hash
     }, undef, $change_id) || return undef;
     $change->{timestamp} = _dt $change->{timestamp};
     unless (ref $change->{tags}) {
@@ -850,7 +850,7 @@ sub change_offset_from_id {
     my $change = $self->dbh->selectrow_hashref(qq{
         SELECT c.change_id AS id, c.change AS name, c.project, c.note,
                $tscol AS "timestamp", c.planner_name, c.planner_email,
-               $tagcol AS tags
+               $tagcol AS tags, c.script_hash
           FROM changes   c
           LEFT JOIN tags t ON c.change_id = t.change_id
          WHERE c.project = ?
@@ -858,7 +858,7 @@ sub change_offset_from_id {
                SELECT committed_at FROM changes WHERE change_id = ?
          )
          GROUP BY c.change_id, c.change, c.project, c.note, c.planned_at,
-               c.planner_name, c.planner_email, c.committed_at
+               c.planner_name, c.planner_email, c.committed_at, c.script_hash
          ORDER BY c.committed_at $dir
          LIMIT 1 $offset_expr
     }, undef, $self->plan->project, $change_id) || return undef;
