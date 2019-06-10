@@ -799,6 +799,7 @@ sub run {
             planner_name  => $change->planner_name,
             planner_email => $change->planner_email,
             tags          => ['@alpha'],
+            script_hash   => $change->script_hash,
         };
         my $change2_hash = {
             id            => $change2->id,
@@ -809,6 +810,7 @@ sub run {
             planner_name  => $change2->planner_name,
             planner_email => $change2->planner_email,
             tags          => [],
+            script_hash   => $change2->script_hash,
         };
 
         is_deeply [$engine->deployed_changes], [$change_hash, $change2_hash],
