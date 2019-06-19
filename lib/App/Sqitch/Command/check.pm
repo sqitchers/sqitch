@@ -164,10 +164,11 @@ The Sqitch command-line client.
 =head1 Author
 
 David E. Wheeler <david@justatheory.com>
+Matthieu Foucault <matthieu@button.is>
 
 =head1 License
 
-Copyright (c) 2012-2018 iovation Inc.
+Copyright (c) 2012-2019 iovation Inc., Button Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

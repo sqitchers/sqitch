@@ -1,6 +1,6 @@
 =head1 Name
 
-sqitch-check - Runs checks
+sqitch-check - Checks for divergences between planned and deployed changes.
 
 =head1 Synopsis
 
