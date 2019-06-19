@@ -4,11 +4,11 @@ use 5.010;
 use strict;
 use warnings;
 use utf8;
-use Locale::TextDomain qw(App-Sqitch);
-use App::Sqitch::X qw(hurl);
 use Moo;
-use App::Sqitch::Types qw(Str Target Engine Change);
-use Try::Tiny;
+use Types::Standard qw(Str HashRef);
+use App::Sqitch::X qw(hurl);
+use Locale::TextDomain qw(App-Sqitch);
+use List::Util qw(first);
 use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
@@ -17,62 +17,69 @@ with 'App::Sqitch::Role::ConnectingCommand';
 
 # VERSION
 
-has target_name => (
+has target => (
     is  => 'ro',
     isa => Str,
 );
 
-has target => (
-    is      => 'rw',
-    isa     => Target,
-    handles => [qw(engine plan plan_file)],
+has from_change => (
+    is  => 'ro',
+    isa => Str,
 );
 
-has date_format => (
-    is      => 'ro',
-    lazy    => 1,
-    isa     => Str,
-    default => sub {
-        shift->sqitch->config->get( key => 'status.date_format' ) || 'iso'
-    }
+has to_change => (
+    is  => 'ro',
+    isa => Str,
 );
 
-has project => (
-    is      => 'ro',
-    isa     => Str,
-    lazy    => 1,
-    default => sub {
-        my $self = shift;
-        try { $self->plan->project } catch {
-            # Just die on parse and I/O errors.
-            die $_ if try { $_->ident eq 'parse' || $_->ident eq 'io' };
-
-            # Try to extract a project name from the registry.
-            my $engine = $self->engine;
-            hurl status => __ 'Database not initialized for Sqitch'
-                unless $engine->initialized;
-            my @projs = $engine->registered_projects
-                or hurl status => __ 'No projects registered';
-            hurl status => __x(
-                'Use --project to select which project to query: {projects}',
-                projects => join __ ', ', @projs,
-            ) if @projs > 1;
-            return $projs[0];
-        };
-    },
+has variables => (
+    is       => 'ro',
+    isa      => HashRef,
+    lazy     => 1,
+    default  => sub { {} },
 );
 
 sub options {
     return qw(
-        project=s
         target|t=s
+        from-change|from=s
+        to-change|to=s
+        set|s=s%
+    );
+}
+
+sub configure {
+    my ( $class, $config, $opt ) = @_;
+
+    my %params = map {
+        $_ => $opt->{$_}
+    } grep {
+        exists $opt->{$_}
+    } qw(target from_change to_change);
+
+    if ( my $vars = $opt->{set} ) {
+        $params{variables} = $vars;
+    }
+
+    return \%params;
+}
+
+sub _collect_vars {
+    my ($self, $target) = @_;
+    my $cfg = $self->sqitch->config;
+    return (
+        %{ $cfg->get_section(section => 'core.variables') },
+        %{ $cfg->get_section(section => 'deploy.variables') },
+        %{ $cfg->get_section(section => 'verify.variables') },
+        %{ $target->variables }, # includes engine
+        %{ $self->variables },   # --set
     );
 }
 
 sub execute {
     my $self = shift;
-    my ($targets) = $self->parse_args(
-        target => $self->target_name,
+    my ($targets, $changes) = $self->parse_args(
+        target => $self->target,
         args   => \@_,
     );
 
@@ -83,44 +90,19 @@ sub execute {
         target => $target->name,
     )) if @{ $targets };
 
-    # Good to go.
-    $self->target($target);
+    # Warn on too many changes.
+    my $from = $self->from_change // shift @{ $changes };
+    my $to   = $self->to_change   // shift @{ $changes };
+    $self->warn(__x(
+        'Too many changes specified; checking from "{from}" to "{to}"',
+        from => $from,
+        to   => $to,
+    )) if @{ $changes };
+
+    # Now get to work.
     my $engine = $target->engine;
-
-    # Where are we?
-    $self->comment( __x 'On database {db}', db => $engine->destination );
-
-    # Exit with status 1 on no state, probably not expected.
-    my $state = try {
-        $engine->current_state( $self->project )
-    } catch {
-        # Just die on parse and I/O errors.
-        die $_ if try { $_->ident eq 'parse' || $_->ident eq 'io' };
-
-        # Hrm. Maybe not initialized?
-        die $_ if $engine->initialized;
-        hurl status => __x(
-            'Database {db} has not been initialized for Sqitch',
-            db => $engine->registry_destination
-        );
-    };
-
-    my @deployed_changes = $engine->deployed_changes;
-
-    my %deployed_script_hashes;
-    foreach my $change ($engine->deployed_changes) {
-        $deployed_script_hashes{$change->{'id'}} = $change->{'script_hash'};
-    }
-
-    my $workdir_plan = $target->plan;
-    my @workdir_changes = $workdir_plan->changes;
-    foreach my $change (@workdir_changes) {
-        $self->comment(__x(
-            'Working directory script {script_file} is different from deployed script',
-            script_file => $change->deploy_file
-        )) if $change->script_hash ne $deployed_script_hashes{$change->id};
-    }
-
+    $engine->set_variables( $self->_collect_vars($target) );
+    $engine->check($from, $to);
     return $self;
 }
 

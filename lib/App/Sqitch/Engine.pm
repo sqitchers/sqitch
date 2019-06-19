@@ -1094,6 +1094,63 @@ sub upgrade_registry {
     return $self;
 }
 
+sub _find_planned_deployed_divergence {
+    my ($self, @deployed_changes) = @_;
+    my $i = -1;
+    my $plan = $self->plan;
+
+    foreach my $change (@deployed_changes) {
+        $i++;
+        return $change if $i >= $plan->count || $change->{'script_hash'} ne $plan->change_at($i)->script_hash;
+    }
+
+    return 0;
+}
+
+sub check {
+    my ( $self ) = @_;
+    $self->_check_registry;
+    my $sqitch   = $self->sqitch;
+    my $plan     = $self->plan;
+    my @deployed_changes  = $self->_load_changes( $self->deployed_changes );
+    my $num_failed = 0;
+
+    $sqitch->info(__x(
+        'Checking {destination}',
+        destination => $self->destination,
+    ));
+
+    if (!@deployed_changes) {
+        my $msg = $plan->count
+            ? __ 'No changes deployed'
+            : __ 'Nothing to check (no planned or deployed changes)';
+        $sqitch->info($msg);
+        return $self;
+    }
+
+    my $divergent_change = $self->_find_planned_deployed_divergence(@deployed_changes);
+    if ($divergent_change ne 0) {
+        $num_failed++;
+        $sqitch->emit(__x(
+            'Script signatures diverge at change {change}',
+            change=>$divergent_change->format_name_with_tags,
+            ))
+    }
+
+    hurl {
+        ident => 'check',
+        message => __nx(
+            'Failed one check',
+            'Failed {count} checks',
+            $num_failed,
+            count => $num_failed,
+        ),
+        exitval => $num_failed,
+    } if $num_failed;
+
+    return $self;
+}
+
 sub initialized {
     my $class = ref $_[0] || $_[0];
     hurl "$class has not implemented initialized()";
