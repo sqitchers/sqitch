@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 633;
+use Test::More tests => 660;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -3082,6 +3082,99 @@ is_deeply +MockOutput->get_comment, [
     ['WTF!'],
 ], 'Should have the errors in comments';
 is_deeply +MockOutput->get_vent, [], 'Nothing should have been vented';
+
+##############################################################################
+# Test check().
+can_ok $engine, 'check';
+my @check_changes;
+$mock_engine->mock( _load_changes => sub { @check_changes });
+
+# First, test with no changes.
+ok $engine->check,
+    'Should return success for no deployed changes';
+is_deeply +MockOutput->get_info, [
+    [__x 'Checking {destination}', destination => $engine->destination],
+    [__ 'No changes deployed'],
+], 'Notification of the check should be emitted';
+
+# Try no changes *and* nothing in the plan.
+$count = 0;
+$mock_plan->mock(count => sub { $count });
+ok $engine->check,
+    'Should return success for no changes';
+is_deeply +MockOutput->get_info, [
+    [__x 'Checking {destination}', destination => $engine->destination],
+    [__ 'Nothing to check (no planned or deployed changes)'],
+], 'Notification of the verify should be emitted';
+
+# Now return some changes but have nothing in the plan.
+@check_changes = @changes;
+throws_ok { $engine->check } 'App::Sqitch::X',
+    'Should get error for no planned changes';
+is $@->ident, 'check', 'Failed check ident should be "check"';
+is $@->exitval, 1, 'No planned changes exitval should be 1';
+is $@->message, __ 'Failed one check',
+    'Failed check message should be correct';
+is_deeply +MockOutput->get_info, [
+    [__x 'Checking {destination}', destination => $engine->destination],
+], 'Notification of the check should be emitted';
+is_deeply +MockOutput->get_emit, [
+    [__x 'Script signatures diverge at change {change}', change => $check_changes[0]->format_name_with_tags],
+], 'Divergent change info should be emitted';
+
+# Let's do one change and have it pass.
+$mock_plan->mock(index_of => 0);
+$count = 1;
+@check_changes = ($changes[0]);
+ok $engine->check, 'Check one change';
+is_deeply +MockOutput->get_info, [
+    [__x 'Checking {destination}', destination => $engine->destination],
+], 'Notification of the check should be emitted';
+is_deeply +MockOutput->get_emit, [
+    [__ 'Check successful'],
+], 'Success should be emitted';
+is_deeply +MockOutput->get_comment, [], 'Should have no comments';
+
+use Test::MockObject::Extends;
+use Clone qw(clone);
+# Let's change a script hash and have it fail.
+@check_changes = (clone($changes[0]));
+$mock_change = Test::MockObject::Extends->new($plan->change_at(0));
+$mock_change->mock('script_hash', sub { '42' });
+$count = 1;
+throws_ok { $engine->check } 'App::Sqitch::X',
+    'Should get error for one divergent script hash';
+is $@->ident, 'check', 'Failed check ident should be "check"';
+is $@->exitval, 1, 'No planned changes exitval should be 1';
+is $@->message, __ 'Failed one check',
+    'Failed check message should be correct';
+is_deeply +MockOutput->get_info, [
+    [__x 'Checking {destination}', destination => $engine->destination],
+], 'Notification of the check should be emitted';
+is_deeply +MockOutput->get_emit, [
+    [__x 'Script signatures diverge at change {change}', change => $check_changes[0]->format_name_with_tags],
+], 'Divergent change info should be emitted';
+
+$mock_plan->unmock('index_of');
+$mock_change->unmock('script_hash');
+
+# Let's change the second script hash and have it fail there.
+@check_changes = ($changes[0], clone($changes[1]));
+$mock_change = Test::MockObject::Extends->new($plan->change_at(1));
+$mock_change->mock('script_hash', sub { '42' });
+$count = 1;
+throws_ok { $engine->check } 'App::Sqitch::X',
+    'Should get error for one divergent script hash';
+is $@->ident, 'check', 'Failed check ident should be "check"';
+is $@->exitval, 1, 'No planned changes exitval should be 1';
+is $@->message, __ 'Failed one check',
+    'Failed check message should be correct';
+is_deeply +MockOutput->get_info, [
+    [__x 'Checking {destination}', destination => $engine->destination],
+], 'Notification of the check should be emitted';
+is_deeply +MockOutput->get_emit, [
+    [__x 'Script signatures diverge at change {change}', change => $check_changes[1]->format_name_with_tags],
+], 'Divergent change info should be emitted';
 
 __END__
 diag $_->format_name_with_tags for @changes;
