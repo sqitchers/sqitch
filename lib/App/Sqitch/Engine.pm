@@ -1101,7 +1101,7 @@ sub _find_planned_deployed_divergence_idx {
 
     foreach my $change (@deployed_changes) {
         $i++;
-        return $i if $i >= $plan->count || $change->{'script_hash'} ne $plan->change_at($i)->script_hash;
+        return $i if $i >= $plan->count || $change->script_hash ne $plan->change_at($i)->script_hash;
     }
 
     return -1;
@@ -1157,6 +1157,8 @@ sub check {
         ),
         exitval => $num_failed,
     } if $num_failed;
+
+    $sqitch->emit(__ 'Check successful');
 
     return $self;
 }
