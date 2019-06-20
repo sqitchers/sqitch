@@ -42,6 +42,7 @@ ok $CLASS->does("App::Sqitch::Role::$_"), "$CLASS does $_"
 is_deeply [$CLASS->options], [qw(
     onto-change|onto=s
     upto-change|upto=s
+    revised!
     plan-file|f=s
     top-dir=s
     registry=s

@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use utf8;
 use Moo;
-use Types::Standard qw(Str);
+use Types::Standard qw(Str Bool);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use List::Util qw(first);
@@ -27,10 +27,17 @@ has upto_change => (
     isa => Str,
 );
 
+has revised => (
+    is  => 'ro',
+    isa => Bool,
+    default => 0,
+);
+
 sub options {
     return qw(
         onto-change|onto=s
         upto-change|upto=s
+        revised!
     );
 }
 
@@ -39,6 +46,7 @@ sub configure {
     return { map { $_ => $opt->{$_} } grep { exists $opt->{$_} } qw(
         onto_change
         upto_change
+        revised
     ) };
 }
 
@@ -56,8 +64,15 @@ sub execute {
         target => $target->name,
     )) if @{ $targets };
 
+    # Fail if both onto-change and revised are specified
+    hurl __ 'You cannot use both --revised and specify a change to rebase onto'
+        if ($self->onto_change && $self->revised);
+
+    my $engine = $target->engine;
     # Warn on too many changes.
-    my $onto = $self->onto_change // shift @{ $changes };
+    my $onto = $self->revised ?
+        $engine->planned_deployed_common_ancestor_id :
+        $self->onto_change // shift @{ $changes };
     my $upto = $self->upto_change // shift @{ $changes };
     $self->warn(__x(
         'Too many changes specified; rebasing onto "{onto}" up to "{upto}"',
@@ -66,8 +81,8 @@ sub execute {
     )) if @{ $changes };
 
 
+
     # Now get to work.
-    my $engine = $target->engine;
     $engine->with_verify( $self->verify );
     $engine->no_prompt( $self->no_prompt );
     $engine->prompt_accept( $self->prompt_accept );

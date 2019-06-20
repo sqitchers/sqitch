@@ -1094,17 +1094,27 @@ sub upgrade_registry {
     return $self;
 }
 
-sub _find_planned_deployed_divergence {
+sub _find_planned_deployed_divergence_idx {
     my ($self, @deployed_changes) = @_;
     my $i = -1;
     my $plan = $self->plan;
 
     foreach my $change (@deployed_changes) {
         $i++;
-        return $change if $i >= $plan->count || $change->{'script_hash'} ne $plan->change_at($i)->script_hash;
+        return $i if $i >= $plan->count || $change->{'script_hash'} ne $plan->change_at($i)->script_hash;
     }
 
-    return 0;
+    return -1;
+}
+
+sub planned_deployed_common_ancestor_id {
+    my ( $self ) = @_;
+    my @deployed_changes = $self->_load_changes( $self->deployed_changes );
+    my $divergent_idx = $self->_find_planned_deployed_divergence_idx(@deployed_changes);
+
+    return $deployed_changes[-1]->id if $divergent_idx == -1;
+    return undef if $divergent_idx == 0;
+    return $deployed_changes[$divergent_idx - 1]->id;
 }
 
 sub check {
@@ -1128,12 +1138,12 @@ sub check {
         return $self;
     }
 
-    my $divergent_change = $self->_find_planned_deployed_divergence(@deployed_changes);
-    if ($divergent_change ne 0) {
+    my $divergent_change_idx = $self->_find_planned_deployed_divergence_idx(@deployed_changes);
+    if ($divergent_change_idx != -1) {
         $num_failed++;
         $sqitch->emit(__x(
             'Script signatures diverge at change {change}',
-            change=>$divergent_change->format_name_with_tags,
+            change=>$deployed_changes[$divergent_change_idx]->format_name_with_tags,
             ))
     }
 
