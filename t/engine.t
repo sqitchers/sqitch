@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 660;
+use Test::More tests => 670;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -13,6 +13,7 @@ use Path::Class;
 use Test::Exception;
 use Test::NoWarnings;
 use Test::MockModule;
+use Test::MockObject::Extends;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use App::Sqitch::DateTime;
@@ -20,6 +21,7 @@ use List::Util qw(max);
 use lib 't/lib';
 use MockOutput;
 use TestConfig;
+use Clone qw(clone);
 
 my $CLASS;
 
@@ -3119,7 +3121,8 @@ is_deeply +MockOutput->get_info, [
     [__x 'Checking {destination}', destination => $engine->destination],
 ], 'Notification of the check should be emitted';
 is_deeply +MockOutput->get_emit, [
-    [__x 'Script signatures diverge at change {change}', change => $check_changes[0]->format_name_with_tags],
+    [__x 'Script signatures diverge at change {change}',
+        change => $check_changes[0]->format_name_with_tags],
 ], 'Divergent change info should be emitted';
 
 # Let's do one change and have it pass.
@@ -3135,8 +3138,6 @@ is_deeply +MockOutput->get_emit, [
 ], 'Success should be emitted';
 is_deeply +MockOutput->get_comment, [], 'Should have no comments';
 
-use Test::MockObject::Extends;
-use Clone qw(clone);
 # Let's change a script hash and have it fail.
 @check_changes = (clone($changes[0]));
 $mock_change = Test::MockObject::Extends->new($plan->change_at(0));
@@ -3152,7 +3153,8 @@ is_deeply +MockOutput->get_info, [
     [__x 'Checking {destination}', destination => $engine->destination],
 ], 'Notification of the check should be emitted';
 is_deeply +MockOutput->get_emit, [
-    [__x 'Script signatures diverge at change {change}', change => $check_changes[0]->format_name_with_tags],
+    [__x 'Script signatures diverge at change {change}',
+        change => $check_changes[0]->format_name_with_tags],
 ], 'Divergent change info should be emitted';
 
 $mock_plan->unmock('index_of');
@@ -3160,7 +3162,7 @@ $mock_change->unmock('script_hash');
 
 # Let's change the second script hash and have it fail there.
 @check_changes = ($changes[0], clone($changes[1]));
-$mock_change = Test::MockObject::Extends->new($plan->change_at(1));
+$mock_change = Test::MockObject::Extends->new($check_changes[1]);
 $mock_change->mock('script_hash', sub { '42' });
 $count = 1;
 throws_ok { $engine->check } 'App::Sqitch::X',
@@ -3173,8 +3175,46 @@ is_deeply +MockOutput->get_info, [
     [__x 'Checking {destination}', destination => $engine->destination],
 ], 'Notification of the check should be emitted';
 is_deeply +MockOutput->get_emit, [
-    [__x 'Script signatures diverge at change {change}', change => $check_changes[1]->format_name_with_tags],
+    [__x 'Script signatures diverge at change {change}',
+        change => $check_changes[1]->format_name_with_tags],
 ], 'Divergent change info should be emitted';
+
+# The check should be fine if we stop at the first change
+# (check should honor the `to` argument)
+push @resolved => $changes[0]->id;
+ok $engine->check(
+        undef,
+        $changes[0]->format_name_with_tags,
+    ),
+    'Check one change with to arg';
+is_deeply +MockOutput->get_info, [
+    [__x 'Checking {destination}', destination => $engine->destination],
+], 'Notification of the check should be emitted';
+is_deeply +MockOutput->get_emit, [
+    [__ 'Check successful'],
+], 'Success should be emitted';
+is_deeply +MockOutput->get_comment, [], 'Should have no comments';
+
+# The check should be fine if we start at the second change
+# (check should honor the `from` argument)
+push @resolved => $changes[1]->id;
+throws_ok { $engine->check(
+        $changes[1]->format_name_with_tags,
+        undef,
+    ) } 'App::Sqitch::X',
+    'Should get error for one divergent script hash with from arg';
+is $@->ident, 'check', 'Failed check ident should be "check"';
+is $@->exitval, 1, 'No planned changes exitval should be 1';
+is $@->message, __ 'Failed one check',
+    'Failed check message should be correct';
+is_deeply +MockOutput->get_info, [
+    [__x 'Checking {destination}', destination => $engine->destination],
+], 'Notification of the check should be emitted';
+is_deeply +MockOutput->get_emit, [
+    [__x 'Script signatures diverge at change {change}',
+        change => $check_changes[1]->format_name_with_tags],
+], 'Divergent change info should be emitted';
+
 
 __END__
 diag $_->format_name_with_tags for @changes;

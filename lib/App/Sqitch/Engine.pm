@@ -373,15 +373,8 @@ sub verify {
     }
 
     # Figure out where to start and end relative to the plan.
-    my $from_idx = defined $from
-        ? $self->_trim_to('verify', $from, \@changes)
-        : 0;
-
-    my $to_idx = defined $to ? $self->_trim_to('verify', $to, \@changes, 1) : do {
-        if (my $id = $self->latest_change_id) {
-            $plan->index_of( $id );
-        }
-    } // $plan->count - 1;
+    my $from_idx = $self->_from_idx('verify', $from, \@changes);
+    my $to_idx = $self->_to_idx('verify', $to, \@changes);
 
     # Run the verify tests.
     if ( my $count = $self->_verify_changes($from_idx, $to_idx, !$to, @changes) ) {
@@ -404,10 +397,29 @@ sub verify {
     return $self;
 }
 
+sub _from_idx {
+    my ( $self, $ident, $from, $changes) = @_;
+    return defined $from
+        ? $self->_trim_to($ident, $from, $changes)
+        : 0;
+}
+
+sub _to_idx {
+    my ( $self, $ident, $to, $changes) = @_;
+    my $plan = $self->plan;
+    return defined $to ? $self->_trim_to($ident, $to, $changes, 1) : do {
+        if (my $id = $self->latest_change_id) {
+            $plan->index_of( $id );
+        }
+    } // $plan->count - 1;
+}
+
+
 sub _trim_to {
     my ( $self, $ident, $key, $changes, $pop ) = @_;
     my $sqitch = $self->sqitch;
     my $plan   = $self->plan;
+
 
     # Find the to change in the database.
     my $to_id = $self->change_id_for_key( $key ) || hurl $ident => (
@@ -1095,13 +1107,13 @@ sub upgrade_registry {
 }
 
 sub _find_planned_deployed_divergence_idx {
-    my ($self, @deployed_changes) = @_;
+    my ($self, $from_idx, @deployed_changes) = @_;
     my $i = -1;
     my $plan = $self->plan;
 
     foreach my $change (@deployed_changes) {
         $i++;
-        return $i if $i >= $plan->count || $change->script_hash ne $plan->change_at($i)->script_hash;
+        return $i if $i >= $plan->count || $change->script_hash ne $plan->change_at($i + $from_idx)->script_hash;
     }
 
     return -1;
@@ -1118,7 +1130,7 @@ sub planned_deployed_common_ancestor_id {
 }
 
 sub check {
-    my ( $self ) = @_;
+    my ( $self, $from, $to ) = @_;
     $self->_check_registry;
     my $sqitch   = $self->sqitch;
     my $plan     = $self->plan;
@@ -1138,7 +1150,12 @@ sub check {
         return $self;
     }
 
-    my $divergent_change_idx = $self->_find_planned_deployed_divergence_idx(@deployed_changes);
+
+    # Figure out where to start and end relative to the plan.
+    my $from_idx = $self->_from_idx('check', $from, \@deployed_changes);
+    $self->_to_idx('check', $to, \@deployed_changes);
+
+    my $divergent_change_idx = $self->_find_planned_deployed_divergence_idx($from_idx, @deployed_changes);
     if ($divergent_change_idx != -1) {
         $num_failed++;
         $sqitch->emit(__x(
