@@ -70,7 +70,7 @@ sub _collect_vars {
     return (
         %{ $cfg->get_section(section => 'core.variables') },
         %{ $cfg->get_section(section => 'deploy.variables') },
-        %{ $cfg->get_section(section => 'verify.variables') },
+        %{ $cfg->get_section(section => 'check.variables') },
         %{ $target->variables }, # includes engine
         %{ $self->variables },   # --set
     );
