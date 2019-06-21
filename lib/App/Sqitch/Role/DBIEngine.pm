@@ -761,7 +761,7 @@ sub deployed_changes {
           LEFT JOIN tags t ON c.change_id = t.change_id
          WHERE c.project = ?
          GROUP BY c.change_id, c.change, c.project, c.note, c.planned_at,
-               c.planner_name, c.planner_email, c.committed_at
+               c.planner_name, c.planner_email, c.committed_at, c.script_hash
          ORDER BY c.committed_at ASC
     }, { Slice => {} }, $self->plan->project) };
 }
