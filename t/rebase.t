@@ -313,6 +313,8 @@ my @rev_args;
 $mock_engine->mock(revert => sub { shift; @rev_args = @_ });
 my @vars;
 $mock_engine->mock(set_variables => sub { shift; push @vars => [@_] });
+my $common_ancestor_id;
+$mock_engine->mock(planned_deployed_common_ancestor_id => sub { return $common_ancestor_id; });
 
 ##############################################################################
 # Test _collect_deploy_vars and _collect_revert_vars.
@@ -573,6 +575,25 @@ is_deeply \@rev_args, [undef],
 is_deeply \@vars, [[], []],
     'No vars should have been passed through to the engine';
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
+
+# Test --revised
+$common_ancestor_id = '42';
+isa_ok $rebase = $CLASS->new(
+    target           => 'db:sqlite:lolwut',
+    no_prompt        => 1,
+    log_only         => 1,
+    verify           => 1,
+    sqitch           => $sqitch,
+    revised          => 1,
+), $CLASS, 'Object with to and variables';
+
+@vars = @dep_args = @rev_args = ();
+ok $rebase->execute, 'Execute again';
+is $target->name, 'db:sqlite:lolwut', 'Target name should be from option';
+ok $target->engine->no_prompt, 'Engine should be no_prompt';
+ok $target->engine->log_only, 'Engine should be log_only';
+ok $target->engine->with_verify, 'Engine should verify';
+is_deeply \@rev_args, [$common_ancestor_id], 'the common ancestor id should be passed to the engine revert';
 
 # Mix it up with options.
 isa_ok $rebase = $CLASS->new(
