@@ -29,7 +29,7 @@ jobs:
         - export "PATH=/c/Strawberry/perl/site/bin:/c/Strawberry/perl/bin:/c/Strawberry/c/bin:$PATH"
       install:
         # Last release doesn't depend on Test::MockObject::Extends
-        - cpanm --no-interactive --no-man-pages --notest --installdeps Test::MockObject::Extends
+        - cpanm --no-interactive --no-man-pages --notest Test::MockObject::Extends
         # Can't use dzil to make a dist on windows, so depend on the previous
         # release for dependencies.
         - cpanm --no-interactive --no-man-pages --notest --installdeps App::Sqitch
