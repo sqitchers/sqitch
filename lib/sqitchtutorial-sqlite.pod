@@ -85,7 +85,10 @@ edited as appropriate.
 By default, Sqitch will read F<sqitch.conf> in the current directory for
 settings. But it will also read F<~/.sqitch/sqitch.conf> for user-specific
 settings. Since SQLite's C<sqlite3> client is not in the path on my system,
-let's go ahead an tell it where to find the client on our computer.
+let's go ahead an tell it where to find the client on our computer (don't
+bother if you're using the
+L<Docker image|https://hub.docker.com/r/sqitch/sqitch/> because it uses the
+client inside the container, not on your host machine).
 
   > sqitch config --user engine.sqlite.client /opt/local/bin/sqlite3
 

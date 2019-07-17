@@ -92,7 +92,9 @@ L<C<firebird> client|https://www.firebirdsql.org/manual/isql-commands.html>
 (implemented for GNU/Linux and Microsoft Windows).  This might fail,
 so we go ahead an tell it where to find the client on our computer,
 for example on GNU/Linux with the standard location of the Firebird
-installation the command is:
+installation the command is (don't bother if you're using the
+L<Docker image|https://hub.docker.com/r/sqitch/sqitch/> because it uses the
+client inside the container, not on your host machine):
 
   > sqitch config --user engine.firebird.client /opt/firebird/bin/isql
 
