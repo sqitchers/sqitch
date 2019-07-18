@@ -1113,7 +1113,7 @@ sub _find_planned_deployed_divergence_idx {
 
     foreach my $change (@deployed_changes) {
         $i++;
-        return $i if $i >= $plan->count || $change->script_hash ne $plan->change_at($i + $from_idx)->script_hash;
+        return $i if $i + $from_idx >= $plan->count || $change->script_hash ne $plan->change_at($i + $from_idx)->script_hash;
     }
 
     return -1;
@@ -1122,7 +1122,7 @@ sub _find_planned_deployed_divergence_idx {
 sub planned_deployed_common_ancestor_id {
     my ( $self ) = @_;
     my @deployed_changes = $self->_load_changes( $self->deployed_changes );
-    my $divergent_idx = $self->_find_planned_deployed_divergence_idx(@deployed_changes);
+    my $divergent_idx = $self->_find_planned_deployed_divergence_idx(0, @deployed_changes);
 
     return $deployed_changes[-1]->id if $divergent_idx == -1;
     return undef if $divergent_idx == 0;
