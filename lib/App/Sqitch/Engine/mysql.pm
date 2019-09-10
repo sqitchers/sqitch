@@ -171,7 +171,7 @@ has _mysql => (
 
         # Special-case --password, which requires = before the value. O_o
         if (my $pw = $self->password) {
-            my $cfgpw = $self->_mycnf->{password} || '';
+            my $cfgpwd = $self->_mycnf->{password} || '';
             push @ret, "--password=$pw" if $pw ne $cfgpwd;
         }
 
