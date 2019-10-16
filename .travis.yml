@@ -36,7 +36,7 @@ jobs:
         - ./dev/prove -lr t
 
     - stage: 📈 Coverage
-      if: branch = master
+      if: branch = master OR branch =~ /(?i:cover)/
       services: docker
       env: COVERAGE=1
       before_install:
@@ -62,7 +62,7 @@ jobs:
 
     - &postgres
       stage: 🐘 Postgres
-      if: branch = master
+      if: branch = master OR branch =~ /(?i:pgsql|postgre(?i:sql)?)/
       env: POSTGRES=11
       before_install:
         - source dev/linux-postgres
@@ -91,7 +91,7 @@ jobs:
     # https://sqlite.org/chronology.html
     - &sqlite
       stage: 💡 SQLite
-      if: branch = master
+      if: branch = master OR branch =~ /(?i:sqlite)/
       env: SQLITE=3.26.0
       before_install:
         - source dev/linux-sqlite
@@ -141,7 +141,7 @@ jobs:
     # https://hub.docker.com/_/mariadb
     - &mysql
       stage: 🐬 MySQL
-      if: branch = master
+      if: branch = master OR branch =~ /(?i:mysql)/
       services: docker
       env: MYSQL=mysql:8.0
       before_install:
@@ -171,7 +171,7 @@ jobs:
     # https://hub.docker.com/r/cjonesy/docker-vertica/tags
     - &vertica
       stage: 🔺 Vertica
-      if: branch = master
+      if: branch = master OR branch =~ /(?i:vertica)/
       env: VERTICA=9.1.1-0
       before_install:
         - source dev/linux-vertica
@@ -190,7 +190,7 @@ jobs:
     # https://hub.docker.com/r/exasol/docker-db/tags
     - &exasol
       stage: ☀️ Exasol
-      if: branch = master
+      if: branch = master OR branch =~ /(?i:exasol)/
       env: EXASOL=6.1.1-d1
       before_install:
         - source dev/linux-exasol
@@ -203,7 +203,7 @@ jobs:
     # https://hub.docker.com/r/jacobalberty/firebird/tags
     - &firebird
       stage: 🔥 Firebird
-      if: branch = master
+      if: branch = master OR branch =~ /(?i:firebird)/
       env: FIREBIRD=3.0
       before_install:
         - source dev/linux-firebird
@@ -241,6 +241,5 @@ jobs:
 
   fast_finish: true
   allow_failures:
-    - env: FIREBIRD=2.5-ss # https://github.com/jacobalberty/firebird-docker/issues/33
     - stage: ❄️ Snowflake
     - stage: 🔮 Oracle
