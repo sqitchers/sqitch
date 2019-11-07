@@ -126,9 +126,9 @@ managed by L<engine|sqitch-engine>.
 
 =item C<--verbose>
 
-  sqitch engine --verbose
+  sqitch target --verbose
 
-Be more verbose when listing engines.
+Be more verbose when listing targets.
 
 =back
 
