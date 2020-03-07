@@ -1,4 +1,4 @@
-App/Sqitch version 0.9999
+App/Sqitch version v1.0.1
 =========================
 
 [![CPAN version](https://badge.fury.io/pl/App-Sqitch.svg)](https://badge.fury.io/pl/App-Sqitch)
