@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: App-Sqitch v1.0.0\n"
+"Project-Id-Version: App-Sqitch v1.0.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-06-04 07:43-0400\n"
+"POT-Creation-Date: 2020-03-07 14:19-0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -22,56 +22,56 @@ msgstr ""
 msgid "Cannot find your name; run sqitch config --user user.name \"YOUR NAME\""
 msgstr ""
 
-#: lib/App/Sqitch.pm:114
+#: lib/App/Sqitch.pm:115
 msgid ""
 "Cannot infer your email address; run sqitch config --user user.email "
 "you@host.com"
 msgstr ""
 
-#: lib/App/Sqitch.pm:280
+#: lib/App/Sqitch.pm:281
 #, perl-brace-format
 msgid "Cannot change to directory {directory}: {error}"
 msgstr ""
 
-#: lib/App/Sqitch.pm:314 lib/App/Sqitch/Command.pm:112
+#: lib/App/Sqitch.pm:315 lib/App/Sqitch/Command.pm:112
 #, perl-brace-format
 msgid "\"{command}\" is not a valid command"
 msgstr ""
 
-#: lib/App/Sqitch.pm:408
+#: lib/App/Sqitch.pm:409
 msgid ""
 "Sqitch seems to be unattended and there is no default value for this question"
 msgstr ""
 
-#: lib/App/Sqitch.pm:427
+#: lib/App/Sqitch.pm:428
 msgctxt "Confirm prompt answer yes"
 msgid "Yes"
 msgstr ""
 
-#: lib/App/Sqitch.pm:428
+#: lib/App/Sqitch.pm:429
 msgctxt "Confirm prompt answer no"
 msgid "No"
 msgstr ""
 
-#: lib/App/Sqitch.pm:437
+#: lib/App/Sqitch.pm:438
 msgid "Please answer \"y\" or \"n\"."
 msgstr ""
 
-#: lib/App/Sqitch.pm:440
+#: lib/App/Sqitch.pm:441
 msgid "No valid answer after 3 attempts; aborting"
 msgstr ""
 
-#: lib/App/Sqitch.pm:461 lib/App/Sqitch.pm:468
+#: lib/App/Sqitch.pm:462 lib/App/Sqitch.pm:469
 #, perl-brace-format
 msgid "Cannot exec {command}: {error}"
 msgstr ""
 
-#: lib/App/Sqitch.pm:484
+#: lib/App/Sqitch.pm:485
 #, perl-brace-format
 msgid "Error closing pipe to {command}: {error}"
 msgstr ""
 
-#: lib/App/Sqitch.pm:488 lib/App/Sqitch/Engine/oracle.pm:758
+#: lib/App/Sqitch.pm:489 lib/App/Sqitch/Engine/oracle.pm:758
 #, perl-brace-format
 msgid "{command} unexpectedly returned exit value {exitval}"
 msgstr ""
