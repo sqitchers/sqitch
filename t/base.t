@@ -544,10 +544,10 @@ is $@->ident, 'DEV', 'No ask_yes_no ident should be "DEV"';
 is $@->message, 'ask_yes_no() called without a prompt message',
     'No ask_yes_no error message should be correct';
 
-my $yes = __ 'Yes';
-my $no = __ 'No';
+my $yes = __p 'Confirm prompt answer yes', 'Yes';
+my $no = __p 'Confirm prompt answer no',  'No';
 
-# Test affermation.
+# Test affirmation.
 for my $variant ($yes, lc $yes, uc $yes, lc substr($yes, 0, 1), substr($yes, 0, 2)) {
     $input = $variant;
     $unattended = 0;

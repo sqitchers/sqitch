@@ -311,16 +311,20 @@ for my $bad (qw(foo bad gar)) {
 throws_ok { $deploy->execute(qw(greg)) } 'App::Sqitch::X',
     'Should get an exception for unknown arg';
 is $@->ident, 'deploy', 'Unknow arg ident should be "deploy"';
-is $@->message, __x(
+is $@->message, __nx(
     'Unknown argument "{arg}"',
+    'Unknown arguments: {arg}',
+    1,
     arg => 'greg',
 ), 'Should get an exeption for two unknown arg';
 
 throws_ok { $deploy->execute(qw(greg jon)) } 'App::Sqitch::X',
     'Should get an exception for unknown args';
 is $@->ident, 'deploy', 'Unknow args ident should be "deploy"';
-is $@->message, __x(
+is $@->message, __nx(
+    'Unknown argument "{arg}"',
     'Unknown arguments: {arg}',
+    2,
     arg => 'greg, jon',
 ), 'Should get an exeption for two unknown args';
 

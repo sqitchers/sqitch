@@ -145,18 +145,22 @@ throws_ok { $CLASS->new($CLASS->configure({}, {
     dir => { foo => 'bar' },
 })) } 'App::Sqitch::X',  'Should fail on invalid directory name';
 is $@->ident, 'init', 'Invalid directory ident should be "init"';
-is $@->message, __x(
-    'Unknown directory name: {prop}',
-    prop => 'foo',
+is $@->message,  __nx(
+    'Unknown directory name: {dirs}',
+    'Unknown directory names: {dirs}',
+    1,
+    dirs => 'foo',
 ), 'The invalid directory messsage should be correct';
 
 throws_ok { $CLASS->new($CLASS->configure({}, {
     dir => { foo => 'bar', cavort => 'ha' },
 })) } 'App::Sqitch::X',  'Should fail on invalid directory names';
 is $@->ident, 'init', 'Invalid directories ident should be "init"';
-is $@->message, __x(
-    'Unknown directory names: {props}',
-    props => 'cavort, foo',
+is $@->message,  __nx(
+    'Unknown directory name: {dirs}',
+    'Unknown directory names: {dirs}',
+    2,
+    dirs => 'cavort, foo',
 ), 'The invalid properties messsage should be correct';
 
 isa_ok my $target = $init->config_target, 'App::Sqitch::Target', 'default target';
