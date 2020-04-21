@@ -1,5 +1,6 @@
 #!perl -w -CAS
 
+# VERSION
 use POSIX qw(setlocale);
 BEGIN {
     if ($^O eq 'MSWin32') {

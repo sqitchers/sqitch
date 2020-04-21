@@ -3,12 +3,13 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 304;
+use Test::More tests => 306;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Path::Class;
 use Test::Exception;
 use Test::Dir;
+use Test::Warn;
 use Test::File qw(file_exists_ok file_not_exists_ok);
 use Test::File::Contents;
 use Locale::TextDomain qw(App-Sqitch);
@@ -16,10 +17,7 @@ use File::Path qw(make_path remove_tree);
 use Test::NoWarnings;
 use lib 't/lib';
 use MockOutput;
-
-$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
-$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
+use TestConfig;
 
 my $CLASS = 'App::Sqitch::Command::bundle';
 
@@ -44,14 +42,27 @@ can_ok $CLASS, qw(
     bundle_scripts
     _mkpath
     _copy_if_modified
+    does
 );
+
+ok $CLASS->does("App::Sqitch::Role::ContextCommand"),
+    "$CLASS does ContextCommand";
 
 is_deeply [$CLASS->options], [qw(
     dest-dir|dir=s
     all|a!
     from=s
     to=s
+    plan-file|f=s
+    top-dir=s
 )], 'Should have dest_dir option';
+
+warning_is {
+    Getopt::Long::Configure(qw(bundling pass_through));
+    ok Getopt::Long::GetOptionsFromArray(
+        [], {}, App::Sqitch->_core_opts, $CLASS->options,
+    ), 'Should parse options';
+} undef, 'Options should not conflict with core options';
 
 is $bundle->dest_dir, dir('bundle'),
     'Default dest_dir should be bundle/';
@@ -61,26 +72,30 @@ is $bundle->dest_top_dir($bundle->default_target), dir('bundle'),
 
 ##############################################################################
 # Test configure().
-is_deeply $CLASS->configure($config, {}), {}, 'Default config should be empty';
+is_deeply $CLASS->configure($config, {}), {_cx => []},
+    'Default config should be empty';
 is_deeply $CLASS->configure($config, {dest_dir => 'whu'}), {
-    dest_dir => dir 'whu',
+    dest_dir => dir('whu'),
+    _cx      => [],
 }, '--dest_dir should be converted to a path object by configure()';
 
 is_deeply $CLASS->configure($config, {from => 'HERE', to => 'THERE'}), {
     from => 'HERE',
     to   => 'THERE',
+    _cx  => [],
 }, '--from and --to should be passed through configure';
 
 chdir 't';
-$ENV{SQITCH_CONFIG} = 'sqitch.conf';
+$config= TestConfig->from(local => 'sqitch.conf');
+$config->update('core.top_dir' => dir('sql')->stringify);
 END { remove_tree 'bundle' if -d 'bundle' }
-ok $sqitch = App::Sqitch->new(
-    options => { top_dir => dir('sql')->stringify },
-), 'Load a sqitch object with top_dir';
+ok $sqitch = App::Sqitch->new(config  => $config),
+    'Load a sqitch object with top_dir';
 $config = $sqitch->config;
 my $dir = dir qw(_build sql);
 is_deeply $CLASS->configure($config, {}), {
     dest_dir => $dir,
+    _cx      => [],
 }, 'bundle.dest_dir config should be converted to a path object by configure()';
 
 ##############################################################################
@@ -102,12 +117,12 @@ for my $sub (qw(deploy revert verify)) {
 }
 
 # Try engine project.
-ok $sqitch = App::Sqitch->new(
-    options => {
-        top_dir      => dir('engine')->stringify,
-        reworked_dir => dir(qw(engine reworked))->stringify,
- },
-), 'Load a sqitch object with engine top_dir';
+$config->update(
+    'core.top_dir'      =>  dir('engine')->stringify,
+    'core.reworked_dir' =>  dir(qw(engine reworked))->stringify,
+);
+ok $sqitch = App::Sqitch->new(config => $config),
+    'Load a sqitch object with engine top_dir';
 isa_ok $bundle = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'bundle',
@@ -316,13 +331,7 @@ my @scripts = (
     $dir_for->{revert}->file('users.sql'),
 );
 file_not_exists_ok $_ for @scripts;
-ok $sqitch = App::Sqitch->new(
-    options => {
-        extension => 'sql',
-        top_dir   => dir('engine')->stringify,
-        reworked_dir => dir(qw(engine reworked))->stringify,
-    },
-), 'Load engine sqitch object';
+$config->update( 'core.extension'   => 'sql');
 isa_ok $bundle = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'bundle',
@@ -437,14 +446,14 @@ my @engine = (
 my $conf_file = $multidir->file('multiplan.conf'),;
 file_not_exists_ok $_ for ($conf_file, @sql, @engine);
 
-local $ENV{SQITCH_CONFIG} = 'multiplan.conf';
-$sqitch = App::Sqitch->new;
+$config = TestConfig->from(local => 'multiplan.conf');
+$sqitch = App::Sqitch->new(config => $config);
 isa_ok $bundle = $CLASS->new(
     sqitch  => $sqitch,
-    config  => $sqitch->config,
+    config  => $config,
     all     => 1,
     dest_dir => dir '_build',
-), $CLASS, 'all xmultiplan bundle command';
+), $CLASS, 'all multiplan bundle command';
 ok $bundle->execute, 'Execute multi-target bundle!';
 file_exists_ok $_ for ($conf_file, @sql, @engine);
 
@@ -468,17 +477,10 @@ file_exists_ok $_ for ($conf_file, @engine);
 file_not_exists_ok $_ for @sql;
 
 # Make sure it works with bundle.all set, as well.
-my $cmock = Test::MockModule->new('App::Sqitch::Config');
-my $get;
-$cmock->mock( get => sub {
-    return 1 if $_[2] eq 'bundle.all';
-    return $get->(@_);
-});
-$get = $cmock->original('get');
+$config->update('bundle.all' => 1);
 remove_tree $multidir->stringify;
 ok $bundle->execute, qq{Execute with bundle.all config};
 file_exists_ok $_ for ($conf_file, @engine, @sql);
-$cmock->unmock_all;
 
 # Try limiting it in various ways.
 for my $spec (

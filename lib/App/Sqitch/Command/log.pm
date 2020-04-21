@@ -12,9 +12,11 @@ use Type::Utils qw(class_type);
 use App::Sqitch::ItemFormatter;
 use namespace::autoclean;
 use Try::Tiny;
-extends 'App::Sqitch::Command';
 
-our $VERSION = '0.9997';
+extends 'App::Sqitch::Command';
+with 'App::Sqitch::Role::ConnectingCommand';
+
+# VERSION
 
 my %FORMATS;
 $FORMATS{raw} = <<EOF;
@@ -111,6 +113,12 @@ has reverse => (
     default => 0,
 );
 
+has headers => (
+    is      => 'ro',
+    isa     => Bool,
+    default => 1,
+);
+
 has format => (
     is       => 'ro',
     isa      => Str,
@@ -140,6 +148,7 @@ sub options {
         no-color
         abbrev=i
         oneline
+        headers!
     );
 }
 
@@ -240,7 +249,8 @@ sub execute {
     # Send the results.
     my $formatter = $self->formatter;
     my $format    = $self->format;
-    $self->page( __x 'On database {db}', db => $engine->destination );
+    $self->page( __x 'On database {db}', db => $engine->destination )
+        if $self->headers;
     while ( my $change = $iter->() ) {
         $self->page( $formatter->format( $format, $change ) );
     }
@@ -299,6 +309,10 @@ Maximum number of entries to display.
 
 Reverse the usual order of the display of entries.
 
+=head3 C<headers>
+
+Output headers. Defaults to true.
+
 =head3 C<skip>
 
 Number of entries to skip before displaying entries.
@@ -336,7 +350,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2017 iovation Inc.
+Copyright (c) 2012-2018 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

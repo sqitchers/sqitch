@@ -10,9 +10,12 @@ use List::Util qw(first);
 use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 use namespace::autoclean;
-extends 'App::Sqitch::Command';
 
-our $VERSION = '0.9997';
+extends 'App::Sqitch::Command';
+with 'App::Sqitch::Role::ContextCommand';
+with 'App::Sqitch::Role::ConnectingCommand';
+
+# VERSION
 
 has target => (
     is  => 'ro',
@@ -44,20 +47,13 @@ has variables => (
     is       => 'ro',
     isa      => HashRef,
     lazy     => 1,
-    default  => sub {
-        my $self = shift;
-        return {
-            %{ $self->sqitch->config->get_section( section => 'deploy.variables' ) },
-            %{ $self->sqitch->config->get_section( section => 'revert.variables' ) },
-        };
-    },
+    default  => sub { {} },
 );
 
 sub options {
     return qw(
         target|t=s
         to-change|to|change=s
-        to-target=s
         set|s=s%
         log-only
         y
@@ -73,22 +69,8 @@ sub configure {
         target
     );
 
-    # Deprecated option.
-    if ( exists $opt->{to_target}  ) {
-        # Deprecated option.
-        App::Sqitch->warn(
-            __ 'The --to-target and --target option has been deprecated; use --to-change instead.'
-        );
-        $params{to_change} ||= $opt->{to_target};
-    }
-
     if ( my $vars = $opt->{set} ) {
-        # Merge with config.
-        $params{variables} = {
-            %{ $config->get_section( section => 'deploy.variables' ) },
-            %{ $config->get_section( section => 'revert.variables' ) },
-            %{ $vars },
-        };
+        $params{variables} = $vars
     }
 
     $params{no_prompt} = delete $opt->{y} // $config->get(
@@ -102,6 +84,18 @@ sub configure {
     ) // 1;
 
     return \%params;
+}
+
+sub _collect_vars {
+    my ($self, $target) = @_;
+    my $cfg = $self->sqitch->config;
+    return (
+        %{ $cfg->get_section(section => 'core.variables') },
+        %{ $cfg->get_section(section => 'deploy.variables') },
+        %{ $cfg->get_section(section => 'revert.variables') },
+        %{ $target->variables }, # includes engine
+        %{ $self->variables },   # --set
+    );
 }
 
 sub execute {
@@ -130,7 +124,7 @@ sub execute {
     $engine->no_prompt( $self->no_prompt );
     $engine->prompt_accept( $self->prompt_accept );
     $engine->log_only( $self->log_only );
-    if (my %v = %{ $self->variables }) { $engine->set_variables(%v) }
+    $engine->set_variables( $self->_collect_vars($target) );
     $engine->revert( $change );
     return $self;
 }
@@ -217,7 +211,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2017 iovation Inc.
+Copyright (c) 2012-2018 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

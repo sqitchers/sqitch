@@ -14,7 +14,7 @@ use namespace::autoclean;
 use Try::Tiny;
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.9997';
+# VERSION
 
 my %FORMATS;
 $FORMATS{raw} = <<EOF;
@@ -101,6 +101,12 @@ has reverse => (
     default => 0,
 );
 
+has headers => (
+    is      => 'ro',
+    isa     => Bool,
+    default => 1,
+);
+
 has format => (
     is       => 'ro',
     isa      => Str,
@@ -129,6 +135,7 @@ sub options {
         no-color
         abbrev=i
         oneline
+        headers!
     );
 }
 
@@ -217,9 +224,11 @@ sub execute {
     # Send the results.
     my $formatter = $self->formatter;
     my $format    = $self->format;
-    $self->page( '# ', __x 'Project: {project}', project => $plan->project );
-    $self->page( '# ', __x 'File:    {file}', file => $plan->file );
-    $self->page('');
+    if ($self->headers) {
+        $self->page( '# ', __x 'Project: {project}', project => $plan->project );
+        $self->page( '# ', __x 'File:    {file}', file => $plan->file );
+        $self->page('');
+    }
     while ( my $change = $iter->() ) {
         $self->page( $formatter->format( $format, {
             event         => $change->is_deploy ? 'deploy' : 'revert',
@@ -286,6 +295,10 @@ Maximum number of entries to display.
 
 Reverse the usual order of the display of entries.
 
+=head3 C<headers>
+
+Output headers. Defaults to true.
+
 =head3 C<skip>
 
 Number of entries to skip before displaying entries.
@@ -318,7 +331,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2017 iovation Inc.
+Copyright (c) 2012-2018 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

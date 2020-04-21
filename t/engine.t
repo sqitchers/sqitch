@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 645;
+use Test::More tests => 633;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -19,6 +19,7 @@ use App::Sqitch::DateTime;
 use List::Util qw(max);
 use lib 't/lib';
 use MockOutput;
+use TestConfig;
 
 my $CLASS;
 
@@ -28,7 +29,6 @@ BEGIN {
     delete $ENV{PGDATABASE};
     delete $ENV{PGUSER};
     delete $ENV{USER};
-    $ENV{SQITCH_CONFIG} = 'nonexistent.conf';
 }
 
 can_ok $CLASS, qw(load new name no_prompt run_deploy run_revert run_verify uri);
@@ -42,7 +42,6 @@ my @load_changes;
 my $offset_change;
 my $die = '';
 my $record_work = 1;
-my $updated_idx;
 my ( $earliest_change_id, $latest_change_id, $initialized );
 my $registry_version = $CLASS->registry_release;
 my $script_hash;
@@ -87,7 +86,6 @@ ENGINE: {
     sub mock_check_revert  { shift; push @SEEN => [ check_revert_dependencies => [@_] ] }
     sub begin_work         { push @SEEN => ['begin_work']  if $record_work }
     sub finish_work        { push @SEEN => ['finish_work'] if $record_work }
-    sub _update_ids        { push @SEEN => ['_update_ids']; $updated_idx }
     sub log_new_tags       { push @SEEN => [ log_new_tags => $_[1] ]; $_[0] }
     sub _update_script_hashes { push @SEEN => ['_update_script_hashes']; $_[0] }
 
@@ -98,13 +96,13 @@ ENGINE: {
     sub registry_version { $registry_version }
 }
 
-ok my $sqitch = App::Sqitch->new(
-    options => {
-        engine    => 'sqlite',
-        top_dir   => dir(qw(t sql))->stringify,
-        plan_file => file(qw(t plans multi.plan))->stringify,
-    }
-), 'Load a sqitch sqitch object';
+my $config = TestConfig->new(
+    'core.engine' => 'sqlite',
+    'core.top_dir'   => dir(qw(t sql))->stringify,
+    'core.plan_file' => file(qw(t plans multi.plan))->stringify,
+);
+ok my $sqitch = App::Sqitch->new(config => $config),
+    'Load a sqitch sqitch object';
 
 my $mock_engine = Test::MockModule->new($CLASS);
 
@@ -135,7 +133,7 @@ isa_ok $CLASS->new({sqitch => $sqitch, target => $target}), $CLASS, 'Engine';
 
 ##############################################################################
 # Test load().
-$sqitch->options->{engine} = 'whu';
+$config->update('core.engine' => 'whu');
 $target = App::Sqitch::Target->new( sqitch => $sqitch );
 ok my $engine = $CLASS->load({
     sqitch => $sqitch,
@@ -186,7 +184,7 @@ ok $engine = $CLASS->new({ sqitch => $sqitch, target => $target }),
 throws_ok { $engine->name } 'App::Sqitch::X',
     'Should get error from base engine name';
 is $@->ident, 'engine', 'Name error ident should be "engine"';
-is $@->message, __('No engine specified; use --engine or set core.engine'),
+is $@->message, __('No engine specified; specify via target or core.engine'),
     'Name error message should be correct';
 
 ok $engine = App::Sqitch::Engine::whu->new({sqitch => $sqitch, target => $target}),
@@ -254,7 +252,7 @@ ok $engine = $CLASS->load({
 like $engine->destination, qr{^db:whu://foo:?\@localhost/blah$},
     'Destination should not include password';
 is $engine->registry_destination, $engine->destination,
-    'Meta destination should again be the same as destination';
+    'Registry destination should again be the same as destination';
 
 ##############################################################################
 # Test _check_registry.
@@ -290,7 +288,7 @@ throws_ok { $engine->_check_registry } 'App::Sqitch::X',
     'Should get error for out-of-date registry';
 is $@->ident, 'engine', 'Out-of-date registry error ident should be "engine"';
 is $@->message, __x(
-    'Registry is at version {old} but latest is {new}. Please run the "upgrade" conmand',
+    'Registry is at version {old} but latest is {new}. Please run the "upgrade" command',
     old => 0.1,
     new => $engine->registry_release,
 ), 'Out-of-date registry error message should be correct';
@@ -831,13 +829,11 @@ $record_work = 0;
 chdir 't';
 my $plan_file = file qw(sql sqitch.plan);
 my $sqitch_old = $sqitch; # Hang on to this because $change does not retain it.
-$sqitch = App::Sqitch->new(
-    options => {
-        engine    => 'sqlite',
-        plan_file => $plan_file->stringify,
-        top_dir   => 'sql',
-    },
+$config->update(
+    'core.top_dir'   => 'sql',
+    'core.plan_file' => $plan_file->stringify,
 );
+$sqitch = App::Sqitch->new(config => $config);
 $target = App::Sqitch::Target->new( sqitch => $sqitch );
 $change = App::Sqitch::Plan::Change->new( name => 'foo', plan => $target->plan );
 ok $engine = App::Sqitch::Engine::whu->new( sqitch => $sqitch, target => $target ),
@@ -889,14 +885,12 @@ is_deeply $engine->seen, [['current_state', undef]],
     'Still should not have updated IDs or hashes';
 
 # Have latest_item return a tag.
-$latest_change_id = $changes[1]->old_id;
-$updated_idx = 2;
+$latest_change_id = $changes[2]->id;
 ok $engine->_sync_plan, 'Sync the plan to a tag';
-is $plan->position, 2, 'Plan should now be at position 1';
+is $plan->position, 2, 'Plan should now be at position 2';
 is $engine->start_at, 'widgets@beta', 'start_at should now be widgets@beta';
 is_deeply $engine->seen, [
     ['current_state', undef],
-    ['_update_ids'],
     ['log_new_tags' => $plan->change_at(2)],
 ], 'Should have updated IDs';
 
@@ -907,7 +901,6 @@ is $plan->position, 2, 'Plan should now be at position 1';
 is $engine->start_at, 'widgets@beta', 'start_at should now be widgets@beta';
 is_deeply $engine->seen, [
     ['current_state', undef],
-    ['_update_ids'],
     ['log_new_tags' => $plan->change_at(2)],
 ], 'Should have updated IDs but not hashes';
 
@@ -918,7 +911,6 @@ is $plan->position, 2, 'Plan should now be at position 1';
 is $engine->start_at, 'widgets@beta', 'start_at should now be widgets@beta';
 is_deeply $engine->seen, [
     ['current_state', undef],
-    ['_update_ids'],
     ['_update_script_hashes'],
     ['log_new_tags' => $plan->change_at(2)],
 ], 'Should have updated IDs and hashes';
@@ -1166,14 +1158,8 @@ NOSTEPS: {
     say $fh '%project=empty';
     $fh->close or die "Error closing $plan_file: $!";
     END { $plan_file->remove }
-    my $sqitch = App::Sqitch->new(
-        _engine => 'sqlite',
-        plan_file => $plan_file,
-        options => {
-            engine => 'sqlite',
-            plan_file => $plan_file->stringify,
-        }
-    );
+    $config->update('core.plan_file' => $plan_file->stringify);
+    my $sqitch = App::Sqitch->new(config => $config);
     my $target = App::Sqitch::Target->new(sqitch => $sqitch );
     ok my $engine = App::Sqitch::Engine::whu->new(
         sqitch => $sqitch,
@@ -1755,12 +1741,11 @@ $engine->plan($plan);
 
 # Start with no deployed IDs.
 @deployed_changes = ();
-throws_ok { $engine->revert } 'App::Sqitch::X',
-    'Should get exception for no changes to revert';
-is $@->ident, 'revert', 'Should be a revert exception';
-is $@->message,  __ 'Nothing to revert (nothing deployed)',
-    'Should have notified that there is nothing to revert';
-is $@->exitval, 1, 'Exit val should be 1';
+ok $engine->revert,
+    'Should return success for no changes to revert';
+is_deeply +MockOutput->get_info, [
+    [__ 'Nothing to revert (nothing deployed)']
+], 'Should have notified that there is nothing to revert';
 is_deeply $engine->seen, [
     [deployed_changes => undef],
 ], 'It should only have called deployed_changes()';
@@ -1817,14 +1802,14 @@ is_deeply +MockOutput->get_info, [], 'Nothing should have been output';
 # Revert to a point with no following changes.
 $offset_change = $changes[0];
 push @resolved => $offset_change->id;
-throws_ok { $engine->revert($changes[0]->id) } 'App::Sqitch::X',
-    'Should get error reverting when no subsequent changes';
-is $@->ident, 'revert', 'No subsequent change error ident should be "revert"';
-is $@->exitval, 1, 'No subsequent change error exitval should be 1';
-is $@->message, __x(
-    'No changes deployed since: "{change}"',
-    change => $changes[0]->id,
-), 'No subsequent change error message should be correct';
+ok $engine->revert($changes[0]->id),
+    'Should return success for revert even with no changes';
+is_deeply +MockOutput->get_info, [
+    [__x(
+        'No changes deployed since: "{change}"',
+        change => $changes[0]->id,
+    )]
+], 'No subsequent change error message should be correct';
 
 delete $changes[0]->{_rework_tags}; # For deep comparison.
 is_deeply $engine->seen, [
@@ -1839,12 +1824,11 @@ is_deeply $engine->seen, [
 ], 'Should have called change_id_for and deployed_changes_since';
 
 # Revert with nothing deployed.
-throws_ok { $engine->revert } 'App::Sqitch::X',
-    'Should get error for known but undeployed change';
-is $@->ident, 'revert', 'No changes error should be "revert"';
-is $@->exitval, 1, 'No changes exitval should be 1';
-is $@->message, __ 'Nothing to revert (nothing deployed)',
-    'No changes message should be correct';
+ok $engine->revert,
+    'Should return success for known but undeployed change';
+is_deeply +MockOutput->get_info, [
+    [__ 'Nothing to revert (nothing deployed)']
+], 'No changes message should be correct';
 
 is_deeply $engine->seen, [
     [deployed_changes => undef],
@@ -1875,7 +1859,7 @@ my @dbchanges;
     $params;
 } @changes[0..3];
 
-MockOutput->ask_y_n_returns(1);
+MockOutput->ask_yes_no_returns(1);
 ok $engine->revert, 'Revert all changes';
 is_deeply $engine->seen, [
     [deployed_changes => undef],
@@ -1889,11 +1873,11 @@ is_deeply $engine->seen, [
     [run_file => $dbchanges[0]->revert_file ],
     [log_revert_change => $dbchanges[0] ],
 ], 'Should have reverted the changes in reverse order';
-is_deeply +MockOutput->get_ask_y_n, [
+is_deeply +MockOutput->get_ask_yes_no, [
     [__x(
         'Revert all changes from {destination}?',
         destination => $engine->destination,
-    ), 'Yes'],
+    ), 1],
 ], 'Should have prompted to revert all changes';
 is_deeply +MockOutput->get_info_literal, [
     ['  - lolz ..', '.........', ' '],
@@ -1920,11 +1904,11 @@ is_deeply $engine->seen, [
     [log_revert_change => $dbchanges[1] ],
     [log_revert_change => $dbchanges[0] ],
 ], 'Log-only Should have reverted the changes in reverse order';
-is_deeply +MockOutput->get_ask_y_n, [
+is_deeply +MockOutput->get_ask_yes_no, [
     [__x(
         'Revert all changes from {destination}?',
         destination => $engine->destination,
-    ), 'Yes'],
+    ), 1],
 ], 'Log-only should have prompted to revert all changes';
 is_deeply +MockOutput->get_info_literal, [
     ['  - lolz ..', '.........', ' '],
@@ -1940,7 +1924,7 @@ is_deeply +MockOutput->get_info, [
 ], 'And the revert successes should be emitted';
 
 # Should exit if the revert is declined.
-MockOutput->ask_y_n_returns(0);
+MockOutput->ask_yes_no_returns(0);
 throws_ok { $engine->revert } 'App::Sqitch::X', 'Should abort declined revert';
 is $@->ident, 'revert', 'Declined revert ident should be "revert"';
 is $@->exitval, 1, 'Should have exited with value 1';
@@ -1948,17 +1932,17 @@ is $@->message, __ 'Nothing reverted', 'Should have exited with proper message';
 is_deeply $engine->seen, [
     [deployed_changes => undef],
 ], 'Should have called deployed_changes only';
-is_deeply +MockOutput->get_ask_y_n, [
+is_deeply +MockOutput->get_ask_yes_no, [
     [__x(
         'Revert all changes from {destination}?',
         destination => $engine->destination,
-    ), 'Yes'],
+    ), 1],
 ], 'Should have prompt to revert all changes';
 is_deeply +MockOutput->get_info, [
 ], 'It should have emitted nothing else';
 
 # Revert all changes with no prompt.
-MockOutput->ask_y_n_returns(1);
+MockOutput->ask_yes_no_returns(1);
 $engine->log_only(0);
 $engine->no_prompt(1);
 ok $engine->revert, 'Revert all changes with no prompt';
@@ -1974,7 +1958,7 @@ is_deeply $engine->seen, [
     [run_file => $dbchanges[0]->revert_file ],
     [log_revert_change => $dbchanges[0] ],
 ], 'Should have reverted the changes in reverse order';
-is_deeply +MockOutput->get_ask_y_n, [], 'Should have no prompt';
+is_deeply +MockOutput->get_ask_yes_no, [], 'Should have no prompt';
 
 is_deeply +MockOutput->get_info_literal, [
     ['  - lolz ..', '.........', ' '],
@@ -2011,12 +1995,12 @@ is_deeply $engine->seen, [
     [run_file => $dbchanges[2]->revert_file ],
     [log_revert_change => $dbchanges[2] ],
 ], 'Should have reverted only changes after @alpha';
-is_deeply +MockOutput->get_ask_y_n, [
+is_deeply +MockOutput->get_ask_yes_no, [
     [__x(
         'Revert changes to {change} from {destination}?',
         destination => $engine->destination,
         change      => $dbchanges[1]->format_name_with_tags,
-    ), 'Yes'],
+    ), 1],
 ], 'Should have prompt to revert to change';
 is_deeply +MockOutput->get_info_literal, [
     ['  - lolz ..', '.........', ' '],
@@ -2027,7 +2011,7 @@ is_deeply +MockOutput->get_info, [
     [__ 'ok'],
 ], 'And the revert successes should be emitted';
 
-MockOutput->ask_y_n_returns(0);
+MockOutput->ask_yes_no_returns(0);
 $offset_change = $dbchanges[1];
 push @resolved => $offset_change->id;
 throws_ok { $engine->revert('@alpha') } 'App::Sqitch::X',
@@ -2040,18 +2024,18 @@ is_deeply $engine->seen, [
     [change_offset_from_id => [$dbchanges[1]->id, 0] ],
     [deployed_changes_since => $dbchanges[1]],
 ], 'Should have called revert methods';
-is_deeply +MockOutput->get_ask_y_n, [
+is_deeply +MockOutput->get_ask_yes_no, [
     [__x(
         'Revert changes to {change} from {destination}?',
         change      => $dbchanges[1]->format_name_with_tags,
         destination => $engine->destination,
-    ), 'Yes'],
+    ), 1],
 ], 'Should have prompt to revert to @alpha';
 is_deeply +MockOutput->get_info, [
 ], 'It should have emitted nothing else';
 
 # Try to revert just the last change with no prompt
-MockOutput->ask_y_n_returns(1);
+MockOutput->ask_yes_no_returns(1);
 $engine->no_prompt(1);
 my $rev_file = $dbchanges[-1]->revert_file; # Grab before deleting _rework_tags.
 my $rtags = delete $dbchanges[-1]->{_rework_tags}; # These need to be invisible.
@@ -2067,7 +2051,7 @@ is_deeply $engine->seen, [
     [run_file => $rev_file ],
     [log_revert_change => { %{ $dbchanges[-1] }, _rework_tags => $rtags } ],
 ], 'Should have reverted one changes for @HEAD^';
-is_deeply +MockOutput->get_ask_y_n, [], 'Should have no prompt';
+is_deeply +MockOutput->get_ask_yes_no, [], 'Should have no prompt';
 is_deeply +MockOutput->get_info_literal, [
     ['  - lolz ..', '', ' '],
 ], 'Output should show what it reverts to';
@@ -2119,6 +2103,7 @@ PLANOK: {
             change    => $dep->change,
             tag       => $dep->tag,
             project   => $dep->project,
+            first     => 1,
         }],
     ], 'Should have passed dependency params to change_id_for()';
 }
@@ -2283,12 +2268,14 @@ CHECK_DEPLOY_DEPEND: {
             change    => 'foo',
             tag       => undef,
             project   => 'sql',
+            first     => 1,
         } ],
         [ change_id_for => {
             change_id => undef,
             change    => 'bar',
             tag       => undef,
             project   => 'sql',
+            first     => 1,
         } ],
     ], 'Should have called change_id_for() twice';
     is_deeply [ map { $_->resolved_id } @conflicts ], [undef, undef],
@@ -2315,18 +2302,21 @@ CHECK_DEPLOY_DEPEND: {
             change    => 'users',
             tag       => undef,
             project   => 'sql',
+            first     => 1,
         } ],
         [ change_id_for => {
             change_id => undef,
             change    => 'foo',
             tag       => undef,
             project   => 'sql',
+            first     => 1,
         } ],
         [ change_id_for => {
             change_id => undef,
             change    => 'bar',
             tag       => undef,
             project   => 'sql',
+            first     => 1,
         } ],
     ], 'Should have called change_id_for() twice';
     is_deeply [ map { $_->resolved_id } @conflicts ], [undef, undef],
@@ -2334,7 +2324,7 @@ CHECK_DEPLOY_DEPEND: {
 
     ##########################################################################
     # Die on missing dependencies.
-    my @requires = $make_deps->( 0, qw(foo bar) );
+    my @requires = $make_deps->( 0, qw(foo bar foo) );
     $change = App::Sqitch::Plan::Change->new(
         name      => 'blah',
         plan      => $target->plan,
@@ -2353,7 +2343,7 @@ CHECK_DEPLOY_DEPEND: {
         'Missing required changes: {changes}',
         scalar 2,
         changes => 'foo bar',
-    ), 'Should have localized message missing dependencies';
+    ), 'Should have localized message missing dependencies without dupes';
 
     is_deeply $engine->seen, [
         [ change_id_for => {
@@ -2361,15 +2351,24 @@ CHECK_DEPLOY_DEPEND: {
             change    => 'foo',
             tag       => undef,
             project   => 'sql',
+            first     => 1,
         } ],
         [ change_id_for => {
             change_id => undef,
             change    => 'bar',
             tag       => undef,
             project   => 'sql',
+            first     => 1,
+        } ],
+        [ change_id_for => {
+            change_id => undef,
+            change    => 'foo',
+            tag       => undef,
+            project   => 'sql',
+            first     => 1,
         } ],
     ], 'Should have called check_requires';
-    is_deeply [ map { $_->resolved_id } @requires ], [undef, undef],
+    is_deeply [ map { $_->resolved_id } @requires ], [undef, undef, undef],
         'Missing requirements should not have resolved';
 
     # Make sure we see both conflict and prereq failures.
@@ -2401,39 +2400,52 @@ CHECK_DEPLOY_DEPEND: {
             change    => 'widgets',
             tag       => undef,
             project   => 'sql',
+            first     => 1,
         } ],
         [ change_id_for => {
             change_id => undef,
             change    => 'users',
             tag       => undef,
             project   => 'sql',
+            first     => 1,
         } ],
         [ change_id_for => {
             change_id => undef,
             change    => 'foo',
             tag       => undef,
             project   => 'sql',
+            first     => 1,
         } ],
         [ change_id_for => {
             change_id => undef,
             change    => 'bar',
             tag       => undef,
             project   => 'sql',
+            first     => 1,
         } ],
         [ change_id_for => {
             change_id => undef,
             change    => 'foo',
             tag       => undef,
             project   => 'sql',
+            first     => 1,
         } ],
         [ change_id_for => {
             change_id => undef,
             change    => 'bar',
             tag       => undef,
             project   => 'sql',
+            first     => 1,
+        } ],
+        [ change_id_for => {
+            change_id => undef,
+            change    => 'foo',
+            tag       => undef,
+            project   => 'sql',
+            first     => 1,
         } ],
     ], 'Should have called check_requires';
-    is_deeply [ map { $_->resolved_id } @requires ], [undef, undef],
+    is_deeply [ map { $_->resolved_id } @requires ], [undef, undef, undef],
         'Missing requirements should not have resolved';
 }
 
@@ -2926,27 +2938,21 @@ my @verify_changes;
 $mock_engine->mock( _load_changes => sub { @verify_changes });
 
 # First, test with no changes.
-throws_ok { $engine->verify } 'App::Sqitch::X',
-    'Should get error for no deployed changes';
-is $@->ident, 'verify', 'No deployed changes ident should be "verify"';
-is $@->exitval, 1, 'No deployed changes exitval should be 1';
-is $@->message, __ 'No changes deployed',
-    'No deployed changes message should be correct';
+ok $engine->verify,
+    'Should return success for no deployed changes';
 is_deeply +MockOutput->get_info, [
     [__x 'Verifying {destination}', destination => $engine->destination],
+    [__ 'No changes deployed'],
 ], 'Notification of the verify should be emitted';
 
 # Try no changes *and* nothing in the plan.
 my $count = 0;
 $mock_plan->mock(count => sub { $count });
-throws_ok { $engine->verify } 'App::Sqitch::X',
-    'Should get error for no changes';
-is $@->ident, 'verify', 'No changes ident should be "verify"';
-is $@->exitval, 1, 'No changes exitval should be 1';
-is $@->message, __ 'Nothing to verify (no planned or deployed changes)',
-    'No changes message should be correct';
+ok $engine->verify,
+    'Should return success for no changes';
 is_deeply +MockOutput->get_info, [
     [__x 'Verifying {destination}', destination => $engine->destination],
+    [__ 'Nothing to verify (no planned or deployed changes)'],
 ], 'Notification of the verify should be emitted';
 
 # Now return some changes but have nothing in the plan.

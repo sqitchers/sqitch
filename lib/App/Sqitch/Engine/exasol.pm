@@ -15,7 +15,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.9997';
+# VERSION
 
 sub _dt($) {
     require App::Sqitch::DateTime;
@@ -24,7 +24,7 @@ sub _dt($) {
 
 sub key    { 'exasol' }
 sub name   { 'Exasol' }
-sub driver { 'DBD::ODBC 1.43' }
+sub driver { 'DBD::ODBC 1.59' }
 sub default_client { 'exaplus' }
 
 BEGIN {
@@ -46,6 +46,10 @@ sub destination {
     return $uri->as_string;
 }
 
+# No username or password defaults.
+sub _def_user { }
+sub _def_pass { }
+
 has _exaplus => (
     is         => 'ro',
     isa        => ArrayRef,
@@ -60,8 +64,7 @@ has _exaplus => (
             [ p => $self->password ],
             [ c => $uri->host && $uri->_port ? $uri->host . ':' . $uri->_port : undef ],
             [ profile => $uri->host ? undef : $uri->dbname ]
-            )
-        {
+        ) {
             push @ret, "-$spec->[0]" => $spec->[1] if $spec->[1];
         }
 
@@ -122,7 +125,7 @@ has dbh => (
                     if (my $schema = $self->registry) {
                         try {
                             $dbh->do("OPEN SCHEMA $schema");
-                            # http://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
+                            # https://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
                             $dbh->set_err(undef, undef) if $dbh->err;
                         };
                     }
@@ -323,99 +326,21 @@ sub initialize {
     $self->_register_release;
 }
 
-# Override for special handling of regular the expression operator and
-# LIMIT/OFFSET. Keep for Exasol, as it can't handle OFFSET as parameter in a
-# prepared query..
-sub search_events {
-    my ( $self, %p ) = @_;
+sub _limit_offset {
+    # LIMIT/OFFSET don't support parameters, alas. So just put them in the query.
+    my ($self, $lim, $off)  = @_;
+    # OFFSET cannot be used without LIMIT, sadly.
+    return ['LIMIT ' . ($lim || $self->_limit_default), "OFFSET $off"], [] if $off;
+    return ["LIMIT $lim"], [] if $lim;
+    return [], [];
+}
 
-    # Determine order direction.
-    my $dir = 'DESC';
-    if (my $d = delete $p{direction}) {
-        $dir = $d =~ /^ASC/i  ? 'ASC'
-             : $d =~ /^DESC/i ? 'DESC'
-             : hurl 'Search direction must be either "ASC" or "DESC"';
-    }
-
-    # Limit with regular expressions?
-    my (@wheres, @params);
+sub _regex_expr {
+    my ( $self, $col, $regex ) = @_;
+    $regex = '.*' . $regex if $regex !~ m{^\^};
+    $regex .= '.*' if $regex !~ m{\$$};
     my $op = $self->_regex_op;
-    for my $spec (
-        [ committer => 'e.committer_name' ],
-        [ planner   => 'e.planner_name'   ],
-        [ change    => 'e.change'         ],
-        [ project   => 'e.project'        ],
-    ) {
-        my $regex = delete $p{ $spec->[0] } // next;
-        if ( $regex !~ m{^\^} ) {
-            $regex = '.*' . $regex;
-        }
-        if ( $regex !~ m{\$$} ) {
-            $regex = $regex . '.*';
-        }
-        push @wheres => "$spec->[1] $op ?";
-        push @params => $regex;
-    }
-
-    # Match events?
-    if (my $e = delete $p{event} ) {
-        my ($in, @vals) = $self->_in_expr( $e );
-        push @wheres => "event $in";
-        push @params => @vals;
-    }
-
-    # Assemble the where clause.
-    my $where = @wheres
-        ? "\n         WHERE " . join( "\n               ", @wheres )
-        : '';
-
-    # Handle remaining parameters.
-    my $limits = '';
-    if (exists $p{limit} || exists $p{offset}) {
-        my $lim = delete $p{limit};
-        if ($lim) {
-            $limits = "\n         LIMIT $lim";
-        }
-        if (my $off = delete $p{offset}) {
-            if (!$lim && ($lim = $self->_limit_default)) {
-                # Some drivers require LIMIT when OFFSET is set.
-                $limits = "\n         LIMIT $lim";
-            }
-            $limits .= "\n         OFFSET $off";
-        }
-    }
-
-    hurl 'Invalid parameters passed to search_events(): '
-        . join ', ', sort keys %p if %p;
-
-    # Prepare, execute, and return.
-    my $cdtcol = sprintf $self->_ts2char_format, 'e.committed_at';
-    my $pdtcol = sprintf $self->_ts2char_format, 'e.planned_at';
-    my $sth = $self->dbh->prepare(qq{
-        SELECT e.event
-             , e.project
-             , e.change_id
-             , e.change
-             , e.note
-             , e.requires
-             , e.conflicts
-             , e.tags
-             , e.committer_name
-             , e.committer_email
-             , $cdtcol AS committed_at
-             , e.planner_name
-             , e.planner_email
-             , $pdtcol AS planned_at
-          FROM events e$where
-         ORDER BY e.committed_at $dir$limits
-    });
-    $sth->execute(@params);
-    return sub {
-        my $row = $sth->fetchrow_hashref or return;
-        $row->{committed_at} = _dt $row->{committed_at};
-        $row->{planned_at}   = _dt $row->{planned_at};
-        return $row;
-    };
+    return "$col $op ?", $regex;
 }
 
 # Override to lock the changes table. This ensures that only one instance of
@@ -466,7 +391,7 @@ sub _file_for_script {
         );
     }
 
-    if ($^O eq 'MSWin32') {
+    if (App::Sqitch::ISWIN) {
         # Copy it.
         $file->copy_to($alias) or hurl exasol => __x(
             'Cannot copy {file} to {alias}: {error}',
@@ -553,7 +478,7 @@ sub _script {
         (map {; (my $v = $vars{$_}) =~ s/'/''/g; qq{DEFINE $_='$v';} } sort keys %vars),
         $self->_registry_variable,
         # Just 'map { s/;?$/;/r } ...' doesn't work in earlier Perl versions;
-        # see: http://www.perlmonks.org/index.pl?node_id=1048579
+        # see: https://www.perlmonks.org/index.pl?node_id=1048579
         map { (my $foo=$_) =~ s/;?$/;/; $foo } @_
     );
 }
@@ -639,7 +564,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2017 iovation Inc.
+Copyright (c) 2012-2018 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

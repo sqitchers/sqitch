@@ -3,13 +3,14 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 232;
+use Test::More tests => 236;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Target;
 use Locale::TextDomain qw(App-Sqitch);
 use Path::Class;
 use Test::Exception;
+use Test::Warn;
 use Test::Dir;
 use File::Temp 'tempdir';
 use Test::File qw(file_not_exists_ok file_exists_ok);
@@ -18,31 +19,22 @@ use File::Path qw(make_path remove_tree);
 use Test::NoWarnings 0.083;
 use lib 't/lib';
 use MockOutput;
+use TestConfig;
 
 my $CLASS = 'App::Sqitch::Command::add';
 
-$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
-$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
-
-my $config_mock = Test::MockModule->new('App::Sqitch::Config');
-my $sysdir = dir 'nonexistent';
-my $usrdir = dir 'nonexistent';
-$config_mock->mock(system_dir => sub { $sysdir });
-$config_mock->mock(user_dir   => sub { $usrdir });
-
-ok my $sqitch = App::Sqitch->new(
-    options => {
-        top_dir => dir('test-add')->stringify,
-        engine => 'pg',
-    }
-), 'Load a sqitch sqitch object';
-my $config = $sqitch->config;
+my $config = TestConfig->new(
+    'core.engine' => 'pg',
+    'core.top_dir' => dir('test-add')->stringify,
+);
+ok my $sqitch = App::Sqitch->new(config => $config),
+    'Load a sqitch sqitch object';
 
 isa_ok my $add = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'add',
     config  => $config,
+    args    => [],
 }), $CLASS, 'add command';
 my $target = $add->default_target;
 
@@ -72,7 +64,11 @@ can_ok $CLASS, qw(
     all_templates
     _slurp
     _add
+    does
 );
+
+ok $CLASS->does("App::Sqitch::Role::ContextCommand"),
+    "$CLASS does ContextCommand";
 
 is_deeply [$CLASS->options], [qw(
     change-name|change|c=s
@@ -86,14 +82,16 @@ is_deeply [$CLASS->options], [qw(
     without=s@
     use=s%
     open-editor|edit|e!
-
-    deploy-template=s
-    revert-template=s
-    verify-template=s
-    deploy!
-    revert!
-    verify!
+    plan-file|f=s
+    top-dir=s
 )], 'Options should be set up';
+
+warning_is {
+    Getopt::Long::Configure(qw(bundling pass_through));
+    ok Getopt::Long::GetOptionsFromArray(
+        [], {}, App::Sqitch->_core_opts, $CLASS->options,
+    ), 'Should parse options';
+} undef, 'Options should not conflict with core options';
 
 sub contents_of ($) {
     my $file = shift;
@@ -108,6 +106,7 @@ is_deeply $CLASS->configure($config, {}, $sqitch), {
     requires  => [],
     conflicts => [],
     note      => [],
+    _cx       => [],
 }, 'Should have default configuration with no config or opts';
 
 is_deeply $CLASS->configure($config, {
@@ -118,12 +117,14 @@ is_deeply $CLASS->configure($config, {
     requires  => [qw(foo bar)],
     conflicts => ['baz'],
     note      => [qw(hellow there)],
+    _cx       => [],
 }, 'Should have get requires and conflicts options';
 
 is_deeply $CLASS->configure($config, { template_directory => 't' }), {
     requires  => [],
     conflicts => [],
     note      => [],
+    _cx       => [],
     template_directory => dir('t'),
 }, 'Should set up template directory option';
 
@@ -131,6 +132,7 @@ is_deeply $CLASS->configure($config, { change_name => 'blog' }), {
     requires  => [],
     conflicts => [],
     note      => [],
+    _cx       => [],
     change_name => 'blog',
 }, 'Should set up change name option';
 
@@ -156,6 +158,7 @@ is_deeply $CLASS->configure($config, { template_name => 'foo' }), {
     requires  => [],
     conflicts => [],
     note      => [],
+    _cx       => [],
     template_name => 'foo',
 }, 'Should set up template name option';
 
@@ -173,6 +176,7 @@ is_deeply $CLASS->configure($config, {
     requires  => [],
     conflicts => [],
     note      => [],
+    _cx       => [],
     with_scripts => { deploy => 1, revert => 1, verify => 0 },
     templates => {
         deploy => file('etc/templates/deploy/pg.tmpl'),
@@ -184,8 +188,9 @@ is_deeply $CLASS->configure($config, {
 
 # Test variable configuration.
 CONFIG: {
-    local $ENV{SQITCH_CONFIG} = File::Spec->catfile(qw(t add_change.conf));
-    my $config = App::Sqitch::Config->new;
+    my $config = TestConfig->from(
+        local => File::Spec->catfile(qw(t add_change.conf))
+    );
     my $dir = dir 't';
     is_deeply $CLASS->configure($config, {}), {
         template_directory => $dir,
@@ -193,6 +198,7 @@ CONFIG: {
         requires  => [],
         conflicts => [],
         note      => [],
+        _cx       => [],
     }, 'Variables should by default not be loaded from config';
 
     is_deeply $CLASS->configure($config, {set => { yo => 'dawg' }}), {
@@ -201,6 +207,7 @@ CONFIG: {
         requires  => [],
         conflicts => [],
         note      => [],
+        _cx       => [],
         variables => {
             foo => 'bar',
             baz => [qw(hi there you)],
@@ -214,6 +221,7 @@ CONFIG: {
         requires  => [],
         conflicts => [],
         note      => [],
+        _cx       => [],
         variables => {
             foo => 'ick',
             baz => [qw(hi there you)],
@@ -229,7 +237,8 @@ is_deeply $add->note, [], 'Notes should be an arrayref';
 is_deeply $add->variables, {}, 'Varibles should be a hashref';
 is $add->template_directory, undef, 'Default dir should be undef';
 is $add->template_name, undef, 'Default temlate_name should be undef';
-is_deeply $add->with_scripts, {}, 'Default with_scripts should be empty';
+is_deeply $add->with_scripts, { map { $_ => 1} qw(deploy revert verify) },
+    'Default with_scripts should be all true';
 is_deeply $add->templates, {}, 'Default templates should be empty';
 
 ##############################################################################
@@ -257,11 +266,12 @@ is $@->message, __x(
 ##############################################################################
 # Test _config_templates.
 READCONFIG: {
-    local $ENV{SQITCH_CONFIG} = file('t/templates.conf')->stringify;
-    ok my $sqitch = App::Sqitch->new(
-        options => { top_dir => dir('test-add')->stringify },
-    ), 'Load another sqitch sqitch object';
-    my $config = $sqitch->config;
+    my $config = TestConfig->from(
+        local => file('t/templates.conf')->stringify
+    );
+    $config->update('core.top_dir' => dir('test-add')->stringify);
+    ok my $sqitch = App::Sqitch->new(config  => $config),
+        'Load another sqitch sqitch object';
     ok $add = $CLASS->new(sqitch => $sqitch),
         'Create add with template config';
     is_deeply $add->_config_templates($config), {
@@ -275,6 +285,12 @@ READCONFIG: {
 ##############################################################################
 # Test all_templates().
 my $tmpldir = dir 'etc/templates';
+my $sysdir = dir 'nonexistent';
+my $usrdir = dir 'nonexistent';
+my $mock = TestConfig->mock(
+    system_dir => sub { $sysdir },
+    user_dir   => sub { $usrdir },
+);
 
 # First, specify template directory.
 ok $add = $CLASS->new(sqitch => $sqitch, template_directory => $tmpldir),
@@ -368,7 +384,6 @@ is $ { $add->_slurp($tmpl)}, contents_of $tmpl,
 
 ##############################################################################
 # Test _add().
-
 my $test_add = sub {
     my $engine = shift;
     make_path 'test-add';
@@ -480,6 +495,13 @@ $change_mocker->mock(request_note => sub {
     return $self->note;
 });
 
+# Set up a function to force the reload of the plan.
+my $reload = sub {
+    my $plan = shift;
+    $plan->_plan( $plan->load);
+    delete $plan->{$_} for qw(_changes _lines project uri);
+};
+
 my $deploy_file = file qw(test-add deploy widgets_table.sql);
 my $revert_file = file qw(test-add revert widgets_table.sql);
 my $verify_file = file qw(test-add verify widgets_table.sql);
@@ -488,6 +510,11 @@ my $plan = $add->default_target->plan;
 is $plan->get('widgets_table'), undef, 'Should not have "widgets_table" in plan';
 dir_not_exists_ok +File::Spec->catdir('test-add', $_) for qw(deploy revert verify);
 ok $add->execute('widgets_table'), 'Add change "widgets_table"';
+
+# Reload the plan.
+$reload->($plan);
+
+# Make sure the change was written to the plan file.
 isa_ok my $change = $plan->get('widgets_table'), 'App::Sqitch::Plan::Change',
     'Added change';
 is $change->name, 'widgets_table', 'Change name should be set';
@@ -514,11 +541,6 @@ is_deeply +MockOutput->get_info, [
         file   => $target->plan_file,
     ],
 ], 'Info should have reported file creation';
-
-# Relod the plan file to make sure change is written to it.
-$plan->load;
-isa_ok $change = $plan->get('widgets_table'), 'App::Sqitch::Plan::Change',
-    'Added change in reloaded plan';
 
 # Make sure conflicts are avoided and conflicts and requires are respected.
 ok $add = $CLASS->new(
@@ -601,6 +623,12 @@ USAGE: {
     throws_ok { $add->execute } qr/USAGE/,
         'No name arg or option should yield usage';
     is_deeply \@args, [$add], 'No args should be passed to usage';
+
+    # Should be true when no engine is specified, either.
+    $add = $CLASS->new(sqitch => App::Sqitch->new(config => TestConfig->new));
+    throws_ok { $add->execute } qr/USAGE/,
+        'No name arg or option should yield usage';
+    is_deeply \@args, [$add], 'No args should be passed to usage';
 }
 
 # Make sure --open-editor works
@@ -624,6 +652,11 @@ MOCKSHELL: {
     my $plan = $add->default_target->plan;
     is $plan->get('open_editor'), undef, 'Should not have "open_editor" in plan';
     ok $add->execute('open_editor'), 'Add change "open_editor"';
+
+    # Instantiate fresh target and plan to force the file to be re-read.
+    $target = App::Sqitch::Target->new(sqitch => $sqitch);
+    $plan = App::Sqitch::Plan->new( sqitch => $sqitch, target => $target );
+
     isa_ok my $change = $plan->get('open_editor'), 'App::Sqitch::Plan::Change',
         'Added change';
     is $change->name, 'open_editor', 'Change name should be set';
@@ -696,7 +729,7 @@ EXTRAS: {
     ], 'Info should have reported file creation';
 
     # Relod the plan file to make sure change is written to it.
-    $plan->load;
+    $reload->($plan);
     isa_ok $change = $plan->get('custom_script'), 'App::Sqitch::Plan::Change',
         'Added change in reloaded plan';
 }
@@ -706,16 +739,11 @@ MULTIPLAN: {
     make_path 'test-multiadd';
     END { remove_tree 'test-multiadd' };
     chdir 'test-multiadd';
-    my $conf = file 'multiadd.conf';
-    $conf->spew(join "\n",
-        '[core]',
-        'engine = pg',
-        '[engine "pg"]',
-        'top_dir = pg',
-        '[engine "sqlite"]',
-        'top_dir = sqlite',
-        '[engine "mysql"]',
-        'top_dir = mysql',
+    my $config = TestConfig->new(
+        'core.engine'           => 'pg',
+        'engine.pg.top_dir'     => 'pg',
+        'engine.sqlite.top_dir' => 'sqlite',
+        'engine.mysql.top_dir'  => 'mysql',
     );
 
     # Create plan files and determine the scripts that to be created.
@@ -727,8 +755,7 @@ MULTIPLAN: {
     } qw(pg sqlite mysql);
 
     # Load up the configuration for this project.
-    local $ENV{SQITCH_CONFIG} = $conf;
-    my $sqitch = App::Sqitch->new;
+    my $sqitch = App::Sqitch->new(config => $config);
     ok my $add = $CLASS->new(
         sqitch             => $sqitch,
         note               => ['Testing multiple plans'],
@@ -824,17 +851,12 @@ MULTITARGET: {
     remove_tree 'test-multiadd';
     make_path 'test-multiadd';
     chdir 'test-multiadd';
-    my $conf = file 'multiadd.conf';
-    $conf->spew(join "\n",
-        '[core]',
-        'engine = pg',
-        'plan_file = sqitch.plan',
-        '[engine "pg"]',
-        'top_dir = pg',
-        '[engine "sqlite"]',
-        'top_dir = sqlite',
-        '[add]',
-        'all = true',
+    my $config = TestConfig->new(
+        'core.engine'           => 'pg',
+        'core.plan_file'        => 'sqitch.plan',
+        'engine.pg.top_dir'     => 'pg',
+        'engine.sqlite.top_dir' => 'sqlite',
+        'add.all'               => 1,
     );
     file('sqitch.plan')->spew("%project=add\n\n");
 
@@ -846,8 +868,7 @@ MULTITARGET: {
     } qw(pg sqlite);
 
     # Load up the configuration for this project.
-    local $ENV{SQITCH_CONFIG} = $conf;
-    my $sqitch = App::Sqitch->new;
+    my $sqitch = App::Sqitch->new(config => $config);
     ok my $add = $CLASS->new(
         sqitch             => $sqitch,
         note               => ['Testing multiple targets'],
@@ -885,14 +906,10 @@ ONETOP: {
     remove_tree 'test-multiadd';
     make_path 'test-multiadd';
     chdir 'test-multiadd';
-    my $conf = file 'multiadd.conf';
-    $conf->spew(join "\n",
-        '[core]',
-        'engine = pg',
-        '[engine "pg"]',
-        'plan_file = pg.plan',
-        '[engine "sqlite"]',
-        'plan_file = sqlite.plan',
+    my $config = TestConfig->new(
+        'core.engine'             => 'pg',
+        'engine.pg.plan_file'     => 'pg.plan',
+        'engine.sqlite.plan_file' => 'sqlite.plan',
     );
     file("$_.plan")->spew("%project=add\n\n") for qw(pg sqlite);
 
@@ -900,8 +917,7 @@ ONETOP: {
     my @scripts = map { file $_, 'widgets.sql' } qw(deploy revert verify);
 
     # Load up the configuration for this project.
-    local $ENV{SQITCH_CONFIG} = $conf;
-    my $sqitch = App::Sqitch->new;
+    my $sqitch = App::Sqitch->new(config => $config);
     ok my $add = $CLASS->new(
         sqitch             => $sqitch,
         note               => ['Testing two targets, one top_dir'],
@@ -949,7 +965,9 @@ ONETOP: {
 # Test options parsing.
 can_ok $CLASS, 'options', '_parse_opts';
 ok $add = $CLASS->new({ sqitch => $sqitch }), "Create a $CLASS object again";
-is_deeply $add->_parse_opts, {}, 'Base _parse_opts should return an empty hash';
+is_deeply $add->_parse_opts([]),
+    { with_scripts => { map { $_ => 1} qw(deploy revert verify) } },
+    'Base _parse_opts should return the script config';
 
 is_deeply $add->_parse_opts([1]), {
     with_scripts => { deploy => 1, verify => 1, revert => 1 },

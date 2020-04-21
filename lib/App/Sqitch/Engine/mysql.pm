@@ -16,7 +16,20 @@ use List::MoreUtils qw(firstidx);
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.9997';
+# VERSION
+
+has uri => (
+    is       => 'ro',
+    isa      => URIDB,
+    lazy     => 1,
+    default  => sub {
+        my $self = shift;
+        my $uri = $self->SUPER::uri;
+        $uri->host($ENV{MYSQL_HOST})     if !$uri->host  && $ENV{MYSQL_HOST};
+        $uri->port($ENV{MYSQL_TCP_PORT}) if !$uri->_port && $ENV{MYSQL_TCP_PORT};
+        return $uri;
+    },
+);
 
 has registry_uri => (
     is       => 'ro',
@@ -48,15 +61,8 @@ has _mycnf => (
     },
 );
 
-sub username {
-    my $self = shift;
-    return $self->SUPER::username || $self->_mycnf->{user};
-}
-
-sub password {
-    my $self = shift;
-    return $self->SUPER::password || $self->_mycnf->{password};
-}
+sub _def_user { $_[0]->_mycnf->{user} || $_[0]->sqitch->sysuser }
+sub _def_pass { $ENV{MYSQL_PWD} || shift->_mycnf->{password} }
 
 has dbh => (
     is      => 'rw',
@@ -66,7 +72,7 @@ has dbh => (
         my $self = shift;
         $self->use_driver;
         my $uri = $self->registry_uri;
-        my $dbh = DBI->connect($uri->dbi_dsn, scalar $self->username, $self->password, {
+        my $dbh = DBI->connect($uri->dbi_dsn, $self->username, $self->password, {
             PrintError           => 0,
             RaiseError           => 0,
             AutoCommit           => 1,
@@ -104,7 +110,7 @@ has dbh => (
                         try {
                             $dbh->do(q{SET SESSION default_storage_engine = 'InnoDB'});
                         };
-                        # http://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
+                        # https://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
                         $dbh->set_err(undef, undef) if $dbh->err;
                     }
                     return;
@@ -170,11 +176,20 @@ has _mysql => (
 
         # Options to keep things quiet.
         push @ret => (
-            ($^O eq 'MSWin32' ? () : '--skip-pager' ),
+            (App::Sqitch::ISWIN ? () : '--skip-pager' ),
             '--silent',
             '--skip-column-names',
             '--skip-line-numbers',
         );
+
+        # Get Maria to abort properly on error.
+        my $vinfo = try { $self->sqitch->probe($self->client, '--version') } || '';
+        if ($vinfo =~ /mariadb/i) {
+            my ($version) = $vinfo =~ /Ver\s(\S+)/;
+            my ($maj, undef, $pat) = split /[.]/ => $version;
+            push @ret => '--abort-source-on-error'
+                if $maj > 5 || ($maj == 5 && $pat >= 66);
+        }
 
         # Add relevant query args.
         if (my @p = $uri->query_params) {
@@ -232,7 +247,7 @@ sub _quote_idents {
     map { $_ eq 'change' ? '"change"' : $_ } @_;
 }
 
-sub _version_query { 'SELECT ROUND(MAX(version), 1) FROM releases' }
+sub _version_query { 'SELECT CAST(ROUND(MAX(version), 1) AS CHAR) FROM releases' }
 
 sub initialized {
     my $self = shift;
@@ -314,7 +329,7 @@ sub _regex_op { 'REGEXP' }
 sub _limit_default { '18446744073709551615' }
 
 sub _listagg_format {
-    return q{group_concat(%s SEPARATOR ' ')};
+    return q{GROUP_CONCAT(%s SEPARATOR ' ')};
 }
 
 sub _prepare_to_log {
@@ -513,7 +528,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2017 iovation Inc.
+Copyright (c) 2012-2018 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

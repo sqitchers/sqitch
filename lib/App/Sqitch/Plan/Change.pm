@@ -10,7 +10,7 @@ use App::Sqitch::Plan::Depend;
 use Locale::TextDomain qw(App-Sqitch);
 extends 'App::Sqitch::Plan::Line';
 
-our $VERSION = '0.970';
+# VERSION
 
 has _requires => (
     is       => 'ro',
@@ -136,35 +136,6 @@ has id => (
     lazy     => 1,
     default  => sub {
         my $content = encode_utf8 shift->info;
-        require Digest::SHA;
-        return Digest::SHA->new(1)->add(
-            'change ' . length($content) . "\0" . $content
-        )->hexdigest;
-    }
-);
-
-has old_info => (
-    is       => 'ro',
-    isa      => Str,
-    lazy     => 1,
-    default  => sub {
-        my $self = shift;
-        return join "\n", (
-            'project ' . $self->project,
-            ( $self->uri ? ( 'uri ' . $self->uri->canonical ) : () ),
-            'change '  . $self->format_name,
-            'planner ' . $self->format_planner,
-            'date '    . $self->timestamp->as_string,
-        );
-    }
-);
-
-has old_id => (
-    is       => 'ro',
-    isa      => Str,
-    lazy     => 1,
-    default  => sub {
-        my $content = encode_utf8 shift->old_info;
         require Digest::SHA;
         return Digest::SHA->new(1)->add(
             'change ' . length($content) . "\0" . $content
@@ -676,7 +647,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2017 iovation Inc.
+Copyright (c) 2012-2018 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

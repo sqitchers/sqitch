@@ -40,7 +40,7 @@ Some examples:
 
 =back
 
-See the L<DB URI Draft|https://github.com/theory/uri-db> for details.
+See the L<DB URI Draft|https://github.com/libwww-perl/uri-db> for details.
 
 =item C<registry>
 
@@ -140,7 +140,7 @@ Be more verbose when listing engines.
 
   sqitch target add devwidgets --uri db:pg:widgets
 
-Specifies the L<URI|https://github.com/theory/uri-db/> of the target database.
+Specifies the L<URI|https://github.com/libwww-perl/uri-db/> of the target database.
 
 =item C<--top-dir>
 
@@ -150,6 +150,8 @@ Specifies the top directory to use for the target. Typically contains the
 deployment plan file and the change script directories.
 
 =item C<--plan-file>
+
+=item C<-f>
 
   sqitch target add devwidgets --plan-file my.plan
 
@@ -203,6 +205,14 @@ database name (as in SQLite and MySQL). Defaults to C<sqitch>.
 Specifies the path to the command-line client for the target. Defaults to a
 client in the current path named appropriately for the engine specified by the
 URI.
+
+=item C<-s>
+
+=item C<--set>
+
+Set a variable name and value for use by the database engine client, if it
+supports variables. The format must be C<name=value>, e.g.,
+C<--set defuser='Homer Simpson'>.
 
 =back
 

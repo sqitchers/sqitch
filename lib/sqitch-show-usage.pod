@@ -4,11 +4,12 @@ sqitch-show-usage - Sqitch show usage statement
 
 =head1 Usage
 
-  sqitch show <type> <object>
+  sqitch show [options] <type> <object>
 
 C<< <type> >> can be one of: change, tag, deploy, revert, verify
 
 =head1 Options
 
- -t --target <target>  database target specifying the plan
- -e --exists           suppress output, exit 0 when object exists
+    -t --target    <target>  database target specifying the plan
+    -e --exists              suppress output, exit 0 when object exists
+    -f --plan-file  <file>   path to a deployment plan file

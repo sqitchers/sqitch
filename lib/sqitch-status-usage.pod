@@ -4,7 +4,7 @@ sqitch-status-usage - Sqitch status usage statement
 
 =head1 Usage
 
-  sqitch [db-options] status [status options] [<database>]
+  sqitch status [options] [<database>]
 
 =head1 Options
 
@@ -13,3 +13,10 @@ sqitch-status-usage - Sqitch status usage statement
        --show-changes          include a list of deployed changes
        --show-tags             include a list of applied tags
        --date-format <format>  display dates using the specified format
+       --registry   <registry> registry schema or database
+       --db-client  <path>     path to the engine command-line client
+    -d --db-name    <name>     database name
+    -u --db-user    <user>     database user name
+    -h --db-host    <host>     database server host name
+    -p --db-port    <port>     database server port number
+    -f --plan-file  <file>     path to a deployment plan file

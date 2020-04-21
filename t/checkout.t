@@ -5,21 +5,20 @@ use warnings;
 use 5.010;
 use Test::More;
 use App::Sqitch;
+use App::Sqitch::Target;
 use utf8;
 use Path::Class qw(dir file);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use Test::MockModule;
 use Test::Exception;
+use Test::Warn;
 use lib 't/lib';
 use MockOutput;
+use TestConfig;
 
 my $CLASS = 'App::Sqitch::Command::checkout';
 require_ok $CLASS or die;
-
-$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
-$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 
 isa_ok $CLASS, 'App::Sqitch::Command';
 can_ok $CLASS, qw(
@@ -30,35 +29,59 @@ can_ok $CLASS, qw(
     execute
     deploy_variables
     revert_variables
+    _collect_deploy_vars
+    _collect_revert_vars
+    does
 );
 
+ok $CLASS->does("App::Sqitch::Role::$_"), "$CLASS does $_"
+    for qw(RevertDeployCommand ConnectingCommand ContextCommand);
+
 is_deeply [$CLASS->options], [qw(
+    plan-file|f=s
+    top-dir=s
+    registry=s
+    client|db-client=s
+    db-name|d=s
+    db-user|db-username|u=s
+    db-host|h=s
+    db-port|p=i
     target|t=s
     mode=s
     verify!
     set|s=s%
-    set-deploy|d=s%
+    set-deploy|e=s%
     set-revert|r=s%
     log-only
     y
 )], 'Options should be correct';
 
+warning_is {
+    Getopt::Long::Configure(qw(bundling pass_through));
+    ok Getopt::Long::GetOptionsFromArray(
+        [], {}, App::Sqitch->_core_opts, $CLASS->options,
+    ), 'Should parse options';
+} undef, 'Options should not conflict with core options';
+
 ok my $sqitch = App::Sqitch->new(
-    options => {
-        plan_file => file(qw(t sql sqitch.plan))->stringify,
-        top_dir   => dir(qw(t sql))->stringify,
-        engine    => 'sqlite',
-    },
+    config => TestConfig->new(
+        'core.engine'    => 'sqlite',
+        'core.plan_file' => file(qw(t sql sqitch.plan))->stringify,
+        'core.top_dir'   => dir(qw(t sql))->stringify,
+    ),
 ), 'Load a sqitch object';
 
 my $config = $sqitch->config;
 
+##############################################################################
 # Test configure().
 is_deeply $CLASS->configure($config, {}), {
     no_prompt     => 0,
     prompt_accept => 1,
     verify        => 0,
     mode          => 'all',
+    _params       => [],
+    _cx           => [],
 }, 'Check default configuration';
 
 is_deeply $CLASS->configure($config, {
@@ -70,8 +93,9 @@ is_deeply $CLASS->configure($config, {
     mode             => 'all',
     deploy_variables => { foo => 'bar' },
     revert_variables => { foo => 'bar' },
+    _params       => [],
+    _cx           => [],
 }, 'Should have set option';
-
 
 is_deeply $CLASS->configure($config, {
     y           => 1,
@@ -86,6 +110,8 @@ is_deeply $CLASS->configure($config, {
     deploy_variables => { foo => 'bar' },
     verify           => 1,
     log_only         => 1,
+    _params          => [],
+    _cx              => [],
 }, 'Should have mode, deploy_variables, verify, no_prompt, and log_only';
 
 is_deeply $CLASS->configure($config, {
@@ -97,6 +123,8 @@ is_deeply $CLASS->configure($config, {
     prompt_accept    => 1,
     verify           => 0,
     revert_variables => { foo => 'bar' },
+    _params          => [],
+    _cx              => [],
 }, 'Should have set_revert option and no_prompt false';
 
 is_deeply $CLASS->configure($config, {
@@ -110,6 +138,8 @@ is_deeply $CLASS->configure($config, {
     verify           => 0,
     deploy_variables => { foo => 'dep', hi => 'you' },
     revert_variables => { foo => 'rev', hi => 'me' },
+    _params          => [],
+    _cx              => [],
 }, 'set_deploy and set_revert should overrid set';
 
 is_deeply $CLASS->configure($config, {
@@ -123,6 +153,8 @@ is_deeply $CLASS->configure($config, {
     verify           => 0,
     deploy_variables => { foo => 'bar', hi => 'you' },
     revert_variables => { foo => 'bar', hi => 'me' },
+    _params          => [],
+    _cx              => [],
 }, 'set_deploy and set_revert should merge with set';
 
 is_deeply $CLASS->configure($config, {
@@ -135,32 +167,22 @@ is_deeply $CLASS->configure($config, {
     prompt_accept    => 1,
     verify           => 0,
     deploy_variables => { foo => 'bar', hi => 'you' },
-    revert_variables => { foo => 'bar', hi => 'you', my => 'yo' },
+    revert_variables => { foo => 'bar', my => 'yo' },
+    _params          => [],
+    _cx              => [],
 }, 'set_revert should merge with set_deploy';
 
 CONFIG: {
-    my $mock_config = Test::MockModule->new(ref $config);
-    my %config_vals;
-    $mock_config->mock(get => sub {
-        my ($self, %p) = @_;
-        return $config_vals{ $p{key} };
-    });
-    $mock_config->mock(get_section => sub {
-        my ($self, %p) = @_;
-        return $config_vals{ $p{section} } || {};
-    });
-    %config_vals = (
-        'deploy.variables' => { foo => 'bar', hi => 21 },
-    );
-
     is_deeply $CLASS->configure($config, {}), {
         no_prompt     => 0,
         prompt_accept => 1,
         verify        => 0,
         mode          => 'all',
+        _params       => [],
+        _cx           => [],
     }, 'Should have deploy configuration';
 
-    # Try merging.
+    # Try setting variables.
     is_deeply $CLASS->configure($config, {
         set         => { foo => 'yo', yo => 'stellar' },
     }), {
@@ -168,32 +190,15 @@ CONFIG: {
         no_prompt        => 0,
         prompt_accept    => 1,
         verify           => 0,
-        deploy_variables => { foo => 'yo', yo => 'stellar', hi => 21 },
-        revert_variables => { foo => 'yo', yo => 'stellar', hi => 21 },
+        deploy_variables => { foo => 'yo', yo => 'stellar' },
+        revert_variables => { foo => 'yo', yo => 'stellar' },
+        _params          => [],
+        _cx              => [],
     }, 'Should have merged variables';
 
-    # Try merging with checkout.variables, too.
-    $config_vals{'revert.variables'} = { hi => 42 };
-    is_deeply $CLASS->configure($config, {
-        set  => { yo => 'stellar' },
-    }), {
-        mode             => 'all',
-        no_prompt        => 0,
-        prompt_accept    => 1,
-        verify           => 0,
-        deploy_variables => { foo => 'bar', yo => 'stellar', hi => 21 },
-        revert_variables => { foo => 'bar', yo => 'stellar', hi => 42 },
-    }, 'Should have merged --set, deploy, checkout';
-
-    isa_ok my $checkout = $CLASS->new(sqitch => $sqitch), $CLASS;
-    is_deeply $checkout->deploy_variables, { foo => 'bar', hi => 21 },
-        'Should pick up deploy variables from configuration';
-
-    is_deeply $checkout->revert_variables, { foo => 'bar', hi => 42 },
-        'Should pick up revert variables from configuration';
-
     # Make sure we can override mode, prompting, and verify.
-    %config_vals = (
+    $config->replace(
+        'core.engine'          => 'sqlite',
         'revert.no_prompt'     => 1,
         'revert.prompt_accept' => 0,
         'deploy.verify'        => 1,
@@ -204,44 +209,65 @@ CONFIG: {
         prompt_accept => 0,
         verify        => 1,
         mode          => 'tag',
+        _params       => [],
+        _cx           => [],
     }, 'Should have no_prompt and prompt_accept from revert config';
 
     # Checkout option takes precendence
-    $config_vals{'checkout.no_prompt'} = 0;
-    $config_vals{'checkout.prompt_accept'} = 1;
-    $config_vals{'checkout.verify'} = 0;
-    $config_vals{'checkout.mode'}   = 'change';
+    $config->update(
+        'checkout.no_prompt'     => 0,
+        'checkout.prompt_accept' => 1,
+        'checkout.verify'        => 0,
+        'checkout.mode'          => 'change',
+    );
     is_deeply $CLASS->configure($config, {}), {
         no_prompt     => 0,
         prompt_accept => 1,
         verify        => 0,
         mode          => 'change',
+        _params       => [],
+        _cx           => [],
     }, 'Should have false log_only, verify, true prompt_accept from checkout config';
 
-    delete $config_vals{'revert.no_prompt'};
-    delete $config_vals{'revert.prompt_accept'};
-    delete $config_vals{'checkout.verify'};
-    delete $config_vals{'checkout.mode'};
-    $config_vals{'checkout.no_prompt'} = 1;
+    $config->update(
+        'checkout.no_prompt' => 1,
+        map { $_ => undef } qw(
+            revert.no_prompt
+            revert.prompt_accept
+            checkout.verify
+            checkout.mode
+        )
+    );
     is_deeply $CLASS->configure($config, {}), {
         no_prompt     => 1,
         prompt_accept => 1,
         verify        => 1,
-        mode          => 'tag'
+        mode          => 'tag',
+        _params       => [],
+        _cx           => [],
     }, 'Should have log_only, prompt_accept true from checkout and verify from deploy';
 
     # But option should override.
-    is_deeply $CLASS->configure($config, {y => 0, verify => 0, mode => 'all'}),
-        { no_prompt => 0, verify => 0, mode => 'all', prompt_accept => 1 },
-        'Should have log_only false and mode all again';
+    is_deeply $CLASS->configure($config, {y => 0, verify => 0, mode => 'all'}), {
+        no_prompt     => 0,
+        verify        => 0,
+        mode          => 'all',
+        prompt_accept => 1,
+        _params       => [],
+        _cx           => [],
+    }, 'Should have log_only false and mode all again';
 
-    $config_vals{'checkout.no_prompt'} = 0;
-    $config_vals{'checkout.prompt_accept'} = 1;
+    $config->update(
+        'checkout.no_prompt'     => 0,
+        'checkout.prompt_accept' => 1,
+    );
     is_deeply $CLASS->configure($config, {}), {
         no_prompt     => 0,
         prompt_accept => 1,
         verify        => 1,
         mode          => 'tag',
+        _params       => [],
+        _cx           => [],
     }, 'Should have log_only false for false config';
 
     is_deeply $CLASS->configure($config, {y => 1}), {
@@ -249,12 +275,199 @@ CONFIG: {
         prompt_accept => 1,
         verify        => 1,
         mode          => 'tag',
+        _params       => [],
+        _cx           => [],
     }, 'Should have no_prompt true with -y';
 }
 
-# Mock the execution interface.
+##############################################################################
+# Test _collect_deploy_vars and _collect_revert_vars.
+$config->replace(
+    'core.engine'    => 'sqlite',
+    'core.plan_file' => file(qw(t sql sqitch.plan))->stringify,
+    'core.top_dir'   => dir(qw(t sql))->stringify,
+);
+my $checkout = $CLASS->new( sqitch => $sqitch);
+my $target = App::Sqitch::Target->new(sqitch => $sqitch);
+is_deeply { $checkout->_collect_deploy_vars($target) }, {},
+    'Should collect no variables for deploy';
+is_deeply { $checkout->_collect_revert_vars($target) }, {},
+    'Should collect no variables for revert';
+
+# Add core variables.
+$config->update('core.variables' => { prefix => 'widget', priv => 'SELECT' });
+$target = App::Sqitch::Target->new(sqitch => $sqitch);
+is_deeply { $checkout->_collect_deploy_vars($target) }, {
+    prefix => 'widget',
+    priv   => 'SELECT',
+}, 'Should collect core deploy vars for deploy';
+is_deeply { $checkout->_collect_revert_vars($target) }, {
+    prefix => 'widget',
+    priv   => 'SELECT',
+}, 'Should collect core revert vars for revert';
+
+# Add deploy variables.
+$config->update('deploy.variables' => { dance => 'salsa', priv => 'UPDATE' });
+$target = App::Sqitch::Target->new(sqitch => $sqitch);
+is_deeply { $checkout->_collect_deploy_vars($target) }, {
+    prefix => 'widget',
+    priv   => 'UPDATE',
+    dance  => 'salsa',
+}, 'Should override core vars with deploy vars for deploy';
+
+is_deeply { $checkout->_collect_revert_vars($target) }, {
+    prefix => 'widget',
+    priv   => 'UPDATE',
+    dance  => 'salsa',
+}, 'Should override core vars with deploy vars for revert';
+
+# Add revert variables.
+$config->update('revert.variables' => { dance => 'disco', lunch => 'pizza' });
+$target = App::Sqitch::Target->new(sqitch => $sqitch);
+is_deeply { $checkout->_collect_deploy_vars($target) }, {
+    prefix => 'widget',
+    priv   => 'UPDATE',
+    dance  => 'salsa',
+}, 'Deploy vars should be unaffected by revert vars';
+is_deeply { $checkout->_collect_revert_vars($target) }, {
+    prefix => 'widget',
+    priv   => 'UPDATE',
+    dance  => 'disco',
+    lunch  => 'pizza',
+}, 'Should override deploy vars with revert vars for revert';
+
+# Add engine variables.
+$config->update('engine.pg.variables' => { lunch => 'burrito', drink => 'whiskey', priv => 'UP' });
+my $uri = URI::db->new('db:pg:');
+$target = App::Sqitch::Target->new(sqitch => $sqitch, uri => $uri);
+is_deeply { $checkout->_collect_deploy_vars($target) }, {
+    prefix => 'widget',
+    priv   => 'UP',
+    dance  => 'salsa',
+    lunch  => 'burrito',
+    drink  => 'whiskey',
+}, 'Should override deploy vars with engine vars for deploy';
+is_deeply { $checkout->_collect_deploy_vars($target) }, {
+    prefix => 'widget',
+    priv   => 'UP',
+    dance  => 'salsa',
+    lunch  => 'burrito',
+    drink  => 'whiskey',
+}, 'Should override checkout vars with engine vars for revert';
+
+# Add target variables.
+$config->update('target.foo.variables' => { drink => 'scotch', status => 'winning' });
+$target = App::Sqitch::Target->new(sqitch => $sqitch, name => 'foo', uri => $uri);
+is_deeply { $checkout->_collect_deploy_vars($target) }, {
+    prefix => 'widget',
+    priv   => 'UP',
+    dance  => 'salsa',
+    lunch  => 'burrito',
+    drink  => 'scotch',
+    status => 'winning',
+}, 'Should override engine vars with deploy vars for deploy';
+is_deeply { $checkout->_collect_revert_vars($target) }, {
+    prefix => 'widget',
+    priv   => 'UP',
+    dance  => 'disco',
+    lunch  => 'burrito',
+    drink  => 'scotch',
+    status => 'winning',
+}, 'Should override engine vars with target vars for revert';
+
+# Add --set variables.
+my %opts = (
+    set => { status => 'tired', herb => 'oregano' },
+);
+$checkout = $CLASS->new(
+    sqitch => $sqitch,
+    %{ $CLASS->configure($config, { %opts }) },
+);
+$target = App::Sqitch::Target->new(sqitch => $sqitch, name => 'foo', uri => $uri);
+is_deeply { $checkout->_collect_deploy_vars($target) }, {
+    prefix => 'widget',
+    priv   => 'UP',
+    dance  => 'salsa',
+    lunch  => 'burrito',
+    drink  => 'scotch',
+    status => 'tired',
+    herb   => 'oregano',
+}, 'Should override target vars with --set vars for deploy';
+is_deeply { $checkout->_collect_revert_vars($target) }, {
+    prefix => 'widget',
+    priv   => 'UP',
+    dance  => 'disco',
+    lunch  => 'burrito',
+    drink  => 'scotch',
+    status => 'tired',
+    herb   => 'oregano',
+}, 'Should override target vars with --set variables for revert';
+
+# Add --set-deploy-vars
+$opts{set_deploy} = { herb => 'basil', color => 'black' };
+$checkout = $CLASS->new(
+    sqitch => $sqitch,
+    %{ $CLASS->configure($config, { %opts }) },
+);
+$target = App::Sqitch::Target->new(sqitch => $sqitch, name => 'foo', uri => $uri);
+is_deeply { $checkout->_collect_deploy_vars($target) }, {
+    prefix => 'widget',
+    priv   => 'UP',
+    dance  => 'salsa',
+    lunch  => 'burrito',
+    drink  => 'scotch',
+    status => 'tired',
+    herb   => 'basil',
+    color  => 'black',
+}, 'Should override --set vars with --set-deploy variables for deploy';
+is_deeply { $checkout->_collect_revert_vars($target) }, {
+    prefix => 'widget',
+    priv   => 'UP',
+    dance  => 'disco',
+    lunch  => 'burrito',
+    drink  => 'scotch',
+    status => 'tired',
+    herb   => 'oregano',
+}, 'Should not override --set vars with --set-deploy variables for revert';
+
+# Add --set-revert-vars
+$opts{set_revert} = { herb => 'garlic', color => 'red' };
+$checkout = $CLASS->new(
+    sqitch => $sqitch,
+    %{ $CLASS->configure($config, { %opts }) },
+);
+$target = App::Sqitch::Target->new(sqitch => $sqitch, name => 'foo', uri => $uri);
+is_deeply { $checkout->_collect_deploy_vars($target) }, {
+    prefix => 'widget',
+    priv   => 'UP',
+    dance  => 'salsa',
+    lunch  => 'burrito',
+    drink  => 'scotch',
+    status => 'tired',
+    herb   => 'basil',
+    color  => 'black',
+}, 'Should not override --set vars with --set-revert variables for deploy';
+is_deeply { $checkout->_collect_revert_vars($target) }, {
+    prefix => 'widget',
+    priv   => 'UP',
+    dance  => 'disco',
+    lunch  => 'burrito',
+    drink  => 'scotch',
+    status => 'tired',
+    herb   => 'garlic',
+    color  => 'red',
+}, 'Should override --set vars with --set-revert variables for revert';
+
+$config->replace(
+    'core.engine'    => 'sqlite',
+    'core.plan_file' => file(qw(t sql sqitch.plan))->stringify,
+    'core.top_dir'   => dir(qw(t sql))->stringify,
+);
+
+##############################################################################
+# Test execute().
 my $mock_sqitch = Test::MockModule->new(ref $sqitch);
-my (@probe_args, $probed, $target, $orig_method);
+my (@probe_args, $probed, $orig_method);
 $mock_sqitch->mock(probe => sub { shift; @probe_args = @_; $probed });
 my $mock_cmd = Test::MockModule->new($CLASS);
 $mock_cmd->mock(parse_args => sub {
@@ -268,7 +481,7 @@ my @run_args;
 $mock_sqitch->mock(run => sub { shift; @run_args = @_ });
 
 # Try rebasing to the current branch.
-isa_ok my $checkout = App::Sqitch::Command->load({
+isa_ok $checkout = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'checkout',
     config  => $config,
@@ -372,6 +585,7 @@ is_deeply { @{ $vars[1] } }, { foo => 'bar', one => 1 },
     'The deploy vars should have been next';
 
 # Try passing a target.
+@vars = ();
 ok $checkout->execute('master', 'db:sqlite:foo'), 'Checkout master with target';
 is $target->name, 'db:sqlite:foo', 'Target should be passed to engine';
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';

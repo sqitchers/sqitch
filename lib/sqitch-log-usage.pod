@@ -4,26 +4,37 @@ sqitch-log-usage - Sqitch log usage statement
 
 =head1 Usage
 
-  sqitch [options] log [log options] [<database>]
+  sqitch log [options] [<database>]
 
 =head1 Options
 
 Search options:
 
- -t --target <target>                       database to which to connect
-    --event <type>                          type of event
-    --change-pattern     --change <name>    match regex against change names
-    --committer-pattern --committer <name>  match regex against committer names
- -n --max-count <count>                     show only specified number of events
-    --skip <number>                         skip the specified number of events
-    --reverse                               show events in reverse order
-    --no-reverse                            don't show events in reverse order
+ -t --target                        <target>  database to which to connect
+    --event <type>                            type of event
+    --change-pattern    --change    <name     match regex against change names
+    --committer-pattern --committer <name>    match regex against committer names
+ -n --max-count                     <count>   show only specified number of events
+    --skip                          <number>  skip the specified number of events
+    --reverse                                 show events in reverse order
+    --no-reverse                              don't show events in reverse order
 
-Formatting
+Formatting:
 
- -f --format <format>                show events in the specified format
+ -f --format             <format>    show events in the specified format
     --date-format --date <format>    show dates in the specified format
     --color                          use ANSI colors
     --no-color                       never use ANSI colors
     --abbrev                         abbreviate change IDs
     --oneline                        shorthand for --format oneline --abbrev 6
+    --headers                        show headers for the target
+    --no-headers                     don't show target headers
+
+Connection:
+
+     --registry   <registry>   registry schema or database
+     --db-client  <path>       path to the engine command-line client
+  -d --db-name    <name>       database name
+  -u --db-user    <user>       database user name
+  -h --db-host    <host>       database server host name
+  -p --db-port    <port>       database server port number

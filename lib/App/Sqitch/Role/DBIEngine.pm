@@ -11,7 +11,7 @@ use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 use namespace::autoclean;
 
-our $VERSION = '0.9997';
+# VERSION
 
 requires 'dbh';
 requires 'sqitch';
@@ -228,7 +228,6 @@ sub search_events {
 
     # Limit with regular expressions?
     my (@wheres, @params);
-    my $op = $self->_regex_op;
     for my $spec (
         [ committer => 'e.committer_name' ],
         [ planner   => 'e.planner_name'   ],
@@ -236,8 +235,9 @@ sub search_events {
         [ project   => 'e.project'        ],
     ) {
         my $regex = delete $p{ $spec->[0] } // next;
-        push @wheres => "$spec->[1] $op ?";
-        push @params => $regex;
+        my ($op, $expr) = $self->_regex_expr($spec->[1], $regex);
+        push @wheres => $op;
+        push @params => $expr;
     }
 
     # Match events?
@@ -255,19 +255,10 @@ sub search_events {
     # Handle remaining parameters.
     my $limits = '';
     if (exists $p{limit} || exists $p{offset}) {
-        my $lim = delete $p{limit};
-        if ($lim) {
-            $limits = "\n         LIMIT ?";
-            push @params => $lim;
-        }
-        if (my $off = delete $p{offset}) {
-            if (!$lim && ($lim = $self->_limit_default)) {
-                # Some drivers require LIMIT when OFFSET is set.
-                $limits = "\n         LIMIT ?";
-                push @params => $lim;
-            }
-            $limits .= "\n         OFFSET ?";
-            push @params => $off;
+        my ($exprs, $values) = $self->_limit_offset(delete $p{limit}, delete $p{offset});
+        if (@{ $exprs}) {
+            $limits = join "\n         ", '', @{ $exprs };
+            push @params => @{ $values || [] };
         }
     }
 
@@ -295,6 +286,7 @@ sub search_events {
           FROM events e$where
          ORDER BY e.committed_at $dir$limits
     });
+
     $sth->execute(@params);
     return sub {
         my $row = $sth->fetchrow_hashref or return;
@@ -302,6 +294,32 @@ sub search_events {
         $row->{planned_at}   = _dt $row->{planned_at};
         return $row;
     };
+}
+
+sub _regex_expr {
+    my ( $self, $col, $regex ) = @_;
+    my $op = $self->_regex_op;
+    return "$col $op ?", $regex;
+}
+
+sub _limit_offset {
+    my ($self, $lim, $off)  = @_;
+    my (@limits, @params);
+
+    if ($lim) {
+        push @limits => 'LIMIT ?';
+        push @params => $lim;
+    }
+    if ($off) {
+        if (!$lim && ($lim = $self->_limit_default)) {
+            # Some drivers require LIMIT when OFFSET is set.
+            push @limits => 'LIMIT ?';
+            push @params => $lim;
+        }
+        push @limits => 'OFFSET ?';
+        push @params => $off;
+    }
+    return \@limits, \@params;
 }
 
 sub registered_projects {
@@ -324,7 +342,7 @@ sub register_project {
     );
 
     if (@{ $res }) {
-        # A project with that name is already registreed. Compare URIs.
+        # A project with that name is already registered. Compare URIs.
         my $reg_uri = $res->[0];
         if ( defined $uri && !defined $reg_uri ) {
             hurl engine => __x(
@@ -349,20 +367,21 @@ sub register_project {
             # Both are undef, so cool.
         }
     } else {
-        # Does the URI already exist?
-        my $res = defined $uri ? $dbh->selectcol_arrayref(
-            'SELECT project FROM projects WHERE uri = ?',
-            undef, $uri
-        ) : $dbh->selectcol_arrayref(
-            'SELECT project FROM projects WHERE uri IS NULL',
-        );
+        # No project with that name exists. Check to see if the URI does.
+        if (defined $uri) {
+            # Does the URI already exist?
+            my $res = $dbh->selectcol_arrayref(
+                'SELECT project FROM projects WHERE uri = ?',
+                undef, $uri
+            );
 
-        hurl engine => __x(
-            'Cannot register "{project}" with URI {uri}: project "{reg_proj}" already using that URI',
-            project => $proj,
-            uri     => $uri,
-            reg_proj => $res->[0],
-        ) if @{ $res };
+            hurl engine => __x(
+                'Cannot register "{project}" with URI {uri}: project "{reg_proj}" already using that URI',
+                project => $proj,
+                uri     => $uri,
+                reg_proj => $res->[0],
+            ) if @{ $res };
+        }
 
         # Insert the project.
         my $ts = $self->_ts_default;
@@ -598,7 +617,7 @@ sub changes_requiring_change {
             SELECT tag
               FROM changes c2
               JOIN tags ON c2.change_id = tags.change_id
-             WHERE c2.project      = c.project
+             WHERE c2.project       = c.project
                AND c2.committed_at >= c.committed_at
              ORDER BY c2.committed_at
              LIMIT 1
@@ -639,7 +658,6 @@ sub log_new_tags {
     );
 
     my $subselect = 'SELECT ' . $self->_tag_subselect_columns . $self->_simple_from;
-
     $self->dbh->do(
         q{
             INSERT INTO tags (
@@ -880,11 +898,10 @@ sub change_id_for {
     if ( my $change = $p{change} ) {
         if ( my $tag = $p{tag} ) {
             # There is nothing before the first tag.
-            return undef if $tag eq 'ROOT' || $tag eq 'FIRST';
+            return undef if $tag eq 'ROOT';
 
             # Find closest to the end for @HEAD.
-            return $self->_cid_head($project, $change)
-                if $tag eq 'HEAD' || $tag eq 'LAST';
+            return $self->_cid_head($project, $change) if $tag eq 'HEAD';
 
             # Find by change name and following tag.
             my $limit = $self->_can_limit ? "\n                 LIMIT 1" : '';
@@ -911,17 +928,16 @@ sub change_id_for {
         }, undef, $project, $change);
 
         # Return the ID.
+        return $ids->[0] if $p{first};
         return $self->_handle_lookup_index($change, $ids);
     }
 
     if ( my $tag = $p{tag} ) {
         # Just return the latest for @HEAD.
-        return $self->_cid('DESC', 0, $project)
-            if $tag eq 'HEAD' || $tag eq 'LAST';
+        return $self->_cid('DESC', 0, $project) if $tag eq 'HEAD';
 
         # Just return the earliest for @ROOT.
-        return $self->_cid('ASC', 0, $project)
-            if $tag eq 'ROOT' || $tag eq 'FIRST';
+        return $self->_cid('ASC', 0, $project) if $tag eq 'ROOT';
 
         # Find by tag name.
         return $dbh->selectcol_arrayref(q{
@@ -1081,6 +1097,10 @@ The Vertica engine.
 
 The Exasol engine.
 
+=item L<App::Sqitch::Engine::snowflake>
+
+The Snowflake engine.
+
 =back
 
 =head1 Author
@@ -1089,7 +1109,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2017 iovation Inc.
+Copyright (c) 2012-2018 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

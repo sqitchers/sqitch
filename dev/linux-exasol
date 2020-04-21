@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -e
+
+# Set up Exasol.
+sudo apt-get update -qq
+sudo apt-get install -qq unixodbc-dev odbcinst unixodbc
+docker run --rm -d -p 127.0.0.1:8888:8888 --privileged --rm exasol/docker-db:${EXASOL:=latest}
+docker ps -a
+curl -sSLO https://www.exasol.com/support/secure/attachment/55217/EXASOL_ODBC-6.0.4.tar.gz
+sudo tar -xzf EXASOL_ODBC-6.0.4.tar.gz -C /opt
+curl -sSLO https://www.exasol.com/support/secure/attachment/55310/EXAplus-6.0.4.tar.gz
+sudo tar -xzf EXAplus-6.0.4.tar.gz -C /opt
+export PATH=/opt/EXAplus-6.0.4:$PATH
+export EXA_URI=db:exasol://sys:exasol@127.0.0.1:8888/?Driver=Exasol

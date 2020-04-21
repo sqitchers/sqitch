@@ -7,34 +7,43 @@ use Test::More;
 use App::Sqitch;
 use Path::Class;
 use Test::Exception;
+use Test::Warn;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::MockModule;
 use lib 't/lib';
 use MockOutput;
-
-$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
-$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
+use TestConfig;
 
 my $CLASS = 'App::Sqitch::Command::show';
 require_ok $CLASS or die;
 
 isa_ok $CLASS, 'App::Sqitch::Command';
-can_ok $CLASS, qw(execute exists_only target);
+can_ok $CLASS, qw(execute exists_only target does);
+
+ok $CLASS->does("App::Sqitch::Role::ContextCommand"),
+    "$CLASS does ContextCommand";
 
 is_deeply [$CLASS->options], [qw(
     target|t=s
     exists|e!
+    plan-file|f=s
+    top-dir=s
 )], 'Options should be correct';
 
-my $sqitch = App::Sqitch->new(
-    options => {
-        plan_file    => file(qw(t engine sqitch.plan))->stringify,
-        top_dir      => dir(qw(t engine))->stringify,
-        reworked_dir => dir(qw(t engine reworked))->stringify,
-        engine       => 'pg',
-    },
+warning_is {
+    Getopt::Long::Configure(qw(bundling pass_through));
+    ok Getopt::Long::GetOptionsFromArray(
+        [], {}, App::Sqitch->_core_opts, $CLASS->options,
+    ), 'Should parse options';
+} undef, 'Options should not conflict with core options';
+
+my $config = TestConfig->new(
+    'core.engine'       => 'pg',
+    'core.plan_file'    => file(qw(t engine sqitch.plan))->stringify,
+    'core.top_dir'      => dir(qw(t engine))->stringify,
+    'core.reworked_dir' => dir(qw(t engine reworked))->stringify,
 );
+my $sqitch = App::Sqitch->new(config => $config);
 
 isa_ok my $show = $CLASS->new(sqitch => $sqitch), $CLASS;
 ok !$show->exists_only, 'exists_only should be false by default';
@@ -45,11 +54,11 @@ ok $eshow->exists_only, 'exists_only should be set';
 
 ##############################################################################
 # Test configure().
-my $config = $sqitch->config;
-is_deeply $CLASS->configure($config, {}), {},
+is_deeply $CLASS->configure($config, {}), {_cx => []},
     'Should get empty hash for no config or options';
 
-is_deeply $CLASS->configure($config, {exists => 1}), { exists_only => 1 },
+is_deeply $CLASS->configure($config, {exists => 1}),
+    { exists_only => 1, _cx => [] },
     'Should get exists_only => 1 for exist in options';
 
 ##############################################################################
@@ -166,8 +175,8 @@ is $@->message,  __x(
 ), 'Should get proper error for unknown type';
 
 # Try specifying a non-default target.
-$sqitch = App::Sqitch->new;
-$sqitch->config->load_file(file 't', 'local.conf');
+$config = TestConfig->from( local => file 't', 'local.conf');
+$sqitch = App::Sqitch->new(config => $config);
 my $file = file qw(t plans dependencies.plan);
 my $target = App::Sqitch::Target->new(sqitch => $sqitch, plan_file => $file);
 ok $change = $target->plan->get('add_user'), 'Get a change';

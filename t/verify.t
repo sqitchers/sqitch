@@ -5,19 +5,18 @@ use warnings;
 use 5.010;
 use Test::More;
 use App::Sqitch;
+use App::Sqitch::Target;
 use Path::Class qw(dir file);
 use Test::MockModule;
 use Test::Exception;
+use Test::Warn;
 use Locale::TextDomain qw(App-Sqitch);
 use lib 't/lib';
 use MockOutput;
+use TestConfig;
 
 my $CLASS = 'App::Sqitch::Command::verify';
 require_ok $CLASS or die;
-
-$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
-$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 
 isa_ok $CLASS, 'App::Sqitch::Command';
 can_ok $CLASS, qw(
@@ -28,28 +27,46 @@ can_ok $CLASS, qw(
     from_change
     to_change
     variables
+    does
 );
+
+ok $CLASS->does("App::Sqitch::Role::$_"), "$CLASS does $_"
+    for qw(ContextCommand ConnectingCommand);
 
 is_deeply [$CLASS->options], [qw(
     target|t=s
     from-change|from=s
     to-change|to=s
-    from-target=s
-    to-target=s
     set|s=s%
+    plan-file|f=s
+    top-dir=s
+    registry=s
+    client|db-client=s
+    db-name|d=s
+    db-user|db-username|u=s
+    db-host|h=s
+    db-port|p=i
 )], 'Options should be correct';
 
-my $sqitch = App::Sqitch->new(
-    options => {
-        engine    => 'sqlite',
-        plan_file => file(qw(t sql sqitch.plan))->stringify,
-        top_dir   => dir(qw(t sql))->stringify,
-    },
-);
-my $config = $sqitch->config;
+warning_is {
+    Getopt::Long::Configure(qw(bundling pass_through));
+    ok Getopt::Long::GetOptionsFromArray(
+        [], {}, App::Sqitch->_core_opts, $CLASS->options,
+    ), 'Should parse options';
+} undef, 'Options should not conflict with core options';
 
+my $config = TestConfig->new(
+    'core.engine'    => 'sqlite',
+    'core.plan_file' => file(qw(t sql sqitch.plan))->stringify,
+    'core.top_dir'   => dir(qw(t sql))->stringify,
+);
+my $sqitch = App::Sqitch->new(config => $config);
+
+##############################################################################
 # Test configure().
 is_deeply $CLASS->configure($config, {}), {
+    _params => [],
+    _cx     => [],
 }, 'Should have default configuration with no config or opts';
 
 is_deeply $CLASS->configure($config, {
@@ -60,42 +77,20 @@ is_deeply $CLASS->configure($config, {
     from_change => 'foo',
     to_change   => 'bar',
     variables   => { foo => 'bar' },
+    _params     => [],
+    _cx         => [],
 }, 'Should have changes and variables from options';
 
 CONFIG: {
-    my $mock_config = Test::MockModule->new(ref $config);
-    my %config_vals;
-    $mock_config->mock(get => sub {
-        my ($self, %p) = @_;
-        return $config_vals{ $p{key} };
-    });
-    $mock_config->mock(get_section => sub {
-        my ($self, %p) = @_;
-        return $config_vals{ $p{section} };
-    });
-    %config_vals = (
+    my $config = TestConfig->new(
         'verify.variables' => { foo => 'bar', hi => 21 },
     );
-
-    is_deeply $CLASS->configure($config, {}), {},
+    is_deeply $CLASS->configure($config, {}), { _params => [], _cx => [] },
         'Should have no config if no options';
-
-    # Try merging.
-    is_deeply $CLASS->configure($config, {
-        to_change => 'whu',
-        set       => { foo => 'yo', yo => 'stellar' },
-    }), {
-        to_change => 'whu',
-        variables => { foo => 'yo', yo => 'stellar', hi => 21 },
-    }, 'Should have merged variables';
-
-    isa_ok my $verify = $CLASS->new(sqitch => $sqitch), $CLASS;
-    is_deeply $verify->variables, { foo => 'bar', hi => 21 },
-        'Should pick up variables from configuration';
 }
 
 ##############################################################################
-# Test accessors.
+# Test construction.
 isa_ok my $verify = $CLASS->new(
     sqitch   => $sqitch,
     target => 'foo',
@@ -107,6 +102,87 @@ is $verify->target, undef, 'Default target should be undef';
 is $verify->from_change, undef, 'from_change should be undef';
 is $verify->to_change, undef, 'to_change should be undef';
 
+##############################################################################
+# Test _collect_vars.
+my $target = App::Sqitch::Target->new(sqitch => $sqitch);
+is_deeply { $verify->_collect_vars($target) }, {}, 'Should collect no variables';
+
+# Add core variables.
+$config->update('core.variables' => { prefix => 'widget', priv => 'SELECT' });
+$target = App::Sqitch::Target->new(sqitch => $sqitch);
+is_deeply { $verify->_collect_vars($target) }, {
+    prefix => 'widget',
+    priv   => 'SELECT',
+}, 'Should collect core vars';
+
+# Add deploy variables.
+$config->update('deploy.variables' => { dance => 'salsa', priv => 'UPDATE' });
+$target = App::Sqitch::Target->new(sqitch => $sqitch);
+is_deeply { $verify->_collect_vars($target) }, {
+    prefix => 'widget',
+    priv   => 'UPDATE',
+    dance  => 'salsa',
+}, 'Should override core vars with deploy vars';
+
+# Add verify variables.
+$config->update('verify.variables' => { dance => 'disco', lunch => 'pizza' });
+$target = App::Sqitch::Target->new(sqitch => $sqitch);
+is_deeply { $verify->_collect_vars($target) }, {
+    prefix => 'widget',
+    priv   => 'UPDATE',
+    dance  => 'disco',
+    lunch  => 'pizza',
+}, 'Should override deploy vars with verify vars';
+
+# Add engine variables.
+$config->update('engine.pg.variables' => { lunch => 'burrito', drink => 'whiskey' });
+my $uri = URI::db->new('db:pg:');
+$target = App::Sqitch::Target->new(sqitch => $sqitch, uri => $uri);
+is_deeply { $verify->_collect_vars($target) }, {
+    prefix => 'widget',
+    priv   => 'UPDATE',
+    dance  => 'disco',
+    lunch  => 'burrito',
+    drink  => 'whiskey',
+}, 'Should override verify vars with engine vars';
+
+# Add target variables.
+$config->update('target.foo.variables' => { drink => 'scotch', status => 'winning' });
+$target = App::Sqitch::Target->new(sqitch => $sqitch, name => 'foo', uri => $uri);
+is_deeply { $verify->_collect_vars($target) }, {
+    prefix => 'widget',
+    priv   => 'UPDATE',
+    dance  => 'disco',
+    lunch  => 'burrito',
+    drink  => 'scotch',
+    status => 'winning',
+}, 'Should override engine vars with target vars';
+
+# Add --set variables.
+$verify = $CLASS->new(
+    sqitch => $sqitch,
+    variables => { status => 'tired', herb => 'oregano' },
+);
+$target = App::Sqitch::Target->new(sqitch => $sqitch, name => 'foo', uri => $uri);
+is_deeply { $verify->_collect_vars($target) }, {
+    prefix => 'widget',
+    priv   => 'UPDATE',
+    dance  => 'disco',
+    lunch  => 'burrito',
+    drink  => 'scotch',
+    status => 'tired',
+    herb   => 'oregano',
+}, 'Should override target vars with --set variables';
+
+$config->replace(
+    'core.engine'    => 'sqlite',
+    'core.plan_file' => file(qw(t sql sqitch.plan))->stringify,
+    'core.top_dir'   => dir(qw(t sql))->stringify,
+);
+$verify = $CLASS->new( sqitch => $sqitch, no_prompt => 1);
+
+##############################################################################
+# Test execution.
 # Mock the engine interface.
 my $mock_engine = Test::MockModule->new('App::Sqitch::Engine::sqlite');
 my @args;
@@ -156,7 +232,7 @@ is_deeply +MockOutput->get_warn, [[__x(
 )]], 'Should have warning about which roles are used';
 
 # Pass a target.
-my $target = 'db:pg:';
+$target = 'db:pg:';
 my $mock_cmd = Test::MockModule->new(ref $verify);
 my ($target_name_arg, $orig_meth);
 $mock_cmd->mock(parse_args => sub {

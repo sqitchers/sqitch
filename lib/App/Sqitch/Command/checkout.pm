@@ -16,7 +16,7 @@ use namespace::autoclean;
 extends 'App::Sqitch::Command';
 with 'App::Sqitch::Role::RevertDeployCommand';
 
-our $VERSION = '0.9997';
+# VERSION
 
 has client => (
     is       => 'ro',
@@ -25,7 +25,7 @@ has client => (
     default  => sub {
         my $sqitch = shift->sqitch;
         return $sqitch->config->get( key => 'core.vcs.client' )
-            || 'git' . ( $^O eq 'MSWin32' ? '.exe' : '' );
+            || 'git' . ( App::Sqitch::ISWIN ? '.exe' : '' );
     },
 );
 
@@ -98,7 +98,7 @@ sub execute {
     ));
 
     # Revert to the last common change.
-    if (my %v = %{ $self->revert_variables }) { $engine->set_variables(%v) }
+    $engine->set_variables( $self->_collect_revert_vars($target) );
     $engine->plan( $from_plan );
     try {
         $engine->revert( $last_common_change->id );
@@ -107,7 +107,7 @@ sub execute {
         die $_ if ! eval { $_->isa('App::Sqitch::X') }
             || $_->exitval > 1
             || $_->ident eq 'revert:confirm';
-        # Emite notice of non-fatal errors (e.g., nothign to revert).
+        # Emite notice of non-fatal errors (e.g., nothing to revert).
         $self->info($_->message)
     };
 
@@ -116,7 +116,7 @@ sub execute {
     $sqitch->run($git, 'checkout', $branch);
 
     # Deploy!
-    if (my %v = %{ $self->deploy_variables}) { $engine->set_variables(%v) }
+    $engine->set_variables( $self->_collect_deploy_vars($target) );
     $engine->plan( $to_plan );
     $engine->deploy( undef, $self->mode);
     return $self;
@@ -186,7 +186,7 @@ The Sqitch command-line client.
 
 =head1 License
 
-Copyright (c) 2012-2017 iovation Inc.
+Copyright (c) 2012-2018 iovation Inc.
 
 Copyright (c) 2012-2013 Ronan Dunklau
 

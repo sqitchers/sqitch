@@ -25,7 +25,8 @@ things that are already there.
 
 Optional URI to associate with the project. If present, the URI will be
 written to the project plan and used for added uniqueness in hashed object
-IDs.
+IDs, as well as to prevent the deployment of another project with the same
+name but different URI.
 
 =item C<--engine>
 
@@ -36,19 +37,21 @@ include:
 
 =over
 
-=item * C<pg> - L<PostgreSQL|http://postgresql.org/> and L<Postgres-XC|http://sourceforge.net/>
+=item * C<pg> - L<PostgreSQL|https://postgresql.org/> and L<Postgres-XC|https://sourceforge.net/>
 
-=item * C<sqlite> - L<SQLite|http://sqlite.org/>
+=item * C<sqlite> - L<SQLite|https://sqlite.org/>
 
-=item * C<oracle> - L<Oracle|http://www.oracle.com/us/products/database/>
+=item * C<oracle> - L<Oracle|https://www.oracle.com/us/products/database/>
 
-=item * C<mysql> - L<MySQL|http://dev.mysql.com/> and L<MariaDB|https://mariadb.com/>
+=item * C<mysql> - L<MySQL|https://dev.mysql.com/> and L<MariaDB|https://mariadb.com/>
 
-=item * C<firebird> - L<Firebird|http://www.firebirdsql.org/>
+=item * C<firebird> - L<Firebird|https://www.firebirdsql.org/>
 
 =item * C<vertica> - L<Vertica|https://my.vertica.com/>
 
 =item * C<exasol> - L<Exasol|https://www.exasol.com/>
+
+=item * C<snowflake> - L<Snowflake|https://www.snowflake.net/>
 
 =back
 
@@ -60,6 +63,8 @@ Specifies the top directory to use for the project. Typically contains the
 deployment plan file and the change script directories.
 
 =item C<--plan-file>
+
+=item C<-f>
 
   sqitch init widgets --plan-file my.plan
 
@@ -102,7 +107,7 @@ Supported keys are:
 
   sqitch init widgets --target db:pg:widgets
 
-Specifies the name or L<URI|https://github.com/theory/uri-db/> of the default
+Specifies the name or L<URI|https://github.com/libwww-perl/uri-db/> of the default
 target database. If specified as a name, the default URI for the target will
 be C<db:$engine:>.
 
@@ -140,6 +145,8 @@ Sets the C<core.engine> configuration variable.
 Sets the C<core.top_dir> configuration variable.
 
 =item C<--plan-file>
+
+=item C<-f>
 
 Sets the C<core.plan_file> configuration variable.
 
@@ -184,6 +191,14 @@ passed.
 Sets the C<engine.$engine.client> configuration variable if C<--engine> is
 also passed.
 
+=item C<-s>
+
+=item C<--set>
+
+Set a variable name and value for use by the database engine client, if it
+supports variables. The format must be C<name=value>, e.g.,
+C<--set defuser='Homer Simpson'>. Variables are set in C<core.variables>.
+
 =back
 
 As a general rule, you likely won't need any of these options except for
@@ -199,19 +214,20 @@ what sorts of things are available to edit.
 
 =head1 Examples
 
-Start a new Sqitch project using the SQLite engine, setting the top directory
-for the project to F<sqlite>:
+Start a new Sqitch project named "quack" using the SQLite engine, setting the
+top directory for the project to F<sqlite>:
 
-  sqitch init --engine sqlite --top-dir sqlite
+  sqitch init --engine sqlite --top-dir sqlite quack
 
-Start a new Sqitch project using the PostgreSQL engine, setting the top
-directory to F<postgres>, script extension to C<ddl>, reworked directory to
-C<reworked> and a version-specific client:
+Start a new Sqitch project named "bey" using the PostgreSQL engine, setting
+the top directory to F<postgres>, script extension to C<ddl>, reworked
+directory to C<reworked> and a version-specific client:
 
   sqitch init --engine  pg \
               --top-dir postgres \
               --client  /opt/pgsql-9.1/bin/psql \
-              --extension ddl --dir reworked=reworked
+              --extension ddl --dir reworked=reworked \
+              bey
 
 =head1 See Also
 

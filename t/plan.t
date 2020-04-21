@@ -19,6 +19,7 @@ use File::Path qw(make_path remove_tree);
 use App::Sqitch::DateTime;
 use lib 't/lib';
 use MockOutput;
+use TestConfig;
 
 my $CLASS;
 
@@ -26,10 +27,6 @@ BEGIN {
     $CLASS = 'App::Sqitch::Plan';
     use_ok $CLASS or die;
 }
-
-$ENV{SQITCH_CONFIG} = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG} = 'nonexistent.user';
-$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 
 can_ok $CLASS, qw(
     sqitch
@@ -46,7 +43,8 @@ can_ok $CLASS, qw(
     open_script
 );
 
-my $sqitch = App::Sqitch->new( options => { engine => 'sqlite' });
+my $config = TestConfig->new('core.engine' => 'sqlite');
+my $sqitch = App::Sqitch->new( config => $config );
 my $target = App::Sqitch::Target->new( sqitch => $sqitch );
 isa_ok my $plan = App::Sqitch::Plan->new(sqitch => $sqitch, target => $target),
     $CLASS;
@@ -134,7 +132,6 @@ sub change($) {
     $seen{ $p->{name} } = $prev_change;
     if ($vivify) {
         $prev_change->id;
-        $prev_change->old_id;
         $prev_change->tags;
     }
     return $prev_change;
@@ -152,7 +149,7 @@ sub tag($) {
         %{ $p },
     );
     $prev_change->add_tag($prev_tag);
-    $prev_tag->id, $prev_tag->old_id if $vivify;
+    $prev_tag->id, if $vivify;
     return $ret ? $prev_tag : ();
 }
 
@@ -325,7 +322,6 @@ cmp_deeply delete $parsed->{pragmas}, {
     project        => 'dos',
 }, 'Should have captured the dos pragmas';
 
-
 # Try a plan with a bad change name.
 $file = file qw(t plans bad-change.plan);
 $fh = $file->open('<:utf8_strict');
@@ -444,25 +440,8 @@ for my $name (
 }
 is sorted, 26, 'Should have sorted changes 18 times';
 
-# Try a plan with reserved tag name @HEAD.
-$file = file qw(t plans reserved-tag.plan);
-$fh = $file->open('<:utf8_strict');
-throws_ok { $plan->_parse($file, $fh) } 'App::Sqitch::X',
-    'Should die on plan with reserved tag "@HEAD"';
-is $@->ident, 'parse', '@HEAD exception should have ident "plan"';
-is $@->message, __x(
-    'Syntax error in {file} at line {lineno}: {error}',
-    file => $file,
-    lineno => 7,
-    error => __x(
-        '"{name}" is a reserved name',
-        name => '@HEAD',
-    ),
-), 'And the @HEAD error message should be correct';
-is sorted, 1, 'Should have sorted changes once';
-
 # Try planning with other reserved names.
-for my $reserved (qw(ROOT FIRST LAST)) {
+for my $reserved (qw(HEAD ROOT)) {
     my $root = $prags . '@' . $reserved . " $tsnp";
     $file = file qw(t plans), "$reserved.plan";
     $fh = IO::File->new(\$root, '<:utf8_strict');
@@ -555,7 +534,7 @@ is sorted, 1, 'Should have sorted changes once';
 # Try a plan with an invalid requirement.
 $fh = IO::File->new(\"\%project=foo\n\nfoo [^bar] $tsnp", '<:utf8_strict');
 throws_ok { $plan->_parse('badreq', $fh ) } 'App::Sqitch::X',
-    'Should die on invalid  dependency';
+    'Should die on invalid dependency';
 is $@->ident, 'parse', 'The invalid dependency error ident should be "parse"';
 is $@->message, __x(
     'Syntax error in {file} at line {lineno}: {error}',
@@ -566,6 +545,22 @@ is $@->message, __x(
         dep => '^bar',
     ),
 ), 'And the invalid dependency error message should be correct';
+is sorted, 0, 'Should have sorted changes nonce';
+
+# Try a plan with duplicate requirements.
+$fh = IO::File->new(\"\%project=foo\n\nfoo [bar baz bar] $tsnp", '<:utf8_strict');
+throws_ok { $plan->_parse('dupedep', $fh ) } 'App::Sqitch::X',
+    'Should die on dupe dependency';
+is $@->ident, 'parse', 'The dupe dependency error ident should be "parse"';
+is $@->message, __x(
+    'Syntax error in {file} at line {lineno}: {error}',
+    file => 'dupedep',
+    lineno => 3,
+    error => __x(
+        'Duplicate dependency "{dep}"',
+        dep => 'bar',
+    ),
+), 'And the dupe dependency error message should be correct';
 is sorted, 0, 'Should have sorted changes nonce';
 
 # Try a plan without a timestamp.
@@ -620,7 +615,7 @@ cmp_deeply delete $parsed->{pragmas}, {
     syntax_version => App::Sqitch::Plan::SYNTAX_VERSION,
     foo            => 'bar',
     project        => 'pragmata',
-    uri            => 'https://github.com/theory/sqitch/',
+    uri            => 'https://github.com/sqitchers/sqitch/',
     strict         => 1,
 }, 'Should have captured all of the pragmas';
 cmp_deeply $parsed, {
@@ -634,7 +629,7 @@ cmp_deeply $parsed, {
         prag( '', ' ', 'syntax-version', '', '=', '', App::Sqitch::Plan::SYNTAX_VERSION),
         prag( '  ', '', 'foo', ' ', '=', ' ', 'bar', '    ', 'lolz'),
         prag( '', ' ', 'project', '', '=', '', 'pragmata'),
-        prag( '', ' ', 'uri', '', '=', '', 'https://github.com/theory/sqitch/'),
+        prag( '', ' ', 'uri', '', '=', '', 'https://github.com/sqitchers/sqitch/'),
         prag( '', ' ', 'strict'),
         blank(),
         change { name => 'hey' },
@@ -1283,7 +1278,7 @@ for my $name (@bad_names, 'foo#bar') {
 }
 
 # Validate reserved names.
-for my $reserved (qw(HEAD ROOT FIRST LAST)) {
+for my $reserved (qw(HEAD ROOT)) {
     throws_ok { $plan->tag( name => $reserved ) } 'App::Sqitch::X',
         qq{Should get error for reserved tag "$reserved"};
     is $@->ident, 'plan', qq{Reserved tag "$reserved" error ident should be "plan"};
@@ -1404,7 +1399,7 @@ for my $name (@bad_names) {
 }
 
 # Try a reserved name.
-for my $reserved (qw(HEAD ROOT FIRST LAST)) {
+for my $reserved (qw(HEAD ROOT)) {
     throws_ok { $plan->add( name => $reserved ) } 'App::Sqitch::X',
         qq{Should get error for reserved name "$reserved"};
     is $@->ident, 'plan', qq{Reserved name "$reserved" error ident should be "plan"};
@@ -2005,7 +2000,7 @@ is $plan->file, $target->plan_file, 'File should be coopied from Sqitch';
 is $plan->syntax_version, App::Sqitch::Plan::SYNTAX_VERSION,
     'syntax_version should be set';
 is $plan->project, 'pragmata', 'Project should be set';
-is $plan->uri, URI->new('https://github.com/theory/sqitch/'),
+is $plan->uri, URI->new('https://github.com/sqitchers/sqitch/'),
     'Should have URI from pragma';
 isa_ok $plan->uri, 'URI', 'It';
 

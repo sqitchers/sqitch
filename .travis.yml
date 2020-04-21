@@ -1,98 +1,245 @@
 language: perl
+stage: 🐪 Perl
 perl:
-  - "5.10"
-  - "5.12"
-  - "5.14"
-  - "5.16"
-  - "5.18"
-  - "5.20"
-  - "5.22"
-  - "5.24"
+  - "5.28"
   - "5.26"
-  - "dev"
-#  - "blead" https://github.com/travis-perl/helpers/issues/44
-sudo: required
-
-services:
-  - docker
-
-env:
-  global:
-    - EXA_URI=db:exasol://sys:exasol@127.0.0.1:8888/?Driver=Exasol
-    - VSQL_URI=db:vertica://dbadmin@localhost:5433/docker?Driver=Vertica
-
-matrix:
-  include:
-    - perl: "5.26"
-      env: COVERAGE=1
-  allow_failures:
-    - perl: "blead"
-
+  - "5.24"
+  - "5.22"
+  - "5.20"
+  - "5.18"
+  - "5.16"
+  - "5.14"
+  - "5.12"
+  - "5.10"
 before_install:
-  # Install prepreqs.
-  - sudo apt-get update -qq
-  - sudo apt-get install -qq libicu-dev gettext aspell-en unixodbc-dev odbcinst unixodbc software-properties-common
-  - cat t/odbc/odbcinst.ini | sudo tee -a /etc/odbcinst.ini
-
-  # Set up Firebird.
-  - sudo add-apt-repository -y ppa:mapopa/firebird3.0
-  - sudo apt-get update -qq
-  - sudo apt-get install -qq firebird3.0-server firebird-dev
-  # XXX Something prevents Firebird from starting; permission issue?
-  - sudo -u firebird /usr/sbin/fbguard -daemon -forever -pidfile /var/run/firebird3.0/firebird.pid
-  - sudo chmod a+r /etc/firebird/3.0/SYSDBA.password
-  - . /etc/firebird/3.0/SYSDBA.password
-  - export ISC_PASSWORD
-
-  # Set up Vertica.
-  - cat t/odbc/vertica.ini | sudo tee -a /etc/vertica.ini
-  - docker pull cjonesy/docker-vertica:latest
-  - docker run -d -p 5433:5433 --rm sumitchawla/vertica
-  - docker ps -a
-  - curl -O https://my.vertica.com/client_drivers/8.1.x/8.1.1-7/vertica-client-8.1.1-7.x86_64.tar.gz
-  - sudo tar -xzf vertica-client-8.1.1-7.x86_64.tar.gz -C /
-  - export PATH=/opt/vertica/bin:$PATH
-
-  # Set up Exasol.
-  - docker pull exasol/docker-db:latest
-  - docker run -d -p 127.0.0.1:8888:8888 --privileged --rm exasol/docker-db:latest
-  - docker ps -a
-  - curl -O https://www.exasol.com/support/secure/attachment/55217/EXASOL_ODBC-6.0.4.tar.gz
-  - sudo tar -xvzf EXASOL_ODBC-6.0.4.tar.gz -C /opt
-  - curl -O https://www.exasol.com/support/secure/attachment/55310/EXAplus-6.0.4.tar.gz
-  - sudo tar -xzf EXAplus-6.0.4.tar.gz -C /opt
-  - export PATH=/opt/EXAplus-6.0.4:$PATH
-
-  # Set up Perl.
-  - git clone git://github.com/travis-perl/helpers ~/travis-perl-helpers
-  - source ~/travis-perl-helpers/init
-  - build-perl
-  - perl -V
-  - build-dist
-  - cd $BUILD_DIR
-
+  - source dev/linux-prereqs
 install:
-  - cpanm --verbose --no-interactive --no-man-pages --notest Params::Validate DBI File::Which Test::More Test::Exception Time::HiRes Template
   - cpan-install --deps
-  - cpan-install --coverage
-
-before_script:
-  - coverage-setup
-  - vsql -U dbadmin -d docker -c 'SELECT VERSION();'
-  - exaplus -c 127.0.0.1:8888 -u sys -p exasol -sql "SELECT current_timestamp;"
-  # - perl -e "use DBI; use DBD::ODBC; my \$conn = DBI->connect('dbi:ODBC:EXAHOST=127.0.0.1;EXAPORT=8888;Driver=Exasol','sys','exasol'); print \$conn->selectcol_arrayref('SELECT current_timestamp')->[0];"
-  # - ldd -r $(grep libexaodbc /etc/odbcinst.ini|awk '{print $3}')
-
 script:
   - prove -lr --directives --comments $(test-dirs)
 
-after_success:
-  - coverage-report
+jobs:
+  include:
+    - stage: 🍓 Windows
+      os: windows
+      language: shell
+      before_install:
+        - cinst -y strawberryperl
+        - export "PATH=/c/Strawberry/perl/site/bin:/c/Strawberry/perl/bin:/c/Strawberry/c/bin:$PATH"
+      install:
+        # Can't use dzil to make a dist on windows, so depend on the previous
+        # release for dependencies.
+        - cpanm --no-interactive --no-man-pages --notest --installdeps App::Sqitch
+      script:
+        # No prove: https://rt.cpan.org/Public/Bug/Display.html?id=128221
+        - ./dev/prove -lr t
 
-notifications:
-  email: false
-  irc:
-    channels:
-      - "irc.freenode.net#sqitch"
-    on_success: change
-    on_failure: always
+    - stage: 📈 Coverage
+      if: branch = develop
+      services: docker
+      env: COVERAGE=1
+      before_install:
+        - source dev/linux-exasol
+        - source dev/linux-firebird
+        - source dev/linux-mysql
+        - source dev/linux-oracle
+        - source dev/linux-postgres
+        - source dev/linux-snowflake
+        - source dev/linux-sqlite
+        - source dev/linux-vertica
+        - source dev/linux-prereqs
+        - cpan-install --deps
+        - cpan-install --coverage
+      before_script:
+        - coverage-setup
+      script:
+        - export AUTHOR_TESTING=1 LIVE_PG_REQUIRED=1 LIVE_MYSQL_REQUIRED=1 LIVE_SQLITE_REQUIRED=1 LIVE_VERTICA_REQUIRED=1 LIVE_EXASOL_REQUIRED=1 LIVE_FIREBIRD_REQUIRED=1
+        - prove -lr --directives --comments $(test-dirs)
+        # - prove -lv t/sqlite.t t/pg.t t/mysql.t t/vertica.t t/exasol.t t/firebird.t t/oracle.t t/snowflake.t
+      after_success:
+        - coverage-report
+
+    - &postgres
+      stage: 🐘 Postgres
+      if: branch = develop
+      env: POSTGRES=11
+      before_install:
+        - source dev/linux-postgres
+        - source dev/linux-prereqs
+      script:
+        - LIVE_PG_REQUIRED=1 prove -lr --directives --comments t/pg.t
+    - <<: *postgres
+      env: POSTGRES=10
+    - <<: *postgres
+      env: POSTGRES=9.6
+    - <<: *postgres
+      env: POSTGRES=9.5
+    - <<: *postgres
+      env: POSTGRES=9.4
+    - <<: *postgres
+      env: POSTGRES=9.3
+    - <<: *postgres
+      env: POSTGRES=9.2
+    - <<: *postgres
+      env: POSTGRES=9.1
+    - <<: *postgres
+      env: POSTGRES=9.0
+    - <<: *postgres
+      env: POSTGRES=8.4
+
+    # https://sqlite.org/chronology.html
+    - &sqlite
+      stage: 💡 SQLite
+      if: branch = develop
+      env: SQLITE=3.26.0
+      before_install:
+        - source dev/linux-sqlite
+        - source dev/linux-prereqs
+      script:
+        - LIVE_SQLITE_REQUIRED=1 prove -lr --directives --comments t/sqlite.t
+    - <<: *sqlite
+      env: SQLITE=3.25.3
+    - <<: *sqlite
+      env: SQLITE=3.24.0
+    - <<: *sqlite
+      env: SQLITE=3.23.1
+    - <<: *sqlite
+      env: SQLITE=3.22.0
+    - <<: *sqlite
+      env: SQLITE=3.21.0
+    - <<: *sqlite
+      env: SQLITE=3.20.1
+    - <<: *sqlite
+      env: SQLITE=3.19.3
+    - <<: *sqlite
+      env: SQLITE=3.18.0
+    - <<: *sqlite
+      env: SQLITE=3.17.0
+    - <<: *sqlite
+      env: SQLITE=3.16.2
+    - <<: *sqlite
+      env: SQLITE=3.15.2
+    - <<: *sqlite
+      env: SQLITE=3.14.2
+    - <<: *sqlite
+      env: SQLITE=3.13.0
+    - <<: *sqlite
+      env: SQLITE=3.12.2
+    - <<: *sqlite
+      env: SQLITE=3.11.1
+    - <<: *sqlite
+      env: SQLITE=3.10.2
+    - <<: *sqlite
+      env: SQLITE=3.9.2
+    - <<: *sqlite
+      env: SQLITE=3.8.11.1
+    - <<: *sqlite
+      env: SQLITE=3.7.17
+
+    # https://hub.docker.com/_/mysql
+    # https://hub.docker.com/_/mariadb
+    - &mysql
+      stage: 🐬 MySQL
+      if: branch = develop
+      services: docker
+      env: MYSQL=mysql:8.0
+      before_install:
+        - source dev/linux-mysql
+        - source dev/linux-prereqs
+      script:
+        - LIVE_MYSQL_REQUIRED=1 prove -lr --directives --comments t/mysql.t
+    - <<: *mysql
+      env: MYSQL=mysql:5.7
+    - <<: *mysql
+      env: MYSQL=mysql:5.6
+    - <<: *mysql
+      env: MYSQL=mysql:5.5
+    - <<: *mysql
+      env: MYSQL=mariadb:10.4
+    - <<: *mysql
+      env: MYSQL=mariadb:10.3
+    - <<: *mysql
+      env: MYSQL=mariadb:10.2
+    - <<: *mysql
+      env: MYSQL=mariadb:10.1
+    - <<: *mysql
+      env: MYSQL=mariadb:10.0
+    - <<: *mysql
+      env: MYSQL=mariadb:5.5
+
+    # https://hub.docker.com/r/cjonesy/docker-vertica/tags
+    - &vertica
+      stage: 🔺 Vertica
+      if: branch = develop
+      env: VERTICA=9.1.1-0
+      before_install:
+        - source dev/linux-vertica
+        - source dev/linux-prereqs
+      script:
+        - LIVE_VERTICA_REQUIRED=1 prove -lr --directives --comments t/vertica.t
+    - <<: *vertica
+      env: VERTICA=8.1.1-0
+    - <<: *vertica
+      env: VERTICA=8.0.0-0
+    - <<: *vertica
+      env: VERTICA=7.2.3-18
+    - <<: *vertica
+      env: VERTICA=7.1.2-21
+
+    # https://hub.docker.com/r/exasol/docker-db/tags
+    - &exasol
+      stage: ☀️ Exasol
+      if: branch = develop
+      env: EXASOL=6.1.1-d1
+      before_install:
+        - source dev/linux-exasol
+        - source dev/linux-prereqs
+      script:
+        - LIVE_EXASOL_REQUIRED=1 prove -lr --directives --comments t/exasol.t
+    - <<: *exasol
+      env: EXASOL=6.0.13-d1
+
+    # https://hub.docker.com/r/jacobalberty/firebird/tags
+    - &firebird
+      stage: 🔥 Firebird
+      if: branch = develop
+      env: FIREBIRD=3.0
+      before_install:
+        - source dev/linux-firebird
+        - source dev/linux-prereqs
+      script:
+        - LIVE_FIREBIRD_REQUIRED=1 prove -lr --directives --comments t/firebird.t
+    - <<: *firebird
+      env: FIREBIRD=2.5-ss
+    - <<: *firebird
+      env: FIREBIRD=2.5-sc
+
+    - stage: ❄️ Snowflake
+      # No support for live Snowflake testing, can't download the ODBC driver
+      # except through the web interface. So just run if the branch looks like
+      # it's relevant to Snowflake.
+      if: branch =~ /(?i:snow(?:flake|sql))/
+      before_install:
+        - source dev/linux-snowflake
+        - source dev/linux-prereqs
+      script:
+        - LIVE_SNOWFLAKE_REQUIRED=1 prove -lr --directives --comments t/snowflake.t
+
+    - &oracle
+      # No support for live Oracle testing, can't download the instantclient
+      # stuff or run an Oracle server on Travis. So just run if the branch looks
+      # ilke it's relevant to Oracle.
+      stage: 🔮 Oracle
+      if: branch =~ /(?i:or(?:acle|cl))/
+      env: ORACLE=18c
+      before_install:
+        - source dev/linux-oracle
+        - source dev/linux-prereqs
+      script:
+        - LIVE_ORACLE_REQUIRED=1 prove -lr --directives --comments t/oracle.t
+
+  fast_finish: true
+  allow_failures:
+    - env: FIREBIRD=2.5-ss # https://github.com/jacobalberty/firebird-docker/issues/33
+    - stage: ❄️ Snowflake
+    - stage: 🔮 Oracle

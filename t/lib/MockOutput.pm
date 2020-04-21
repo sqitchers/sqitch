@@ -26,14 +26,14 @@ my @mocked = qw(
     page
     page_literal
     prompt
-    ask_y_n
+    ask_yes_no
 );
 
 my $INPUT;
 sub prompt_returns { $INPUT = $_[1]; }
 
 my $Y_N;
-sub ask_y_n_returns { $Y_N = $_[1]; }
+sub ask_yes_no_returns { $Y_N = $_[1]; }
 
 my %CAPTURED;
 
@@ -61,9 +61,9 @@ $MOCK->mock(prompt => sub {
     return $INPUT;
 });
 
-$MOCK->mock(ask_y_n => sub {
+$MOCK->mock(ask_yes_no => sub {
     shift;
-    push @{ $CAPTURED{ask_y_n} } => [@_];
+    push @{ $CAPTURED{ask_yes_no} } => [@_];
     return $Y_N;
 });
 

@@ -3,11 +3,12 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 282;
+use Test::More tests => 201;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::Exception;
+use Test::Warn;
 use Test::Dir;
 use Test::File qw(file_not_exists_ok file_exists_ok);
 use Test::NoWarnings;
@@ -16,14 +17,7 @@ use Path::Class;
 use File::Temp 'tempdir';
 use lib 't/lib';
 use MockOutput;
-
-$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
-$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
-
-# Circumvent Config::Gitlike bug on Windows.
-# https://rt.cpan.org/Ticket/Display.html?id=96670
-$ENV{HOME} ||= '~';
+use TestConfig;
 
 my $CLASS = 'App::Sqitch::Command::engine';
 
@@ -36,18 +30,19 @@ File::Copy::copy file(qw(t engine.conf))->stringify, "$tmp_dir"
 File::Copy::copy file(qw(t engine sqitch.plan))->stringify, "$tmp_dir"
     or die "Cannot copy t/engine/sqitch.plan to $tmp_dir: $!\n";
 chdir $tmp_dir;
-$ENV{SQITCH_CONFIG} = 'engine.conf';
-my $psql = 'psql' . ($^O eq 'MSWin32' ? '.exe' : '');
+my $config = TestConfig->from(local => 'engine.conf');
+my $psql = 'psql' . (App::Sqitch::ISWIN ? '.exe' : '');
 
 ##############################################################################
 # Load an engine command and test the basics.
-ok my $sqitch = App::Sqitch->new, 'Load a sqitch sqitch object';
-my $config = $sqitch->config;
+ok my $sqitch = App::Sqitch->new(config => $config),
+    'Load a sqitch sqitch object';
 isa_ok my $cmd = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'engine',
     config  => $config,
 }), $CLASS, 'Engine command';
+isa_ok $cmd, 'App::Sqitch::Command', 'Engine command';
 
 can_ok $cmd, qw(
     options
@@ -55,36 +50,45 @@ can_ok $cmd, qw(
     execute
     list
     add
-    set_target
-    set_registry
-    set_client
     remove
     rm
     show
     update_config
+    does
 );
 
+ok $CLASS->does("App::Sqitch::Role::TargetConfigCommand"),
+    "$CLASS does TargetConfigCommand";
+
 is_deeply [$CLASS->options], [qw(
-    verbose|v+
     target=s
-    plan-file=s
+    plan-file|f=s
     registry=s
     client=s
     extension=s
     top-dir=s
     dir|d=s%
+    set|s=s%
 )], 'Options should be correct';
 
-# Check default property values.
+warning_is {
+    Getopt::Long::Configure(qw(bundling pass_through));
+    ok Getopt::Long::GetOptionsFromArray(
+        [], {}, App::Sqitch->_core_opts, $CLASS->options,
+    ), 'Should parse options';
+} undef, 'Options should not conflict with core options';
+
+##############################################################################
+# Test configure().
 is_deeply $CLASS->configure({}, {}), { properties => {}},
     'Default config should contain empty properties';
 
 # Make sure configure ignores config file.
-is_deeply $CLASS->configure({ foo => 'bar'}, { verbose => 1 }),
-    { verbose => 1, properties => {} },
+is_deeply $CLASS->configure({ foo => 'bar'}), { properties => {} },
     'configure() should ignore config file';
 
-ok my $conf = $CLASS->configure({}, {
+# Check default property values.
+ok my $conf = $CLASS->configure($config, {
     top_dir             => 'top',
     plan_file           => 'my.plan',
     registry            => 'bats',
@@ -100,22 +104,30 @@ ok my $conf = $CLASS->configure({}, {
         reworked_revert => 'rrev',
         reworked_verify => 'rver',
     },
+    set => {
+        foo => 'bar',
+        prefix => 'x_',
+    },
 }), 'Get full config';
 
 is_deeply $conf->{properties}, {
-        top_dir             => 'top',
-        plan_file           => 'my.plan',
-        registry            => 'bats',
-        client              => 'cli',
-        extension           => 'ddl',
-        target              => 'db:pg:foo',
-        deploy_dir          => 'dep',
-        revert_dir          => 'rev',
-        verify_dir          => 'ver',
-        reworked_dir        => 'wrk',
-        reworked_deploy_dir => 'rdep',
-        reworked_revert_dir => 'rrev',
-        reworked_verify_dir => 'rver',
+    top_dir             => 'top',
+    plan_file           => 'my.plan',
+    registry            => 'bats',
+    client              => 'cli',
+    extension           => 'ddl',
+    target              => 'db:pg:foo',
+    deploy_dir          => 'dep',
+    revert_dir          => 'rev',
+    verify_dir          => 'ver',
+    reworked_dir        => 'wrk',
+    reworked_deploy_dir => 'rdep',
+    reworked_revert_dir => 'rrev',
+    reworked_verify_dir => 'rver',
+    variables => {
+        foo => 'bar',
+        prefix => 'x_',
+    },
 }, 'Should have properties';
 isa_ok $conf->{properties}{$_}, 'Path::Class::File', "$_ file attribute" for qw(
     plan_file
@@ -152,8 +164,9 @@ is_deeply +MockOutput->get_emit, [['mysql'], ['pg'], ['sqlite']],
     'The list of engines should have been output';
 
 # Make it verbose.
-isa_ok $cmd = $CLASS->new({ sqitch => $sqitch, verbose => 1 }),
-    $CLASS, 'Verbose engine';
+isa_ok $cmd = $CLASS->new({
+    sqitch => App::Sqitch->new( config => $config, options => { verbosity => 1 })
+}), $CLASS, 'Verbose engine';
 ok $cmd->list, 'Run verbose list()';
 is_deeply +MockOutput->get_emit, [
     ["mysql\tdb:mysql://root@/foo"],
@@ -199,9 +212,11 @@ for my $key (qw(
     verify_dir
     extension
 )) {
-    is $config->get(key => "engine.test.$key"), undef,
-        qq{Engine "test" should have no $key set};
+    is $config->get(key => "engine.vertica.$key"), undef,
+        qq{Engine "vertica" should have no $key set};
 }
+is_deeply $config->get_section(section => 'engine.vertica.variables'), {},
+    qq{Engine "vertica" should have no variables set};
 
 # Should die on target that doesn't match the engine.
 isa_ok $cmd = $CLASS->new({
@@ -230,6 +245,7 @@ my %props = (
     reworked_dir        => dir('r'),
     reworked_deploy_dir => dir('r/d'),
     extension           => 'ddl',
+    variables           => { ay => 'first', Bee => 'second' },
 );
 isa_ok $cmd = $CLASS->new({
     sqitch     => $sqitch,
@@ -242,8 +258,13 @@ dir_exists_ok dir $_ for qw(top/deploy top/revert top/verify r/d r/revert r/veri
 file_exists_ok 'my.plan';
 $config->load;
 while (my ($k, $v) = each %props) {
-    is $config->get(key => "engine.firebird.$k"), $v,
-        qq{Engine "firebird" should have $k set};
+    if ($k ne 'variables') {
+        is $config->get(key => "engine.firebird.$k"), $v,
+            qq{Engine "firebird" should have $k set};
+    } else {
+        is_deeply $config->get_section(section => "engine.firebird.$k"), $v,
+            qq{Engine "firebird" should have $k};
+    }
 }
 
 ##############################################################################
@@ -293,6 +314,7 @@ is $@->message, __x(
     reworked_dir        => dir('fb/r'),
     reworked_deploy_dir => dir('fb/r/d'),
     extension           => 'fbsql',
+    variables           => { ay => 'x', ceee => 'third' },
 );
 isa_ok $cmd = $CLASS->new({
     sqitch     => $sqitch,
@@ -301,8 +323,14 @@ isa_ok $cmd = $CLASS->new({
 ok $cmd->alter('firebird'), 'Alter engine "firebird"';
 $config->load;
 while (my ($k, $v) = each %props) {
-    is $config->get(key => "engine.firebird.$k"), $v,
-        qq{Engine "firebird" should have $k set};
+    if ($k ne 'variables') {
+        is $config->get(key => "engine.firebird.$k"), $v,
+            qq{Engine "firebird" should have $k set};
+    } else {
+        $v->{Bee} = 'second';
+        is_deeply $config->get_section(section => "engine.firebird.$k"), $v,
+            qq{Engine "firebird" should have $k};
+    }
 }
 
 # Try changing the top directory.
@@ -342,89 +370,6 @@ is $@->message, __x(
 ), 'Target mismatch message should be correct';
 
 ##############################################################################
-# Test set_target().
-MISSINGARGS: {
-    # Test handling of no name.
-    my $mock = Test::MockModule->new($CLASS);
-    my @args;
-    $mock->mock(usage => sub { @args = @_; die 'USAGE' });
-    throws_ok { $cmd->set_target } qr/USAGE/,
-        'No name arg to set_target() should yield usage';
-    is_deeply \@args, [$cmd], 'No args should be passed to usage';
-
-    @args = ();
-    throws_ok { $cmd->set_target('foo') } qr/USAGE/,
-        'No target arg to set_target() should yield usage';
-    is_deeply \@args, [$cmd], 'No args should be passed to usage';
-}
-
-# Should get an error if the engine does not exist.
-throws_ok { $cmd->set_target('nonexistent', 'db:pg:' ) } 'App::Sqitch::X',
-    'Should get error for nonexistent engine';
-is $@->ident, 'engine', 'Nonexistent engine error ident should be "engine"';
-is $@->message, __x(
-    'Unknown engine "{engine}"',
-    engine => 'nonexistent'
-), 'Nonexistent engine error message should be correct';
-
-# Set one that exists.
-ok $cmd->set_target('pg', 'db:pg:newtarget'), 'Set new target';
-$config->load;
-is $config->get(key => 'engine.pg.target'), 'db:pg:newtarget',
-    'Engine "pg" should have new target';
-
-# Make sure the target is a database target.
-ok $cmd->set_target('pg', 'postgres:stuff'), 'Set new target';
-$config->load;
-is $config->get(key => 'engine.pg.target'), 'db:postgres:stuff',
-    'Engine "pg" should have new DB target';
-
-# Make sure we die for an unknown target.
-throws_ok { $cmd->set_target('pg', 'unknown') } 'App::Sqitch::X',
-    'Should get an error for an unknown target';
-is $@->ident, 'engine', 'Nonexistent target error ident should be "engine"';
-is $@->message, __x(
-    'Unknown target "{target}"',
-    target => 'unknown'
-), 'Nonexistent target error message should be correct';
-
-##############################################################################
-# Test other set_* methods
-for my $key (keys %props) {
-    next if $key =~ /^reworked/;
-    my $meth = "set_$key";
-    MISSINGARGS: {
-        # Test handling of no name.
-        my $mock = Test::MockModule->new($CLASS);
-        my @args;
-        $mock->mock(usage => sub { @args = @_; die 'USAGE' });
-        throws_ok { $cmd->$meth } qr/USAGE/,
-            "No name arg to $meth() should yield usage";
-        is_deeply \@args, [$cmd], 'No args should be passed to usage';
-
-        @args = ();
-        throws_ok { $cmd->$meth('foo') } qr/USAGE/,
-            "No $key arg to $meth() should yield usage";
-        is_deeply \@args, [$cmd], 'No args should be passed to usage';
-    }
-
-    # Should get an error if the engine does not exist.
-    throws_ok { $cmd->$meth('nonexistent', 'widgets' ) } 'App::Sqitch::X',
-        'Should get error for nonexistent engine';
-    is $@->ident, 'engine', 'Nonexistent engine error ident should be "engine"';
-    is $@->message, __x(
-        'Unknown engine "{engine}"',
-        engine => 'nonexistent'
-    ), 'Nonexistent engine error message should be correct';
-
-    # Set one that exists.
-    ok $cmd->$meth('pg', 'widgets'), 'Set new $key';
-    $config->load;
-    is $config->get(key => "engine.pg.$key"), 'widgets',
-        qq{Engine "pg" should have new $key};
-}
-
-##############################################################################
 # Test remove.
 MISSINGARGS: {
     # Test handling of no names.
@@ -450,6 +395,29 @@ ok $cmd->remove('mysql'), 'Remove';
 $config->load;
 is $config->get(key => "engine.mysql.target"), undef,
     qq{Engine "mysql" should now be gone};
+is_deeply $config->get_section(section => "engine.mysql.variables"), {},
+    qq{Engine "mysql" should have no variables};
+
+# Create it again with variables.
+isa_ok $cmd = $CLASS->new({
+    sqitch => $sqitch,
+    properties => { variables => { x => 1} },
+}), $CLASS, 'Engein with variables';
+ok $cmd->add('mysql', 'db:mysql:'), 'Add engine "mysql"';
+$config->load;
+is $config->get(key => "engine.mysql.target"), 'db:mysql:',
+    qq{Engine "mysql" should be back};
+is_deeply $config->get_section(section => "engine.mysql.variables"), { x => 1},
+    qq{Engine "mysql" should have variables};
+
+# Remoce it again.
+ok $cmd->remove('mysql'), 'Remove';
+$config->load;
+is $config->get(key => "engine.mysql.target"), undef,
+    qq{Engine "mysql" should be gone again};
+is_deeply $config->get_section(section => "engine.mysql.variables"), {},
+    qq{Engine "mysql" should have no variables};
+
 
 ##############################################################################
 # Test show.
@@ -477,11 +445,11 @@ is_deeply +MockOutput->get_emit, [
     ['    ', '  Deploy:      ', 'deploy'],
     ['    ', '  Revert:      ', 'revert'],
     ['    ', '  Verify:      ', 'verify'],
+    ['    ', 'No Variables'],
 ], 'The full "sqlite" engine should have been shown';
 
 # Try multiples.
-ok $cmd->set_client(vertica => 'vsql.exe'), 'Set vertica client';
-$config->load;
+$config->update('engine.vertica.client' => 'vsql.exe');
 ok $cmd->show(qw(sqlite vertica firebird)), 'Show three engines';
 is_deeply +MockOutput->get_emit, [
     ['* sqlite'],
@@ -500,6 +468,7 @@ is_deeply +MockOutput->get_emit, [
     ['    ', '  Deploy:      ', 'deploy'],
     ['    ', '  Revert:      ', 'revert'],
     ['    ', '  Verify:      ', 'verify'],
+    ['    ', 'No Variables'],
     ['* vertica'],
     ['    ', 'Target:        ', 'db:vertica:'],
     ['    ', 'Registry:      ', 'sqitch'],
@@ -516,6 +485,7 @@ is_deeply +MockOutput->get_emit, [
     ['    ', '  Deploy:      ', 'deploy'],
     ['    ', '  Revert:      ', 'revert'],
     ['    ', '  Verify:      ', 'verify'],
+    ['    ', 'No Variables'],
     ['* firebird'],
     ['    ', 'Target:        ', 'db:firebird:bar'],
     ['    ', 'Registry:      ', 'migrations'],
@@ -532,6 +502,10 @@ is_deeply +MockOutput->get_emit, [
     ['    ', '  Deploy:      ', dir 'fb/r/d'],
     ['    ', '  Revert:      ', dir 'fb/r/revert'],
     ['    ', '  Verify:      ', dir 'fb/r/verify'],
+    ['    ', 'Variables:'],
+    ['  ay:   x'],
+    ['  Bee:  second'],
+    ['  ceee: third'],
 ], 'All three engines should have been shown';
 
 ##############################################################################

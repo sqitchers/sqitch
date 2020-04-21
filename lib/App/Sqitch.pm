@@ -1,6 +1,6 @@
 package App::Sqitch;
 
-# ABSTRACT: Sane database change management
+# ABSTRACT: Sensible database change management
 
 use 5.010;
 use strict;
@@ -15,19 +15,20 @@ use Locale::Messages qw(bind_textdomain_filter);
 use App::Sqitch::X qw(hurl);
 use Moo 1.002000;
 use Type::Utils qw(where declare);
-use App::Sqitch::Types qw(Str Int UserName UserEmail Maybe File Dir Config HashRef);
+use App::Sqitch::Types qw(Str UserName UserEmail Maybe Config HashRef);
 use Encode ();
 use Try::Tiny;
 use List::Util qw(first);
 use IPC::System::Simple 1.17 qw(runx capturex $EXITVAL);
 use namespace::autoclean 0.16;
+use constant ISWIN => $^O eq 'MSWin32';
 
-our $VERSION = '0.9997';
+# VERSION
 
 BEGIN {
     # Force Locale::TextDomain to encode in UTF-8 and to decode all messages.
     $ENV{OUTPUT_CHARSET} = 'UTF-8';
-    bind_textdomain_filter 'App-Sqitch' => \&Encode::decode_utf8;
+    bind_textdomain_filter 'App-Sqitch' => \&Encode::decode_utf8, Encode::FB_DEFAULT;
 }
 
 # Okay to load Sqitch classes now that types are created.
@@ -55,17 +56,19 @@ has sysuser => (
     isa      => Maybe[Str],
     lazy     => 1,
     default  => sub {
-        # Adapted from User.pm.
-        require Encode::Locale;
-        return Encode::decode( locale => getlogin )
-            || Encode::decode( locale => scalar getpwuid( $< ) )
-            || $ENV{ LOGNAME }
-            || $ENV{ USER }
-            || $ENV{ USERNAME }
-            || try {
-                require Win32;
-                Encode::decode( locale => Win32::LoginName() )
-            };
+        $ENV{ SQITCH_ORIG_SYSUSER } || do {
+            # Adapted from User.pm.
+            require Encode::Locale;
+            return Encode::decode( locale => getlogin )
+                || Encode::decode( locale => scalar getpwuid( $< ) )
+                || $ENV{ LOGNAME }
+                || $ENV{ USER }
+                || $ENV{ USERNAME }
+                || try {
+                    require Win32;
+                    Encode::decode( locale => Win32::LoginName() )
+                };
+        };
     },
 );
 
@@ -75,11 +78,14 @@ has user_name => (
     isa     => UserName,
     default => sub {
         my $self = shift;
-        $self->config->get( key => 'user.name' ) || do {
+        $ENV{ SQITCH_FULLNAME }
+            || $self->config->get( key => 'user.name' )
+            || $ENV{ SQITCH_ORIG_FULLNAME }
+        || do {
             my $sysname = $self->sysuser || hurl user => __(
-                    'Cannot find your name; run sqitch config --user user.name "YOUR NAME"'
+                'Cannot find your name; run sqitch config --user user.name "YOUR NAME"'
             );
-            if ($^O eq 'MSWin32') {
+            if (ISWIN) {
                 try { require Win32API::Net } || return $sysname;
                 Win32API::Net::UserGetInfo( "", $sysname, 10, my $info = {} );
                 return $sysname unless $info->{fullName};
@@ -87,10 +93,9 @@ has user_name => (
                 return Encode::decode( locale => $info->{fullName} );
             }
             require User::pwent;
-            my $name = (User::pwent::getpwnam($sysname)->gecos)[0]
-                || return $sysname;
+            my $name = User::pwent::getpwnam($sysname) || return $sysname;
             require Encode::Locale;
-            return Encode::decode( locale => $name );
+            return Encode::decode( locale => ($name->gecos)[0] );
         };
     }
 );
@@ -101,7 +106,10 @@ has user_email => (
     isa     => UserEmail,
     default => sub {
         my $self = shift;
-        $self->config->get( key => 'user.email' ) || do {
+         $ENV{ SQITCH_EMAIL }
+            || $self->config->get( key => 'user.email' )
+            || $ENV{ SQITCH_ORIG_EMAIL }
+        || do {
             my $sysname = $self->sysuser || hurl user => __(
                 'Cannot infer your email address; run sqitch config --user user.email you@host.com'
             );
@@ -129,7 +137,7 @@ has editor => (
           || shift->config->get( key => 'core.editor' )
           || $ENV{VISUAL}
           || $ENV{EDITOR}
-          || ( $^O eq 'MSWin32' ? 'notepad.exe' : 'vi' );
+          || ( ISWIN ? 'notepad.exe' : 'vi' );
     }
 );
 
@@ -149,61 +157,52 @@ has pager => (
     is       => 'ro',
     lazy     => 1,
     isa      => declare('Pager', where {
-        # IO::Pager annoyingly just returns the file handle if there is no TTY.
-        eval { $_->isa('IO::Pager') || $_->isa('IO::Handle') } || ref $_ eq 'GLOB'
+        eval { $_->isa('IO::Pager') || $_->isa('IO::Handle') }
     }),
     default  => sub {
-        require IO::Pager;
-        # https://rt.cpan.org/Ticket/Display.html?id=78270
-        eval q{
-            sub IO::Pager::say {
-                my $self = shift;
-                CORE::say {$self->{real_fh}} @_ or die "Could not print to PAGER: $!\n";
-            }
-        } unless IO::Pager->can('say');
+        # Dupe and configure STDOUT.
+        require IO::Handle;
+        my $fh = IO::Handle->new_from_fd(*STDOUT, 'w');
+        binmode $fh, ':utf8_strict';
 
-        my $fh = IO::Pager->new(\*STDOUT);
-        if (eval { $fh->isa('IO::Pager') }) {
-            $fh->binmode(':utf8_strict');
-        } else {
-            binmode $fh, ':utf8_strict';
-        }
-        $fh;
+        # Just return if no pager is wanted or there is no TTY.
+        return $fh if shift->options->{no_pager} || !(-t *STDOUT);
+
+        # Load IO::Pager and tie the handle to it.
+        eval "use IO::Pager 0.34"; die $@ if $@;
+        return IO::Pager->new($fh, ':utf8_strict');
     },
 );
 
 sub go {
     my $class = shift;
+    my @args = @ARGV;
 
-    # 1. Split command and options.
-    my ( $core_args, $cmd, $cmd_args ) = $class->_split_args(@ARGV);
+    # 1. Parse core options.
+    my $opts = $class->_parse_core_opts(\@args);
 
-    # 2. Parse core options.
-    my $opts = $class->_parse_core_opts($core_args);
-
-    # 3. If there is no command, emit help that lists commands.
-    $class->_pod2usage('sqitchcommands') unless $cmd;
-
-    # 4. Load config.
+    # 2. Load config.
     my $config = App::Sqitch::Config->new;
 
-    # 5. Instantiate Sqitch.
+    # 3. Instantiate Sqitch.
     my $sqitch = $class->new({ options => $opts, config  => $config });
 
+    # 4. Find the command.
+    my $cmd = $class->_find_cmd(\@args);
+
+    # 5. Instantiate the command object.
+    my $command = $cmd->create({
+        sqitch => $sqitch,
+        config => $config,
+        args   => \@args,
+    });
+
+    # IO::Pager respects the PAGER environment variable.
+    local $ENV{PAGER} = $sqitch->pager_program;
+
+    # 6. Execute command.
     return try {
-        # 6. Instantiate the command object.
-        my $command = App::Sqitch::Command->load({
-            sqitch  => $sqitch,
-            command => $cmd,
-            config  => $config,
-            args    => $cmd_args,
-        });
-
-        # IO::Pager respects the PAGER environment variable.
-        local $ENV{PAGER} = $sqitch->pager_program;
-
-        # 7. Execute command.
-        $command->execute( @{$cmd_args} ) ? 0 : 2;
+        $command->execute( @args ) ? 0 : 2;
     } catch {
         # Just bail for unknown exceptions.
         $sqitch->vent($_) && return 2 unless eval { $_->isa('App::Sqitch::X') };
@@ -228,47 +227,15 @@ sub go {
 
 sub _core_opts {
     return qw(
-        plan-file|f=s
-        engine=s
-        registry=s
-        client|db-client=s
-        db-name|d=s
-        db-username|db-user|u=s
-        db-host|h=s
-        db-port|p=i
-        top-dir|dir=s
-        deploy-dir=s
-        revert-dir=s
-        verify-dir|test-dir=s
-        extension=s
+        chdir|cd|C=s
         etc-path
+        no-pager
         quiet
-        verbose|v+
+        verbose|V|v+
         help
         man
         version
     );
-}
-
-sub _split_args {
-    my ( $self, @args ) = @_;
-
-    my $cmd_at  = 0;
-    my $add_one = sub { $cmd_at++ };
-    my $add_two = sub { $cmd_at += 2 };
-
-    Getopt::Long::GetOptionsFromArray(
-        # remove bundled options, or we lose track of our position.
-        [map { /^-([^-]{2,})/ ? '-' . substr $1, -1 : $_ } @args],
-        # Halt processing on on first non-option, which will be the command.
-        '<>' => sub { die '!FINISH' },
-        # Count how many args we've processed until we die.
-        map { $_ => m/=/ ? $add_two : $add_one } $self->_core_opts
-    ) or $self->_pod2usage('sqitchusage', '-verbose' => 99 );
-
-    # Splice the command and its options out of the arguments.
-    my ( $cmd, @cmd_opts ) = splice @args, $cmd_at;
-    return \@args, $cmd, \@cmd_opts;
 }
 
 sub _parse_core_opts {
@@ -307,33 +274,47 @@ sub _parse_core_opts {
         exit;
     }
 
-    # Convert files and dirs to objects.
-    for my $dir (qw(
-        top_dir
-        deploy_dir
-        revert_dir
-        verify_dir
-    )) {
-        next unless defined $opts{$dir};
-        if ($dir ne 'top_dir') {
-            # XXX deprecated.
-            (my $opt = $dir) =~ s/_/-/;
-            $self->warn(__x(
-                qq{  The "{opt}" option is deprecated;\n  Instead use "--dir {dir}={val}" if available.},
-                opt => $opt,
-                dir => $dir,
-                val => $opts{$dir},
-            ));
-        }
-        $opts{$dir} = dir $opts{$dir} if defined $opts{$dir};
+    # Handle --chdir
+    if ( my $dir = delete $opts{chdir} ) {
+        chdir $dir or hurl fs => __x(
+            'Cannot change to directory {directory}: {error}',
+            directory => $dir,
+            error   => $!,
+        );
     }
-    $opts{plan_file} = file $opts{plan_file} if defined $opts{plan_file};
 
     # Normalize the options (remove undefs) and return.
     $opts{verbosity} = delete $opts{verbose};
     $opts{verbosity} = 0 if delete $opts{quiet};
     delete $opts{$_} for grep { !defined $opts{$_} } keys %opts;
     return \%opts;
+}
+
+sub _find_cmd {
+    my ( $class, $args ) = @_;
+    my (@tried, $prev);
+    for (my $i = 0; $i <= $#$args; $i++) {
+        my $arg = $args->[$i] or next;
+        if ($arg =~ /^-/) {
+            last if $arg eq '--';
+            # Skip the next argument if this looks like a pre-0.9999 option.
+            # There shouldn't be many since we now recommend putting options
+            # after the command. XXX Remove at some future date.
+            $i++ if $arg =~ /^(?:-[duhp])|(?:--(?:db-\w+|client|engine|extension|plan-file|registry|top-dir))$/;
+            next;
+        }
+        push @tried => $arg;
+        my $cmd = try { App::Sqitch::Command->class_for($class, $arg) } or next;
+        splice @{ $args }, $i, 1;
+        return $cmd;
+    }
+
+    # No valid command found. Report those we tried.
+    $class->vent(__x(
+        '"{command}" is not a valid command',
+        command => $_,
+    )) for @tried;
+    $class->_pod2usage('sqitchcommands');
 }
 
 sub _pod2usage {
@@ -350,6 +331,10 @@ sub run {
         ( my $msg = shift ) =~ s/\s+at\s+.+/\n/ms;
         die $msg;
     };
+    if (ISWIN && IPC::System::Simple->VERSION <= 1.25) {
+        runx ( shift, $self->quote_shell(@_) );
+        return $self;
+    }
     runx @_;
     return $self;
 }
@@ -366,13 +351,12 @@ sub shell {
 
 sub quote_shell {
     my $self = shift;
-    if ($^O eq 'MSWin32') {
+    if (ISWIN) {
         require Win32::ShellQuote;
         return Win32::ShellQuote::quote_native(@_);
-    } else {
-        require String::ShellQuote;
-        return String::ShellQuote::shell_quote(@_);
     }
+    require String::ShellQuote;
+    return String::ShellQuote::shell_quote(@_);
 }
 
 sub capture {
@@ -381,6 +365,8 @@ sub capture {
         ( my $msg = shift ) =~ s/\s+at\s+.+/\n/ms;
         die $msg;
     };
+    return capturex ( shift, $self->quote_shell(@_) )
+        if ISWIN && IPC::System::Simple->VERSION <= 1.25;
     capturex @_;
 }
 
@@ -434,31 +420,42 @@ sub prompt {
     return $ans;
 }
 
-sub ask_y_n {
-    my $self = shift;
-    my ($msg, $def)  = @_;
+sub ask_yes_no {
+    my ($self, @msg) = (shift, shift);
+    hurl 'ask_yes_no() called without a prompt message' unless $msg[0];
 
-    hurl 'ask_y_n() called without a prompt message' unless $msg;
-    hurl 'Invalid default value: ask_y_n() default must be "y" or "n"'
-        if $def && $def !~ /^[yn]/i;
+    my $y = __p 'Confirm prompt answer yes', 'Yes';
+    my $n = __p 'Confirm prompt answer no',  'No';
+    push @msg => $_[0] ? $y : $n if @_;
 
     my $answer;
     my $i = 3;
     while ($i--) {
-        $answer = $self->prompt(@_);
-        return 1 if $answer =~ /^y/i;
-        return 0 if $answer =~ /^n/i;
+        $answer = $self->prompt(@msg);
+        return 1 if $y =~ /^\Q$answer/i;
+        return 0 if $n =~ /^\Q$answer/i;
         $self->emit(__ 'Please answer "y" or "n".');
     }
 
     hurl io => __ 'No valid answer after 3 attempts; aborting';
 }
 
+sub ask_y_n {
+    my $self = shift;
+    $self->warn('The ask_y_n() method has been deprecated. Use ask_yes_no() instead.');
+    return $self->ask_yes_no(@_) unless @_ > 1;
+
+    my ($msg, $def) = @_;
+    hurl 'Invalid default value: ask_y_n() default must be "y" or "n"'
+        if $def && $def !~ /^[yn]/i;
+    return $self->ask_yes_no($msg, $def =~ /^y/i ? 1 : 0);
+}
+
 sub spool {
     my ($self, $fh) = (shift, shift);
     local $SIG{__WARN__} = sub { }; # Silence warning.
     my $pipe;
-    if ($^O eq 'MSWin32') {
+    if (ISWIN) {
         no warnings;
         open $pipe, '|' . $self->quote_shell(@_) or hurl io => __x(
             'Cannot exec {command}: {error}',
@@ -609,7 +606,7 @@ __END__
 
 =head1 Name
 
-App::Sqitch - Sane database change management
+App::Sqitch - Sensible database change management
 
 =head1 Synopsis
 
@@ -691,20 +688,6 @@ Runs a system command and waits for it to finish. Throws an exception on
 error. Does not use the shell, so arguments must be passed as a list. Use
 C<shell> to run a command and its arguments as a single string.
 
-=head3 C<engine>
-
-  my $engine = $sqitch->engine(@params);
-
-Creates and returns an engine of the appropriate subclass. Pass in additional
-parameters to be passed through to the engine constructor.
-
-=head2 C<config_for_target>
-
-  my $config = $sqitch->config_for_target($target);
-
-Returns a hash reference representing the configuration for the specified
-target name or URI. The supported keys in the hash reference are:
-
 =over
 
 =item C<target>
@@ -727,32 +710,6 @@ If the C<$target> argument looks like a database URI, it will simply returned
 in the hash reference. If the C<$target> argument corresponds to a target
 configuration key, the target configuration will be returned, with the C<uri>
 value a upgraded to a L<URI> object. Otherwise returns C<undef>.
-
-=head2 C<engine_key>
-
-  my $key = $sqitch->engine_key;
-  my $key = $sqitch->engine_key($uri);
-
-Returns the key name of the engine. If C<--engine> was specified, its value
-will be used. If the C<$uri> argument is passed and is a L<URI::db> object,
-the key will be derived from its database driver. Otherwise, the value
-specified for the C<core.engine> variable will be used.
-
-=head2 C<config_for_target_strict>
-
-  my $config = $sqitch->config_for_target_strict($target);
-
-Like C<config_for_target>, but throws an exception if C<$target> is not a URL,
-does not correspond to a target configuration section, or does not include a
-C<uri> key. Otherwise returns the target configuration.
-
-=head3 C<engine_for_target>
-
-  my $engine = $sqitch->engine_for($target);
-
-Like C<config_for_target_strict>, but returns an L<App::Sqitch::Engine>
-object. If C<$target> is not defined or is empty, an engine will be returned
-for the default target.
 
 =head3 C<shell>
 
@@ -883,7 +840,7 @@ the message while C<page_literal> does not. Meant to be used to send a lot of
 data to the user at once, such as when display the results of searching the
 event log:
 
-  $iter = $sqitch->engine->search_events;
+  $iter = $engine->search_events;
   while ( my $change = $iter->() ) {
       $sqitch->page(join ' - ', @{ $change }{ qw(change_id event change) });
   }
@@ -909,17 +866,37 @@ value for the user to accept or to be used if Sqitch is running unattended. An
 exception will be thrown if there is no prompt message or if Sqitch is
 unattended and there is no default value.
 
+=head3 C<ask_yes_no>
+
+  if ( $sqitch->ask_yes_no('Are you sure?', 1) ) { # do it! }
+
+Prompts the user with a "yes" or "no" question. Returns true if the user
+replies in the affirmative and false if the reply is in the negative. If the
+optional second argument is passed and true, the answer will default to the
+affirmative. If the second argument is passed but false, the answer will
+default to the negative. When a translation library is in use, the affirmative
+and negative replies from the user should be localized variants of "yes" and
+"no", and will be matched as such. If no translation library is in use, the
+answers will default to the English "yes" and "no".
+
+If the user inputs an invalid value three times, an exception will be thrown.
+An exception will also be thrown if there is no message. As with C<prompt()>,
+an exception will be thrown if Sqitch is running unattended and there is no
+default.
+
 =head3 C<ask_y_n>
 
-  if ( $sqitch->ask_y_no('Are you sure?', 'y') ) { # do it! }
+This method has been deprecated in favor of C<ask_yes_no()> and will be
+removed in a future version of Sqitch.
 
-Prompts the user with a "yes" or "no" question. Returns true for "yes" and
-false for "no". Any answer that begins with case-insensitive "y" or "n" will
-be accepted as valid. If the user inputs an invalid value three times, an
-exception will be thrown. An exception will also be thrown if there is no
-message or if the optional default value does not begin with "y" or "n". As
-with C<prompt()> an exception will be thrown if Sqitch is running unattended
-and there is no default.
+
+=head2 Constants
+
+=head3 C<ISWIN>
+
+  my $app = 'sqitch' . ( ISWIN ? '.bat' : '' );
+
+True when Sqitch is running on Windows, and false when it's not.
 
 =head1 Author
 
@@ -927,7 +904,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2017 iovation Inc.
+Copyright (c) 2012-2018 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

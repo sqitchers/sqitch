@@ -9,12 +9,12 @@
 # Tests can be run against the Developer Days VM with a bit of configuration.
 # Download the VM from:
 #
-#   http://www.oracle.com/technetwork/database/enterprise-edition/databaseappdev-vm-161299.html
+#   https://www.oracle.com/technetwork/database/enterprise-edition/databaseappdev-vm-161299.html
 #
 # Once the VM is imported into VirtualBox and started, login with the username
 # "oracle" and the password "oracle". Then, in VirtualBox, go to Settings ->
 # Network, select the NAT adapter, and add two port forwarding rules
-# (http://barrymcgillin.blogspot.com/2011/12/using-oracle-developer-days-virtualbox.html):
+# (https://barrymcgillin.blogspot.com/2011/12/using-oracle-developer-days-virtualbox.html):
 #
 #   Host Port | Guest Port
 #  -----------+------------
@@ -31,7 +31,7 @@
 #    ORA-21561: OID generation failed
 #
 # Make sure that your computer's hostname is on the localhost line of
-# /etc/hosts (http://sourceforge.net/p/tora/discussion/52737/thread/f68b89ad/):
+# /etc/hosts (https://sourceforge.net/p/tora/discussion/52737/thread/f68b89ad/):
 #
 #     > hostname
 #     stickywicket
@@ -61,15 +61,13 @@ use App::Sqitch::Target;
 use App::Sqitch::Plan;
 use lib 't/lib';
 use DBIEngineTest;
+use TestConfig;
 
 my $CLASS;
 
 BEGIN {
     $CLASS = 'App::Sqitch::Engine::oracle';
     require_ok $CLASS or die;
-    $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
-    $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.user';
-    $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.sys';
     delete $ENV{ORACLE_HOME};
 }
 
@@ -79,14 +77,15 @@ is_deeply [$CLASS->config_vars], [
     client   => 'any',
 ], 'config_vars should return three vars';
 
-my $sqitch = App::Sqitch->new(options => { engine => 'oracle' });
+my $config = TestConfig->new('core.engine' => 'oracle');
+my $sqitch = App::Sqitch->new(config => $config);
 my $target = App::Sqitch::Target->new(sqitch => $sqitch);
 isa_ok my $ora = $CLASS->new(sqitch => $sqitch, target => $target), $CLASS;
 
 is $ora->key, 'oracle', 'Key should be "oracle"';
 is $ora->name, 'Oracle', 'Name should be "Oracle"';
 
-my $client = 'sqlplus' . ($^O eq 'MSWin32' ? '.exe' : '');
+my $client = 'sqlplus' . (App::Sqitch::ISWIN ? '.exe' : '');
 is $ora->client, $client, 'client should default to sqlplus';
 ORACLE_HOME: {
     local $ENV{ORACLE_HOME} = '/foo/bar';
@@ -102,9 +101,8 @@ is $ora->uri, 'db:oracle:', 'Default URI should be "db:oracle"';
 my $dest_uri = $ora->uri->clone;
 $dest_uri->dbname(
         $ENV{TWO_TASK}
-    || ($^O eq 'MSWin32' ? $ENV{LOCAL} : undef)
+    || (App::Sqitch::ISWIN ? $ENV{LOCAL} : undef)
     || $ENV{ORACLE_SID}
-    || $sqitch->sysuser
 );
 is $ora->target->name, $ora->uri, 'Target name should be the uri stringified';
 is $ora->destination, $dest_uri->as_string,
@@ -243,16 +241,6 @@ ENV: {
            'Registry destination should be the same as destination';
     }
 
-    my $mocker = Test::MockModule->new('App::Sqitch');
-    $mocker->mock(sysuser => 'sysuser=whatever');
-    my $ora = $CLASS->new(sqitch => $sqitch, target => $target);
-    is $ora->target->name, 'db:oracle:',
-        'Target name should not fall back on sysuser';
-    is $ora->destination, 'db:oracle:sysuser=whatever',
-        'Destination should fall back on sysuser';
-    is $ora->registry_destination, $ora->destination,
-        'Registry destination should be the same as destination';
-
     $ENV{TWO_TASK} = 'mydb';
     $ora = $CLASS->new(sqitch => $sqitch, username => 'hi', target => $target);
     is $ora->target->name, 'db:oracle:', 'Target should be the default';
@@ -264,13 +252,11 @@ ENV: {
 
 ##############################################################################
 # Make sure config settings override defaults.
-my %config = (
+$config->update(
     'engine.oracle.client'   => '/path/to/sqlplus',
     'engine.oracle.target'   => 'db:oracle://bob:hi@db.net:12/howdy',
     'engine.oracle.registry' => 'meta',
 );
-my $mock_config = Test::MockModule->new('App::Sqitch::Config');
-$mock_config->mock(get => sub { $config{ $_[2] } });
 $target = App::Sqitch::Target->new(sqitch => $sqitch);
 ok $ora = $CLASS->new(sqitch => $sqitch, target => $target),
     'Create another ora';
@@ -288,7 +274,7 @@ is $ora->registry, 'meta', 'registry should be as configured';
 is_deeply [$ora->sqlplus], ['/path/to/sqlplus', @std_opts],
     'sqlplus command should be configured';
 
-%config = (
+$config->update(
     'engine.oracle.client'   => '/path/to/sqlplus',
     'engine.oracle.registry' => 'meta',
 );
@@ -300,24 +286,6 @@ is $ora->client, '/path/to/sqlplus', 'client should be as configured';
 is $ora->registry, 'meta', 'registry should be as configured';
 is_deeply [$ora->sqlplus], ['/path/to/sqlplus', @std_opts],
     'sqlplus command should be configured';
-
-##############################################################################
-# Now make sure that Sqitch options override configurations.
-$sqitch = App::Sqitch->new(
-    options => {
-        engine => 'oracle',
-        client => '/some/other/sqlplus',
-    },
-);
-
-$target = App::Sqitch::Target->new(sqitch => $sqitch);
-ok $ora = $CLASS->new(sqitch => $sqitch, target => $target),
-    'Create a ora with sqitch with options';
-
-is $ora->client, '/some/other/sqlplus', 'client should be as optioned';
-is $ora->registry, 'meta', 'registry should still be as configured';
-is_deeply [$ora->sqlplus], ['/some/other/sqlplus', @std_opts],
-    'sqlplus command should be as optioned';
 
 ##############################################################################
 # Test _run() and _capture().
@@ -383,7 +351,7 @@ WIN32: {
     $file = $tmpdir->file('"foo$bar".sql');
     my $mock_file = Test::MockModule->new(ref $file);
     # Windows doesn't like the quotation marks, so prevent it from writing.
-    $mock_file->mock(copy_to => 1) if $^O eq 'MSWin32';
+    $mock_file->mock(copy_to => 1) if App::Sqitch::ISWIN;
     is $ora->_file_for_script($file), $tmpdir->file('""foo_bar"".sql'),
         'File with special char and quotes should be aliased';
 }
@@ -421,15 +389,20 @@ is_deeply \@run, ['@"foo/bar.sql"'],
     'Verifile file should be passed to run() for high verbosity';
 
 $mock_sqitch->unmock_all;
-$mock_config->unmock_all;
 $mock_ora->unmock_all;
 
 ##############################################################################
 # Test DateTime formatting stuff.
-ok my $ts2char = $CLASS->can('_ts2char'), "$CLASS->can('_ts2char')";
-is $ts2char->('foo'),
-    q{to_char(foo AT TIME ZONE 'UTC', 'YYYY:MM:DD:HH24:MI:SS')},
-    '_ts2char should work';
+ok my $ts2char = $CLASS->can('_ts2char_format'), "$CLASS->can('_ts2char_format')";
+is sprintf($ts2char->(), 'foo'), join( ' || ',
+    q{to_char(foo AT TIME ZONE 'UTC', '"year":YYYY')},
+    q{to_char(foo AT TIME ZONE 'UTC', ':"month":MM')},
+    q{to_char(foo AT TIME ZONE 'UTC', ':"day":DD')},
+    q{to_char(foo AT TIME ZONE 'UTC', ':"hour":HH24')},
+    q{to_char(foo AT TIME ZONE 'UTC', ':"minute":MI')},
+    q{to_char(foo AT TIME ZONE 'UTC', ':"second":SS')},
+    q{':time_zone:UTC'},
+), '_ts2char_format should work';
 
 ok my $dtfunc = $CLASS->can('_dt'), "$CLASS->can('_dt')";
 isa_ok my $dt = $dtfunc->(
@@ -442,10 +415,87 @@ is $dt->hour,   15, 'DateTime hour should be set';
 is $dt->minute,  7, 'DateTime minute should be set';
 is $dt->second,  1, 'DateTime second should be set';
 is $dt->time_zone->name, 'UTC', 'DateTime TZ should be set';
+is $CLASS->_char2ts($dt),
+    join(' ', $dt->ymd('-'), $dt->hms(':'), $dt->time_zone->name),
+    'Should have _char2ts';
+
+##############################################################################
+# Test SQL helpers.
+is $ora->_listagg_format, q{CAST(COLLECT(CAST(%s AS VARCHAR2(512))) AS sqitch_array)},
+    'Should have _listagg_format';
+is $ora->_regex_op, 'REGEXP_LIKE(%s, ?)', 'Should have _regex_op';
+is $ora->_simple_from, ' FROM dual', 'Should have _simple_from';
+is $ora->_limit_default, undef, 'Should have _limit_default';
+is $ora->_ts_default, 'current_timestamp', 'Should have _ts_default';
+is $ora->_can_limit, 0, 'Should have _can_limit false';
+
+is $ora->_multi_values(1, 'FOO'), 'SELECT FOO FROM dual',
+    'Should get single expression from _multi_values';
+is $ora->_multi_values(2, 'LOWER(?)'),
+    "SELECT LOWER(?) FROM dual\nUNION ALL SELECT LOWER(?) FROM dual",
+    'Should get double expression from _multi_values';
+is $ora->_multi_values(4, 'X'),
+    "SELECT X FROM dual\nUNION ALL SELECT X FROM dual\nUNION ALL SELECT X FROM dual\nUNION ALL SELECT X FROM dual",
+    'Should get quadrupal expression from _multi_values';
+
+DBI: {
+    local *DBI::err;
+    ok !$ora->_no_table_error, 'Should have no table error';
+    ok !$ora->_no_column_error, 'Should have no column error';
+
+    $DBI::err = 942;
+    ok $ora->_no_table_error, 'Should now have table error';
+    ok !$ora->_no_column_error, 'Still should have no column error';
+
+    $DBI::err = 904;
+    ok !$ora->_no_table_error, 'Should again have no table error';
+    ok $ora->_no_column_error, 'Should now have no column error';
+}
+
+# Test _log_tags_param.
+my $plan = App::Sqitch::Plan->new(
+    sqitch => $sqitch,
+    target => $target,
+    'project' => 'oracle',
+);
+my $change = App::Sqitch::Plan::Change->new(
+    name => 'oracle_test',
+    plan => $plan,
+);
+my @tags = map {
+    App::Sqitch::Plan::Tag->new(
+        plan   => $plan,
+        name   => $_,
+        change => $change,
+    )
+} qw(xxx yyy zzz);
+$change->add_tag($_) for @tags;
+is_deeply $ora->_log_tags_param($change), [qw(@xxx @yyy @zzz)],
+    '_log_tags_param should format tags';
+
+# Test _log_requires_param.
+my @req = map {
+    App::Sqitch::Plan::Depend->new(
+        %{ App::Sqitch::Plan::Depend->parse($_) },
+        plan => $plan,
+    )
+} qw(aaa bbb ccc);
+
+my $mock_change = Test::MockModule->new(ref $change);
+$mock_change->mock(requires => sub { @req });
+is_deeply $ora->_log_requires_param($change), [qw(aaa bbb ccc)],
+    '_log_requires_param should format prereqs';
+
+# Test _log_conflicts_param.
+$mock_change->mock(conflicts => sub { @req });
+is_deeply $ora->_log_conflicts_param($change), [qw(aaa bbb ccc)],
+    '_log_conflicts_param should format prereqs';
+
+$mock_change->unmock_all;
 
 ##############################################################################
 # Can we do live tests?
-if ($^O eq 'MSWin32' && eval { require Win32::API}) {
+if (App::Sqitch::ISWIN && eval { require Win32::API}) {
     # Call kernel32.SetErrorMode(SEM_FAILCRITICALERRORS):
     # "The system does not display the critical-error-handler message box.
     # Instead, the system sends the error to the calling process." and
@@ -502,12 +552,8 @@ $uri->user($user);
 $uri->password($pass);
 # $uri->dbname( $ENV{TWO_TASK} || $ENV{LOCAL} || $ENV{ORACLE_SID} );
 DBIEngineTest->run(
-    class         => $CLASS,
-    sqitch_params => [options => {
-        engine    => 'oracle',
-        top_dir   => Path::Class::dir(qw(t engine)),
-        plan_file => Path::Class::file(qw(t engine sqitch.plan)),
-    }],
+    class             => $CLASS,
+    version_query     => q{SELECT * FROM v$version WHERE banner LIKE 'Oracle%'},
     target_params     => [ uri => $uri ],
     alt_target_params => [ uri => $uri, registry => 'oe' ],
     skip_unless       => sub {

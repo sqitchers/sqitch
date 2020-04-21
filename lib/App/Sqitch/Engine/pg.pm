@@ -15,7 +15,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.9997';
+# VERSION
 
 sub destination {
     my $self = shift;
@@ -37,6 +37,14 @@ sub destination {
     return $uri->as_string;
 }
 
+# DBD::pg and psql use fallbacks consistently, thanks to libpq. These include
+# environment variables, system info (username), the password file, and the
+# connection service file. Best for us not to second-guess these values,
+# though we admittedly try when setting the database name in the destination
+# URI for unnamed targets a few lines up from here.
+sub _def_user { }
+sub _def_pass { }
+
 has _psql => (
     is         => 'ro',
     isa        => ArrayRef,
@@ -45,15 +53,25 @@ has _psql => (
         my $self = shift;
         my $uri  = $self->uri;
         my @ret  = ( $self->client );
+
+        my %query_params = $uri->query_params;
+        my @conninfo;
         for my $spec (
-            [ username => $self->username ],
-            [ dbname   => $uri->dbname    ],
-            [ host     => $uri->host      ],
-            [ port     => $uri->_port     ],
-            )
-        {
-            push @ret, "--$spec->[0]" => $spec->[1] if $spec->[1];
+            [ user   => $self->username ],
+            [ dbname => $uri->dbname    ],
+            [ host   => $uri->host      ],
+            [ port   => $uri->_port     ],
+            map { [ $_ => $query_params{$_} ] }
+                sort keys %query_params,
+        ) {
+            next unless defined $spec->[1] && length $spec->[1];
+            if ($spec->[1] =~ /[ "'\\]/) {
+                $spec->[1] =~ s/([ "'\\])/\\$1/g;
+            }
+            push @conninfo, "$spec->[0]=$spec->[1]";
         }
+
+        push @ret => '--dbname', join ' ', @conninfo if @conninfo;
 
         if (my %vars = $self->variables) {
             push @ret => map {; '--set', "$_=$vars{$_}" } sort keys %vars;
@@ -93,7 +111,7 @@ has dbh => (
 
         my $uri = $self->uri;
         local $ENV{PGCLIENTENCODING} = 'UTF8';
-        DBI->connect($uri->dbi_dsn, scalar $self->username, scalar $self->password, {
+        DBI->connect($uri->dbi_dsn, $self->username, $self->password, {
             PrintError        => 0,
             RaiseError        => 0,
             AutoCommit        => 1,
@@ -114,7 +132,7 @@ has dbh => (
                             'SET search_path = ?',
                             undef, $self->registry
                         );
-                        # http://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
+                        # https://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
                         $dbh->set_err(undef, undef) if $dbh->err;
                     };
                     return;
@@ -175,12 +193,21 @@ sub initialize {
     $self->_register_release;
 }
 
+sub _psql_major_version {
+    my $self = shift;
+    my $psql_version = $self->sqitch->probe($self->client, '--version');
+    my @parts = split /\s+/, $psql_version;
+    my ($maj) = $parts[-1] =~ /^(\d+)/;
+    return $maj || 0;
+}
+
 sub _run_registry_file {
     my ($self, $file) = @_;
     my $schema = $self->registry;
 
     # Fetch the client version. 8.4 == 80400
     my $version =  $self->_probe('-c', 'SHOW server_version_num');
+    my $psql_maj = $self->_psql_major_version;
 
     # Is this XC?
     my $opts =  $self->_probe('-c', q{
@@ -191,11 +218,14 @@ sub _run_registry_file {
            AND proname = 'pgxc_version';
     }) ? ' DISTRIBUTE BY REPLICATION' : '';
 
-    if ($version < 90300) {
-        # Need to write a temp file; no CREATE SCHEMA IF NOT EXISTS syntax.
-        (my $sql = scalar $file->slurp) =~ s/SCHEMA IF NOT EXISTS/SCHEMA/;
-        if ($version < 90000) {
-            # Also no :"registry" variable syntax.
+    if ($version < 90300 || $psql_maj < 9) {
+        # Need to transform the SQL and write it to a temp file.
+        my $sql = scalar $file->slurp;
+
+        # No CREATE SCHEMA IF NOT EXISTS syntax prior to 9.3.
+        $sql =~ s/SCHEMA IF NOT EXISTS/SCHEMA/ if $version < 90300;
+        if ($psql_maj < 9) {
+            # Also no :"registry" variable syntax prior to psql 9.0.s
             ($schema) = $self->dbh->selectrow_array(
                 'SELECT quote_ident(?)', undef, $schema
             );
@@ -344,18 +374,25 @@ sub log_revert_change {
     return $self->_log_event( revert => $change, $del_tags, $req, $conf );
 }
 
-sub _ts2char($) {
-    my $col = shift;
-    return qq{to_char($col AT TIME ZONE 'UTC', '"year":YYYY:"month":MM:"day":DD:"hour":HH24:"minute":MI:"second":SS:"time_zone":"UTC"')};
-}
-
 sub _dt($) {
     require App::Sqitch::DateTime;
     return App::Sqitch::DateTime->new(split /:/ => shift);
 }
 
 sub _no_table_error  {
-    return $DBI::state && $DBI::state eq '42P01'; # undefined_table
+    return 0 unless $DBI::state && $DBI::state eq '42P01'; # undefined_table
+    my $dbh = shift->dbh;
+    my @msg = map { $dbh->quote($_) } (
+        __ 'Sqitch registry not initialized',
+        __ 'Because the "changes" table does not exist, Sqitch will now initialize the database to create its registry tables.',
+    );
+    $dbh->do(sprintf q{DO $$
+        BEGIN
+            SET LOCAL client_min_messages = 'ERROR';
+            RAISE WARNING USING ERRCODE = 'undefined_table', MESSAGE = %s, DETAIL = %s;
+        END;
+    $$}, @msg) if $dbh->{pg_server_version} >= 90000;
+    return 1;
 }
 
 sub _no_column_error  {
@@ -365,115 +402,6 @@ sub _no_column_error  {
 sub _in_expr {
     my ($self, $vals) = @_;
     return '= ANY(?)', $vals;
-}
-
-# This method only required by pg, as no other engines existed when change and
-# tag IDs changed.
-sub _update_ids {
-    my $self = shift;
-    my $plan = $self->plan;
-    my $proj = $plan->project;
-    my $maxi = 0;
-
-    $self->SUPER::_update_ids;
-    my $dbh = $self->dbh;
-    $dbh->begin_work;
-    try {
-        # First, we have to recreate the FK constraint on dependencies.
-        $dbh->do(q{
-            ALTER TABLE dependencies
-             DROP CONSTRAINT dependencies_change_id_fkey,
-              ADD FOREIGN KEY (change_id) REFERENCES changes (change_id)
-                  ON UPDATE CASCADE ON DELETE CASCADE;
-        });
-
-        my $sth = $dbh->prepare(q{
-            SELECT change_id, change, committed_at
-              FROM changes
-             WHERE project = ?
-        });
-        my $atag_sth = $dbh->prepare(q{
-            SELECT tag
-              FROM tags
-             WHERE project = ?
-               AND committed_at < ?
-             LIMIT 1
-        });
-        my $btag_sth = $dbh->prepare(q{
-            SELECT tag
-              FROM tags
-             WHERE project = ?
-               AND committed_at >= ?
-             LIMIT 1
-        });
-        my $upd = $dbh->prepare(
-            'UPDATE changes SET change_id = ? WHERE change_id = ?'
-        );
-
-        $sth->execute($proj);
-        $sth->bind_columns(\my ($old_id, $name, $date));
-
-        while ($sth->fetch) {
-            # Try to find it in the plan by the old ID.
-            if (my $idx = $plan->index_of($old_id)) {
-                $upd->execute($plan->change_at($idx)->id, $old_id);
-                $maxi = $idx if $idx > $maxi;
-                next;
-            }
-
-            # Try to find it by the tag that precedes it.
-            if (my $tag = $dbh->selectcol_arrayref($atag_sth, undef, $proj, $date)->[0]) {
-                if (my $idx = $plan->first_index_of($name, $tag)) {
-                    $upd->execute($plan->change_at($idx)->id, $old_id);
-                    $maxi = $idx if $idx > $maxi;
-                    next;
-                }
-            }
-
-            # Try to find it by the tag that succeeds it.
-            if (my $tag = $dbh->selectcol_arrayref($btag_sth, undef, $proj, $date)->[0]) {
-                if (my $change = $plan->find($name . $tag)) {
-                    $upd->execute($change->id, $old_id);
-                    my $idx = $plan->index_of($change->id);
-                    $maxi = $idx if $idx > $maxi;
-                    next;
-                }
-            }
-
-            # Try to find it by name. Throws an exception if there is more than one.
-            if (my $change = $plan->get($name)) {
-                $upd->execute($change->id, $old_id);
-                my $idx = $plan->index_of($change->id);
-                $maxi = $idx if $idx > $maxi;
-                next;
-            }
-
-            # If we get here, we're fucked.
-            hurl engine => "Unable to find $name ($old_id) in the plan; update failed";
-        }
-
-        # Now update tags.
-        $sth = $dbh->prepare('SELECT tag_id, tag FROM tags WHERE project = ?');
-        $upd = $dbh->prepare('UPDATE tags SET tag_id = ? WHERE tag_id = ?');
-        $sth->execute($proj);
-        $sth->bind_columns(\($old_id, $name));
-        while ($sth->fetch) {
-            my $change = $plan->find($old_id) || $plan->find($name)
-                or hurl engine => "Unable to find $name ($old_id) in the plan; update failed";
-            my $tag = first { $_->old_id eq $old_id } $change->tags;
-            $tag ||= first { $_->format_name eq $name } $change->tags;
-            hurl engine => "Unable to find $name ($old_id) in the plan; update failed"
-                unless $tag;
-            $upd->execute($tag->id, $old_id);
-        }
-
-        # Success!
-        $dbh->commit;
-    } catch {
-        $dbh->rollback;
-        die $_;
-    };
-    return $maxi;
 }
 
 sub _run {
@@ -554,7 +482,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2017 iovation Inc.
+Copyright (c) 2012-2018 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

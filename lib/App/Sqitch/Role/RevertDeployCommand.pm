@@ -14,7 +14,10 @@ requires 'command';
 requires 'options';
 requires 'configure';
 
-our $VERSION = '0.9997';
+with 'App::Sqitch::Role::ContextCommand';
+with 'App::Sqitch::Role::ConnectingCommand';
+
+# VERSION
 
 has target => (
     is  => 'ro',
@@ -57,26 +60,38 @@ has deploy_variables => (
     is       => 'ro',
     isa      => HashRef,
     lazy     => 1,
-    default  => sub {
-        my $self = shift;
-        return {
-            %{ $self->sqitch->config->get_section( section => 'deploy.variables' ) },
-        };
-    },
+    default  => sub { {} },
 );
 
 has revert_variables => (
     is       => 'ro',
     isa      => HashRef,
     lazy     => 1,
-    default  => sub {
-        my $self = shift;
-        return {
-            %{ $self->deploy_variables },
-            %{ $self->sqitch->config->get_section( section => 'revert.variables' ) },
-        };
-    },
+    default  => sub { {} },
 );
+
+sub _collect_deploy_vars {
+    my ($self, $target) = @_;
+    my $cfg = $self->sqitch->config;
+    return (
+        %{ $cfg->get_section(section => 'core.variables') },
+        %{ $cfg->get_section(section => 'deploy.variables') },
+        %{ $target->variables }, # includes engine
+        %{ $self->deploy_variables }, # --set, --set-deploy
+    );
+}
+
+sub _collect_revert_vars {
+    my ($self, $target) = @_;
+    my $cfg = $self->sqitch->config;
+    return (
+        %{ $cfg->get_section(section => 'core.variables') },
+        %{ $cfg->get_section(section => 'deploy.variables') },
+        %{ $cfg->get_section(section => 'revert.variables') },
+        %{ $target->variables }, # includes engine
+        %{ $self->revert_variables }, # --set, --set-revert
+    );
+}
 
 around options => sub {
     my ($orig, $class) = @_;
@@ -85,7 +100,7 @@ around options => sub {
         mode=s
         verify!
         set|s=s%
-        set-deploy|d=s%
+        set-deploy|e=s%
         set-revert|r=s%
         log-only
         y
@@ -111,38 +126,22 @@ around configure => sub {
                    || 'all';
 
     if ( my $vars = $opt->{set} ) {
-        # Merge with config.
-        $params->{deploy_variables} = {
-            %{ $config->get_section( section => 'deploy.variables' ) },
-            %{ $vars },
-        };
-        $params->{revert_variables} = {
-            %{ $params->{deploy_variables} },
-            %{ $config->get_section( section => 'revert.variables' ) },
-            %{ $vars },
-        };
+        # --set used for both revert and deploy.
+        $params->{revert_variables} = $params->{deploy_variables} = $vars;
     }
 
     if ( my $vars = $opt->{set_deploy} ) {
+        # --set-deploy used only for deploy.
         $params->{deploy_variables} = {
-            %{
-                $params->{deploy_variables}
-                || $config->get_section( section => 'deploy.variables' )
-            },
+            %{ $params->{deploy_variables} || {} },
             %{ $vars },
         };
     }
 
     if ( my $vars = $opt->{set_revert} ) {
+        # --set-revert used only for revert.
         $params->{revert_variables} = {
-            %{
-                $params->{deploy_variables}
-                || $config->get_section( section => 'deploy.variables' )
-            },
-            %{
-                $params->{revert_variables}
-                || $config->get_section( section => 'revert.variables' )
-            },
+            %{ $params->{revert_variables} || {} },
             %{ $vars },
         };
     }
@@ -250,7 +249,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2017 iovation Inc.
+Copyright (c) 2012-2018 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

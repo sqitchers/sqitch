@@ -4,7 +4,7 @@ sqitch-plan - Show planned database changes
 
 =head1 Synopsis
 
-  sqitch [options] plan [<options>] [<database>]
+  sqitch plan [options] [<database>]
 
 =head1 Description
 
@@ -144,6 +144,14 @@ Output the changes in reverse order.
 =item C<--no-reverse>
 
 Do not output the changes in reverse order.
+
+=item C<--headers>
+
+Output headers describing the project and plan file. Enabled by default.
+
+=item C<--no-headers>
+
+Do not output headers describing the project and plan file.
 
 =item C<--color>
 

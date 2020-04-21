@@ -18,15 +18,7 @@ use constant extra_target_keys => qw(target);
 extends 'App::Sqitch::Command';
 with 'App::Sqitch::Role::TargetConfigCommand';
 
-our $VERSION = '0.9997';
-
-has verbose => (
-    is      => 'ro',
-    isa     => Int,
-    default => 0,
-);
-
-sub options { qw(verbose|v+) }
+# VERSION
 
 sub _chk_engine($) {
     my $engine = shift;
@@ -36,9 +28,7 @@ sub _chk_engine($) {
 }
 
 sub configure {
-    my ( $class, $config, $options ) = @_;
     # No config; engine config is actually engines.
-    return { verbose => $options->{verbose} } if exists $options->{verbose};
     return {};
 }
 
@@ -60,7 +50,8 @@ sub list {
     my $rx = join '|' => App::Sqitch::Command::ENGINES;
     my %engines = $sqitch->config->get_regexp(key => qr/^engine[.](?:$rx)[.]target$/);
 
-    my $format = $self->verbose ? "%1\$s\t%2\$s" : '%1$s';
+    # Make it verbose if --verbose was passed at all.
+    my $format = $sqitch->options->{verbosity} ? "%1\$s\t%2\$s" : '%1$s';
     for my $key (sort keys %engines) {
         my ($engine) = $key =~ /engine[.]([^.]+)/;
         $sqitch->emit(sprintf $format, $engine, $engines{$key})
@@ -105,23 +96,15 @@ sub add {
         engine => $engine
     ) if $config->get( key => "$key.target");
 
-    # Set up the target.
-    my @vars = ({
+    # Set up the target and other config variables.
+    my $vars = $self->config_params($key);
+    unshift @{ $vars } => {
         key   => "$key.target",
         value => $self->_target($engine, $target) || "db:$engine:",
-    });
-
-    # Add the other properties.
-    my $props = $self->properties;
-    while (my ($prop, $val) = each %{ $props } ) {
-        push @vars => {
-            key   => "$key.$prop",
-            value => $val,
-        } if $prop ne 'target';
-    }
+    };
 
     # Make it so.
-    $config->group_set( $config->local_file, \@vars );
+    $config->group_set( $config->local_file, $vars );
     $target = $self->config_target(
         name   => $target,
         engine => $engine,
@@ -145,104 +128,16 @@ sub alter {
         command => "add $engine " . ($props->{target} || "db:$engine:"),
     ) unless $config->get( key => "engine.$engine.target");
 
-    my @vars;
-    while (my ($prop, $val) = each %{ $props } ) {
-        if ($prop eq 'target') {
-            $val = $self->_target($engine, $val) or hurl engine => __(
-                'Cannot unset an engine target'
-            );
-        }
-        push @vars => {
-            key   => "$key.$prop",
-            value => $val,
-        };
+    if (my $targ = $props->{target}) {
+        $props->{target} = $self->_target($engine, $targ) or hurl engine => __(
+            'Cannot unset an engine target'
+        );
     }
 
     # Make it so.
-    $config->group_set( $config->local_file, \@vars );
+    $config->group_set( $config->local_file, $self->config_params($key) );
     $self->make_directories_for( $self->config_target( engine => $engine) );
 }
-
-# XXX Begin deprecated.
-
-sub _set {
-    my ($self, $key, $engine, $value) = @_;
-    (my $action = $key) =~ s/_/-/g;
-    $self->usage unless $engine && $value;
-    (my $opt = $key) =~ s/_/-/g;
-    $self->sqitch->warn(__x(
-        qq{  The "{old}" action is deprecated;\n  Instead use "{new}".},
-        old => "set-$action $engine $value",
-        new => "alter $engine --$opt $value",
-    ));
-
-    _chk_engine $engine;
-
-    my $config = $self->sqitch->config;
-
-    hurl engine => __x(
-        'Unknown engine "{engine}"',
-        engine => $engine
-    ) unless $config->get( key => "engine.$engine.target");
-
-    $config->set(
-        key      => "engine.$engine.$key",
-        value    => $value,
-        filename => $config->local_file,
-    );
-    return $self;
-}
-
-my %normalizer_for = (
-    top_dir   => sub { $_[0] ? dir($_[0])->cleanup : undef },
-    plan_file => sub { $_[0] ? file($_[0])->cleanup : undef },
-    client    => sub { $_[0] },
-    target    => sub {
-        my $target = shift or return undef;
-        # Return a normalized URI if it looks like a URI.
-        return URI::db->new($target, 'db:')->as_string if $target =~ /:/;
-        # Otherwise, it needs to be a known target from the config.
-        my $config = shift;
-        return $target if $config->get(key => "target.$target.uri");
-        hurl engine => __x(
-            'Unknown target "{target}"',
-            target => $target
-        );
-    },
-);
-
-$normalizer_for{"$_\_dir"} = $normalizer_for{"reworked_$_\_dir"} = $normalizer_for{top_dir}
-    for qw(deploy revert verify);
-$normalizer_for{reworked_dir} = $normalizer_for{top_dir};
-$normalizer_for{$_} = $normalizer_for{client} for qw(registry extension);
-
-sub set_target {
-    my ($self, $engine, $target) = @_;
-    $self->_set( 'target', $engine, $normalizer_for{target}->(
-        $target, $self->sqitch->config,
-    ) );
-}
-
-sub set_registry  { shift->_set('registry',  @_) }
-sub set_client    { shift->_set('client',    @_) }
-sub set_extension { shift->_set('extension', @_) }
-
-sub _set_dir {
-    my ($self, $key, $engine, $dir) = @_;
-    $self->_set( $key, $engine, $normalizer_for{top_dir}->($dir) );
-}
-
-sub set_top_dir    { shift->_set_dir('top_dir',    @_) }
-sub set_deploy_dir { shift->_set_dir('deploy_dir', @_) }
-sub set_revert_dir { shift->_set_dir('revert_dir', @_) }
-sub set_verify_dir { shift->_set_dir('verify_dir', @_) }
-
-sub set_plan_file {
-    my ($self, $engine, $file) = @_;
-    $self->_set( 'plan_file', $engine, $normalizer_for{plan_file}->($file) );
-}
-
-# XXX End deprecated.
 
 sub rm { shift->remove(@_) }
 sub remove {
@@ -261,6 +156,14 @@ sub remove {
             'Unknown engine "{engine}"',
             engine => $engine,
         );
+    };
+    try {
+        $config->rename_section(
+            from     => "engine.$engine.variables",
+            filename => $config->local_file,
+        );
+    } catch {
+        die $_ unless /No such section/;
     };
     return $self;
 }
@@ -291,11 +194,13 @@ sub show {
     # Header labels.
     $label_for{script_dirs} = __('Script Directories') . ':';
     $label_for{reworked_dirs} = __('Reworked Script Directories') . ':';
+    $label_for{variables} = __('Variables') . ':';
+    $label_for{no_variables} = __('No Variables');
 
     require App::Sqitch::Target;
     for my $engine (@names) {
         my $target = App::Sqitch::Target->new(
-            sqitch => $sqitch,
+            $self->target_params,
             name   => $config->get(key => "engine.$engine.target") || "db:$engine",
         );
 
@@ -315,11 +220,25 @@ sub show {
         $self->emit('    ', $label_for{deploy}, $target->reworked_deploy_dir);
         $self->emit('    ', $label_for{revert}, $target->reworked_revert_dir);
         $self->emit('    ', $label_for{verify}, $target->reworked_verify_dir);
+        my $vars = $target->variables;
+        if (%{ $vars }) {
+            my $len = max map { length } keys %{ $vars };
+            $self->emit('    ', $label_for{variables});
+            $self->emit("  $_: " . (' ' x ($len - length $_)) . $vars->{$_})
+                for sort { lc $a cmp lc $b } keys %{ $vars };
+        } else {
+            $self->emit('    ', $label_for{no_variables});
+        }
     }
 
     return $self;
 }
 
+# DEPRECATTION: Added in v0.997 (Oct 2014). As of v0.9999, Sqitch no longer
+# notices and warns about core.$engine; most folks should long since have
+# updated their configurations. Keeping this method for now, since it might
+# still be useful and doesn't add much overhead in general except for the
+# compilation of the engine command. But consider removing in the future.
 sub update_config {
     my $self = shift;
     my $sqitch = $self->sqitch;
@@ -463,10 +382,6 @@ Returns a list of additional option keys to be specified via options.
 
 Hash of property values to set.
 
-=head3 C<verbose>
-
-Verbosity.
-
 =head3 C<execute>
 
   $engine->execute($command);
@@ -490,64 +405,6 @@ Implements the C<list> action.
 =head3 C<rm>
 
 Implements the C<remove> action.
-
-=begin comment
-
-Deprecated methods.
-
-=head3 C<set_target>
-
-Implements the C<set-target> action.
-
-=head3 C<set_client>
-
-Implements the C<set-client> action.
-
-=head3 C<set_registry>
-
-Implements the C<set-registry> action.
-
-=head3 C<set_top_dir>
-
-Implements the C<set-top-dir> action.
-
-=head3 C<set_plan_file>
-
-Implements the C<set-plan-file> action.
-
-=head3 C<set_deploy_dir>
-
-Implements the C<set-deploy-dir> action.
-
-=head3 C<set_revert_dir>
-
-Implements the C<set-revert-dir> action.
-
-=head3 C<set_verify_dir>
-
-Implements the C<set-verify-dir> action.
-
-=head3 C<set_reworked_dir>
-
-Implements the C<set-reworked-dir> action.
-
-=head3 C<set_reworked_deploy_dir>
-
-Implements the C<set-reworked-deploy-dir> action.
-
-=head3 C<set_reworked_revert_dir>
-
-Implements the C<set-reworked-revert-dir> action.
-
-=head3 C<set_reworked_verify_dir>
-
-Implements the C<set-reworked-verify-dir> action.
-
-=head3 C<set_extension>
-
-Implements the C<set-extension> action.
-
-=end comment
 
 =head3 C<show>
 
@@ -577,7 +434,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2017 iovation Inc.
+Copyright (c) 2012-2018 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

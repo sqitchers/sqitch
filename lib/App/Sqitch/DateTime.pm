@@ -9,8 +9,9 @@ use DateTime 1.04;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use List::Util qw(first);
+use constant ISWIN => $^O eq 'MSWin32';
 
-our $VERSION = '0.9997';
+# VERSION
 
 sub as_string_formats {
     return qw(
@@ -56,7 +57,7 @@ sub as_string {
             s/\+0000$/-0000/;
         return $rv;
     } else {
-        if ($^O eq 'MSWin32') {
+        if (ISWIN) {
             require Win32::Locale;
             $dt->set_locale( Win32::Locale::get_locale() );
         } else {
@@ -190,7 +191,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2017 iovation Inc.
+Copyright (c) 2012-2018 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

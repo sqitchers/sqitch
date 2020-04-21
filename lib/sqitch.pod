@@ -2,11 +2,11 @@
 
 =head1 Name
 
-sqitch - Sane database change management
+sqitch - Sensible database change management
 
 =head1 Synopsis
 
-  sqitch [<options>] <command> [<command-options>] [<args>]
+  sqitch <command> [options] [command-options] [args]
 
 =head1 Description
 
@@ -18,17 +18,17 @@ approaches? A few things:
 
 =item No opinions
 
-Sqitch is not integrated with any framework, ORM, or platform. Rather, it is a
+Sqitch is not tied to any framework, ORM, or platform. Rather, it is a
 standalone change management system with no opinions about your database
-engine, application framework, or your development environment.
+engine, application framework, or development environment.
 
 =item Native scripting
 
 Changes are implemented as scripts native to your selected database engine.
-Writing a L<PostgreSQL|http://postgresql.org/> application? Write SQL scripts
-for L<C<psql>|http://www.postgresql.org/docs/current/static/app-psql.html>.
-Writing an L<Oracle|http://www.oracle.com/us/products/database/>-backed app?
-Write SQL scripts for L<SQL*Plus|http://www.orafaq.com/wiki/SQL*Plus>.
+Writing a L<PostgreSQL|https://postgresql.org/> application? Write SQL scripts
+for L<C<psql>|https://www.postgresql.org/docs/current/static/app-psql.html>.
+Writing an L<Oracle|https://www.oracle.com/us/products/database/>-backed app?
+Write SQL scripts for L<SQL*Plus|https://www.orafaq.com/wiki/SQL*Plus>.
 
 =begin comment
 
@@ -46,19 +46,24 @@ Database changes may declare dependencies on other changes -- even on changes
 from other Sqitch projects. This ensures proper order of execution, even when
 you've committed changes to your VCS out-of-order.
 
-=item No numbering
+=item Deployment integrity
 
-Change deployment is managed by maintaining a plan file. As such, there is no
-need to number your changes, although you can if you want. Sqitch doesn't much
-care how you name your changes.
+Sqitch manages changes and dependencies via a plan file, and employs a
+L<Merkle tree|https://en.wikipedia.org/wiki/Merkle_tree> pattern similar to
+L<Git|https://stackoverflow.com/a/18589734/> and
+L<Blockchain|https://medium.com/byzantine-studio/blockchain-fundamentals-what-is-a-merkle-tree-d44c529391d7>
+to ensure deployment integrity. As such, there is no need to number your
+changes, although you can if you want. Sqitch doesn't much care how you name
+your changes.
+
 
 =item Iterative Development
 
-Up until you tag and release your project, you can modify your change
-deployment scripts as often as you like. They're not locked in just because
-they've been committed to your VCS. This allows you to take an iterative
-approach to developing your database schema. Or, better, you can do
-test-driven database development.
+Up until you L<tag|sqitch-tag> and L<release|sqitch-bundle> your project, you
+can modify your change deployment scripts as often as you like. They're not
+locked in just because they've been committed to your VCS. This allows you to
+take an iterative approach to developing your database schema. Or, better, you
+can do test-driven database development.
 
 =begin comment
 
@@ -74,7 +79,7 @@ changes in the proper order.
 
 If you're using a VCS to track your changes, you don't have to duplicate
 entire change scripts for simple changes. As long as the changes are
-L<idempotent|http://en.wikipedia.org/wiki/Idempotence>, you can change
+L<idempotent|https://en.wikipedia.org/wiki/Idempotence>, you can change
 your code directly, and Sqitch will know it needs to be updated.
 
 =end comment
@@ -106,6 +111,8 @@ of a database with Sqitch.
 
 =item * L<Exasol Tutorial|sqitchtutorial-exasol>
 
+=item * L<Snowflake Tutorial|sqitchtutorial-snowflake>
+
 =back
 
 =item L<PDX.pm Presentation|https://speakerdeck.com/theory/sane-database-change-management-with-sqitch>
@@ -120,8 +127,8 @@ PostgreSQL Users Group in September, 2012.
 
 =item L<Agile Database Development|https://speakerdeck.com/theory/agile-database-development-2ed>
 
-Three-hour tutorial session on using L<Git|http://git-scm.org/>, test-driven
-development with L<pgTAP|http://pgtap.org>, and change management with Sqitch.
+Three-hour tutorial session on using L<Git|https://git-scm.org/>, test-driven
+development with L<pgTAP|https://pgtap.org>, and change management with Sqitch.
 
 =back
 
@@ -204,18 +211,11 @@ User who adds a change to the plan.
 
 =head1 Options
 
-  -f --plan-file  FILE      Path to a deployment plan file.
-     --engine     ENGINE    Database engine.
-     --registry   REGISTRY  Registry schema or database.
-     --db-client  PATH      Path to engine command-line client.
-  -d --db-name    NAME      Database name.
-  -u --db-user    USER      Database user name.
-  -h --db-host    HOST      Database server host name.
-  -p --db-port    PORT      Database server port number.
-     --top-dir    DIR       Path to directory with plan and scripts.
+  -C --chdir --cd DIR       Change to directory before performing any actions.
      --etc-path             Print path to etc directory and exit.
+     --no-pager             Do not pipe output into a pager.
      --quiet                Quiet mode with non-error output suppressed.
-  -v --verbose              Increment verbosity.
+  -V --verbose              Increment verbosity.
      --version              Print version number and exit.
      --help                 Show a list of commands and exit.
      --man                  Print introductory documentation and exit.
@@ -224,110 +224,22 @@ User who adds a change to the plan.
 
 =over
 
-=item C<-f>
+=item C<--chdir>
 
-=item C<--plan-file>
+=item C<--cd>
 
-  sqitch --plan-file plan.txt
-  sqitch -f main.plan
+=item C<-C>
 
-Path to the deployment plan file. Defaults to F<$top_dir/sqitch.plan>. See
-L</Plan File> for a description of its structure.
+  sqitch --chdir dbproject
+  sqitch --cd /usr/local/somedb
+  sqitch -C dbcheckout
 
-=item C<--engine>
+Change to the specified directory before performing any actions. Effectively the
+same as:
 
-  sqitch --engine pg
+  (cd somedir && sqitch ...)
 
-The database engine to use. Supported engines include:
-
-=over
-
-=item * C<pg> - L<PostgreSQL|http://postgresql.org/> and L<Postgres-XC|http://sourceforge.net/>
-
-=item * C<sqlite> - L<SQLite|http://sqlite.org/>
-
-=item * C<oracle> - L<Oracle|http://www.oracle.com/us/products/database/>
-
-=item * C<mysql> - L<MySQL|http://dev.mysql.com/> and L<MariaDB|https://mariadb.com/>
-
-=item * C<firebird> - L<Firebird|http://www.firebirdsql.org/>
-
-=item * C<vertica> - L<Vertica|https://my.vertica.com/>
-
-=item * C<exasol> - L<Exasol|https://www.exasol.com/>
-
-=back
-
-=item C<--registry>
-
-  sqitch --registry registry
-
-The name of the Sqitch registry schema or database. Sqitch will store its own
-data here.
-
-=item C<--db-client>
-
-=item C<--client>
-
-  sqitch --client /usr/local/pgsql/bin/psql
-
-Path to the command-line client for the database engine. Defaults to a client
-in the current path named appropriately for the specified engine.
-
-=item C<-d>
-
-=item C<--db-name>
-
-  sqitch --db-name widgets
-  sqitch -d bricolage
-
-Name of the database. In general, L<targets|sqitch-target> and URIs are
-preferred, but this option can be used to override the database name in a
-target.
-
-=item C<-u>
-
-=item C<--db-user>
-
-=item C<--db-username>
-
-  sqitch --db-username root
-  sqitch --db-user postgres
-  sqitch -u Mom
-
-User name to use when connecting to the database. Does not apply to all
-engines. In general, L<targets|sqitch-target> and URIs are preferred, but this
-option can be used to override the user name in a target.
-
-=item C<-h>
-
-=item C<--db-host>
-
-  sqitch --db-host db.example.com
-  sqitch -h appdb.example.net
-
-Host name to use when connecting to the database. Does not apply to all
-engines. In general, L<targets|sqitch-target> and URIs are preferred, but this
-option can be used to override the host name in a target.
-
-=item C<-p>
-
-=item C<--db-port>
-
-  sqitch --db-port 7654
-  sqitch -p 5431
-
-Port number to connect to. Does not apply to all engines.In general,
-L<targets|sqitch-target> and URIs are preferred, but this option can be used
-to override the port in a target.
-
-=item C<--top-dir>
-
-  sqitch --top-dir migrations/
-
-Path to directory containing deploy, revert, and verify scripts. It should
-contain subdirectories named C<deploy>, C<revert>, and (optionally) C<verify>.
-Defaults to C<.>.
+But a bit friendlier when managing multiple projects.
 
 =item C<--etc-path>
 
@@ -337,6 +249,13 @@ Print out the path to the Sqitch F<etc> directory and exit. This is the
 directory where the system-wide configuration file lives, as well as change
 script templates.
 
+=item C<--no-pager>
+
+  sqitch --no-pager
+
+Do not pipe Sqitch output into a pager. Currently limited to the C<log> and
+C<plan> commands.
+
 =item C<--quiet>
 
   sqitch --quiet
@@ -344,12 +263,12 @@ script templates.
 Suppress normal output messages. Error messages will still be emitted to
 C<STDERR>. Overrides any value specified by C<--verbose>.
 
-=item C<-v>
+=item C<-V>
 
 =item C<--verbose>
 
   sqitch --verbose
-  sqitch -vvv
+  sqitch -VVV
 
 Pass multiple times to specify a value between 0 and 3 to determine how
 verbose Sqitch should be. Unless C<--quiet> is specified, the default is 1,
@@ -368,8 +287,6 @@ Outputs a brief description all known Sqitch commands and exits.
   sqitch --man
 
 Outputs this documentation and exits.
-
-=item C<-V>
 
 =item C<--version>
 
@@ -508,15 +425,15 @@ The original design for Sqitch was sketched out in a number of blog posts:
 
 =item *
 
-L<Simple SQL Change Management|http://justatheory.com/computers/databases/simple-sql-change-management.html>
+L<Simple SQL Change Management|https://justatheory.com/computers/databases/simple-sql-change-management.html>
 
 =item *
 
-L<VCS-Enabled SQL Change Management|http://justatheory.com/computers/databases/vcs-sql-change-management.html>
+L<VCS-Enabled SQL Change Management|https://justatheory.com/computers/databases/vcs-sql-change-management.html>
 
 =item *
 
-L<SQL Change Management Sans Duplication|http://justatheory.com/computers/databases/sql-change-management-sans-redundancy.html>
+L<SQL Change Management Sans Duplication|https://justatheory.com/computers/databases/sql-change-management-sans-redundancy.html>
 
 =back
 
@@ -524,9 +441,9 @@ Other tools that do database change management include:
 
 =over
 
-=item L<Rails migrations|http://guides.rubyonrails.org/migrations.html>
+=item L<Rails migrations|https://guides.rubyonrails.org/migrations.html>
 
-Numbered migrations for L<Ruby on Rails|http://rubyonrails.org/>.
+Numbered migrations for L<Ruby on Rails|https://rubyonrails.org/>.
 
 =item L<Module::Build::DB>
 
@@ -537,10 +454,10 @@ system. Does not support reversion.
 
 Numbered migrations in pure SQL.
 
-=item L<Versioning|http://www.depesz.com/2010/08/22/versioning/>
+=item L<Versioning|https://www.depesz.com/2010/08/22/versioning/>
 
 PostgreSQL-specific dependency-tracking solution by
-L<depesz|http://www.depesz.com/>.
+L<depesz|https://www.depesz.com/>.
 
 =back
 
@@ -550,7 +467,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2017 iovation Inc.
+Copyright (c) 2012-2018 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

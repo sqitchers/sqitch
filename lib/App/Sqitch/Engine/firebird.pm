@@ -18,7 +18,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.9997';
+# VERSION
 
 has registry_uri => (
     is       => 'ro',
@@ -58,6 +58,9 @@ sub registry_destination {
     }
     return $uri->as_string;
 }
+
+sub _def_user { $ENV{ISC_USER} }
+sub _def_pass { $ENV{ISC_PASSWORD} }
 
 has dbh => (
     is      => 'rw',
@@ -123,7 +126,7 @@ has tz_offset => (
     isa      => Maybe[Int],
     lazy     => 1,
     default => sub {
-        # From: http://stackoverflow.com/questions/2143528/whats-the-best-way-to-get-the-utc-offset-in-perl
+        # From: https://stackoverflow.com/questions/2143528/whats-the-best-way-to-get-the-utc-offset-in-perl
         my @t = localtime(time);
         my $gmt_offset_in_seconds = timegm(@t) - timelocal(@t);
         my $offset = -($gmt_offset_in_seconds / 3600);
@@ -654,11 +657,10 @@ sub change_id_for {
     if ( my $change = $p{change} ) {
         if ( my $tag = $p{tag} ) {
             # There is nothing before the first tag.
-            return undef if $tag eq 'ROOT' || $tag eq 'FIRST';
+            return undef if $tag eq 'ROOT';
 
             # Find closest to the end for @HEAD.
-            return $self->_cid_head($project, $change)
-                if $tag eq 'HEAD' || $tag eq 'LAST';
+            return $self->_cid_head($project, $change) if $tag eq 'HEAD';
 
             # Find by change name and following tag.
             return $dbh->selectcol_arrayref(q{
@@ -684,17 +686,16 @@ sub change_id_for {
         }, undef, $project, $change);
 
         # Return the ID.
+        return $ids->[0] if $p{first};
         return $self->_handle_lookup_index($change, $ids);
     }
 
     if ( my $tag = $p{tag} ) {
         # Just return the latest for @HEAD.
-        return $self->_cid('DESC', 0, $project)
-            if $tag eq 'HEAD' || $tag eq 'LAST';
+        return $self->_cid('DESC', 0, $project) if $tag eq 'HEAD';
 
         # Just return the earliest for @ROOT.
-        return $self->_cid('ASC', 0, $project)
-            if $tag eq 'ROOT' || $tag eq 'FIRST';
+        return $self->_cid('ASC', 0, $project) if $tag eq 'ROOT';
 
         # Find by tag name.
         return $dbh->selectcol_arrayref(q{
@@ -865,8 +866,8 @@ sub log_deploy_change {
 }
 
 sub default_client {
-    my $self   = shift;
-    my $ext    = $^O eq 'MSWin32' || $^O eq 'cygwin' ? '.exe' : '';
+    my $self = shift;
+    my $ext  = App::Sqitch::ISWIN || $^O eq 'cygwin' ? '.exe' : '';
 
     # Create a script to run.
     require File::Temp;
@@ -889,7 +890,7 @@ sub default_client {
         my $loops = 0;
         for my $dir (File::Spec->path) {
             my $path = file $dir, $try;
-            $path = Win32::GetShortPathName($path) if $^O eq 'MSWin32';
+            $path = Win32::GetShortPathName($path) if App::Sqitch::ISWIN;
             if (-f $path && -x $path) {
                 if (try { App::Sqitch->probe($path, @opts) =~ /Firebird/ } ) {
                     # Restore STDERR and return.
@@ -972,7 +973,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2017 iovation Inc.
+Copyright (c) 2012-2018 iovation Inc.
 
 Copyright (c) 2013 Ștefan Suciu
 

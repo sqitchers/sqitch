@@ -15,8 +15,9 @@ use List::Util qw(first);
 use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
+with 'App::Sqitch::Role::ContextCommand';
 
-our $VERSION = '0.9997';
+# VERSION
 
 has from => (
     is       => 'ro',
@@ -88,9 +89,8 @@ sub configure {
 sub execute {
     my $self = shift;
     my ($targets, $changes) = $self->parse_args(
-        all        => $self->all,
-        args       => \@_,
-        no_default => 1,
+        all  => $self->all,
+        args => \@_,
     );
 
     # Warn if --to or --from is specified for more thane one target.
@@ -375,7 +375,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2017 iovation Inc.
+Copyright (c) 2012-2018 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

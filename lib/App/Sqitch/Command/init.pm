@@ -17,7 +17,7 @@ use constant extra_target_keys => qw(engine target);
 extends 'App::Sqitch::Command';
 with 'App::Sqitch::Role::TargetConfigCommand';
 
-our $VERSION = '0.9997';
+# VERSION
 
 sub execute {
     my ( $self, $project ) = @_;
@@ -82,7 +82,7 @@ sub write_config {
     my $props  = $self->properties;
     my $target = $self->config_target;
 
-    # Write the engine from --engine, engine=engine, or core.engine.
+    # Write the engine from --engine or core.engine.
     my $ekey   = $props->{engine} || $target->engine_key;
     if ($ekey) {
         push @vars => {
@@ -125,6 +125,14 @@ sub write_config {
     )) {
         push @vars => { key => "core.$attr", value => $props->{$attr} }
             if defined $props->{$attr};
+    }
+
+    # Add variables.
+    if (my $vars = $props->{variables}) {
+        push @vars => map {{
+            key   => "core.variables.$_",
+            value => $vars->{$_},
+        }} keys %{ $vars };
     }
 
     # Emit them.
@@ -260,7 +268,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2017 iovation Inc.
+Copyright (c) 2012-2018 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

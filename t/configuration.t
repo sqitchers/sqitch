@@ -2,10 +2,9 @@
 
 use strict;
 use warnings;
-use Test::More tests => 17;
+use Test::More tests => 22;
 #use Test::More 'no_plan';
 use File::Spec;
-use Test::MockModule;
 use Test::Exception;
 use Test::NoWarnings;
 
@@ -20,6 +19,9 @@ delete @ENV{qw( SQITCH_CONFIG SQITCH_USER_CONFIG SQITCH_SYSTEM_CONFIG )};
 
 isa_ok my $config = $CLASS->new, $CLASS, 'New config object';
 is $config->confname, 'sqitch.conf', 'confname should be "sqitch.conf"';
+ok !$config->initialized, 'Should not be initialized';
+
+my $hd = $^O eq 'MSWin32' && "$]" < '5.016' ? $ENV{HOME} || $ENV{USERPROFILE} : (glob('~'))[0];
 
 SKIP: {
     skip 'System dir can be modified at build time', 1
@@ -30,7 +32,7 @@ SKIP: {
 }
 
 is $config->user_dir, File::Spec->catfile(
-    File::HomeDir->my_home, '.sqitch'
+    $hd, '.sqitch'
 ), 'Default user directory should be correct';
 
 is $config->global_file, File::Spec->catfile(
@@ -44,7 +46,7 @@ is $config->global_file, $file,
 is $config->system_file, $config->global_file, 'system_file should alias global_file';
 
 is $config->user_file, File::Spec->catfile(
-    File::HomeDir->my_home, '.sqitch', 'sqitch.conf'
+    $hd, '.sqitch', 'sqitch.conf'
 ), 'Default user file name should be correct';
 
 $ENV{SQITCH_USER_CONFIG} = $file,
@@ -62,11 +64,13 @@ SQITCH_CONFIG: {
 }
 
 chdir 't';
+isa_ok $config = $CLASS->new, $CLASS, 'Another config object';
+ok $config->initialized, 'Should be initialized';
 is_deeply $config->get_section(section => 'core'), {
     engine    => "pg",
     extension => "ddl",
     top_dir   => "migrations",
-    uri       => 'https://github.com/theory/sqitch/',
+    uri       => 'https://github.com/sqitchers/sqitch/',
     pager     => "less -r",
 }, 'get_section("core") should work';
 
@@ -74,3 +78,13 @@ is_deeply $config->get_section(section => 'engine.pg'), {
     client => "/usr/local/pgsql/bin/psql",
 }, 'get_section("engine.pg") should work';
 
+# Make sure it works with irregular casing.
+is_deeply $config->get_section(section => 'foo.BAR'), {
+    baz => 'hello'
+}, 'get_section() whould work with capitalized subsection';
+
+# Should work with multiple subsections and case-preserved keys.
+is_deeply $config->get_section(section => 'guess.Yes.No'), {
+    red => 'true',
+    Calico => 'false',
+}, 'get_section() whould work with mixed case subsections';

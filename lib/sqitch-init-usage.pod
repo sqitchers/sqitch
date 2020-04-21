@@ -12,9 +12,10 @@ sqitch-init-usage - Sqitch init usage statement
     --uri        <uri>          associate a URI with the project plan
     --engine     <engine>       database engine
     --top-dir    <dir>          path to directory with plan and scripts
-    --plan-file  <file>         path to deployment plan file
+ -f --plan-file  <file>         path to deployment plan file
     --target     <target>       database target
     --registry   <registry>     registry schema or database
     --client     <path>         path to engine command-line client
     --extension  <ext>          change script file name extension
     --dir        <name>=<path>  path to named directory
+    -s --set     <key=value>    set a database client variable

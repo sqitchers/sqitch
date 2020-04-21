@@ -11,10 +11,9 @@ sqitchcommands - List of common sqitch commands
 
 =head1 Usage
 
-  sqitch [--plan-file <file>] [--engine <engine>] [--top-dir <dir> ]
-         [--extension <ext>] [--registry <registry>] [--etc-path]
-         [--quiet] [--verbose] [--version]
-         <command> [<command-options>] [<args>]
+  sqitch [--etc-path | --help | --man | --version]
+  sqitch <command> [--chdir <path>] [--no-pager] [--quiet] [--verbose]
+         [<command-options>] [<args>]
 
 =head1 Common Commands
 
@@ -41,4 +40,5 @@ The most commonly used sqitch commands are:
   verify     Verify changes to a database
 
 See C<< sqitch help <command> >> or C<< sqitch help <concept> >> to read about
-a specific command or concept.
+a specific command or concept. See C<< sqitch help --guide >> for a list of
+conceptual guides.

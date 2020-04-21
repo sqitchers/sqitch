@@ -1,6 +1,392 @@
 Revision history for Perl extension App::Sqitch
 
-0.9997
+1.0.0  2019-06-04T12:56:22Z
+     - Fixed test failure due to a hard-coded system error that may be
+       localized on non-en-US hosts. Thanks to Slaven Rezić for the catch
+       (#427).
+     - Now require Test::MockModule 0.17 to silence a warning during testing.
+       Thanks to Slaven Rezić for the suggestion.
+     - Fixed an error when Sqitch is run with no arguments. Thanks to Henrik
+       Tudborg for the report (#428).
+     - Fixed missing dependency on IO::Pager in the distribution metadata.
+     - Removed use of File::HomeDir, thanks to a PR from Karen Etheridge
+       (#433).
+     - Updated the tagline from "Sane database change management" to "Sensible
+       database change management" out of sensitivity to those subject to
+       mental illness (#435).
+     - Removed double-quoting of SQLite commands on Windows, inadvertently
+       added by the workaround for Windows quoting in v0.9999.
+     - Fixed a Snowflake issue where Sqitch failed to recognize the proper
+       error code for a missing table and therefore an uninitialized registry.
+       Thanks to @lerouxt and @kulmam92 for the report and fix (#439).
+     - Added check for project initialization when no engine config can be
+       found. When run from a directory with no configuration, Sqitch now
+       reports that the project is not initialized instead of complaining
+       about a lack of engine config (#437).
+     - Documented Snowflake key pair authentication in
+       `sqitch-authentication`, as well as `$SNOWSQL_PRIVATE_KEY_PASSPHRASE`
+       in `sqitch-environment`. Thanks to Casey Largent for figuring it out
+       (#441).
+     - Added the German localization. Thanks to Thomas Iguchi for the pull
+       request (#451).
+     - Renamed the French localization from "fr" to "fr_FR", so that systems
+       will actually find it.
+     - Added the `ask_yes_no()` method as a replacement for `ask_y_n()`, which
+       is now deprecated. The new method expects localized responses from the
+       user when translations are provided. Defaults to the English "yes" and
+       "no" when no translation is available. Suggested by German translator
+       Thomas Iguchi (#449).
+     - Fixed a bug where only project without a URI was allowed in the
+       registry. Thanks to Conding-Brunna for the report (#450).
+     - Clarified the role of project URIs for uniqueness: They don't allow
+       multiple projects with the same name, but do prevent the deployment of
+       a project with the same name but different URI.
+     - Fixed an issue where target variables could not be found when a target
+       name was not lowercase. Thanks to @maximejanssens for the report
+       (#454).
+     - Now require Config::GitLike 1.15 or higher.
+     - Fixed the indentation of variables emitted by the `show` actions of the
+       `target` and `engine` commands, fixing a "Negative repeat count does
+       nothing" warning in the process. Thanks to @maximejanssens for the
+       report (#454).
+     - Fixed a Snowflake test failure when the current system username has a
+       space or other character requiring URI escaping. Thanks to Ralph
+       Andrade for the report (#463).
+     - Fixed an issue where a wayward newline in some versions of SQLite
+       prevented Sqitch from parsing the version. Thanks to Kivanc Yazan
+       for the report (#465) and the fix (#465)!
+     - Fixed an error when Sqitch was run on a system without a valid
+       username, such as some Docker environments. Thanks to Ferdinand Salis
+       for the report (#459)!
+     - When Sqitch finds the registry does not exist on PostgreSQL, it now
+       sends a warning to the PostgreSQL log reporting that it will initialize
+       the database. This is to reduce confusion for folks watching the
+       PostgreSQL error log while Sqitch runs (#314).
+
+0.9999 2019-02-01T15:29:40Z
+     [Bug Fixes]
+     - Fixed a test failure with the MySQL max limit value, mostly exhibited
+       on BSD platforms.
+     - Removed fallback in the PostgreSQL engine on the `$PGUSER` and
+       `$PGPASSWORD` environnement variables, as well as the system username,
+       since libpq does all that automatically, and collects data from other
+       sources that we did not (e.g., the password and connection service
+       files). Thanks to Tom Bloor for the report (issue #410).
+     - Changed dependency validation to prevent an error when a change required
+       from a different project has been reworked. Previously, when requiring a
+       change such as `foo:greeble`, Sqitch would raise an error if
+       `foo:greeble` was reworked, suggesting that the dependency be
+       tag-qualified to eliminate ambiguity. Now reworked dependencies may be
+       required without tag-qualification, though tag-qualification should still
+       be specified if functionality as of a particular tag is required.
+     - Added a workaround for the shell quoting issue on Windows. Applies to
+       IPC::System::Simple 1.29 and lower. See
+       [pjf/ipc-system-simple#29](https://github.com/pjf/ipc-system-simple/pull/29)
+       for details (#413).
+     - Fixed an issue with the MariaDB client where a deploy, revert, or
+       verify failure was not properly propagated to Sqitch. Sqitch now passes
+       `--abort-source-on-error` to the Maria `mysql` client to ensure that
+       SQL errors cause the client to abort with an error so that Sqitch can
+       properly handle it. Thanks to @mvgrimes for the original report and,
+       years later, the fix (#209).
+     - Fixed an issue with command argument parsing so that it truly never
+       returns a target without an engine specified, as documented.
+     - Removed documentation for methods that don't exist.
+     - Fixed test failures due to a change in Encode v2.99 that's stricter
+       about `undef` arguments that should be defined.
+
+     [Improvements]
+     - The Snowflake engine now consults the `connections.warehousename`,
+       `connections.dbname`, and `connections.rolename` variables in the
+       SnowSQL configuration file (`~/.snowsql/config`) before falling back on
+       the hard-coded warehouse name "sqitch" and using the system username as
+       the database name and no default for the role.
+     - Switched to using a constant internally to optimize windows-specific
+       code paths at compile time.
+     - When `deploy` detects undeployed dependencies, it now eliminates
+       duplicates before listing them in the error message.
+     - Now requiring IO::Pager v0.34 or later for its more consistent
+       interface.
+     - Added notes about creating databases to the tutorials. Thanks to Dave
+       Rolsky for the prompt (#315).
+     - Added a status message to tell the user when the registry is being
+       updated, rather than just show each individual update. Thanks to Ben
+       Hutton for the suggestion (#276).
+     - Added support for a `$SQITCH_TARGET` environment variable, which takes
+       precedence over all other target specifications except for command-line
+       options and arguments. Thanks to @mvgrimes for the suggestion (#203).
+     - Fixed target/engine/change argument parsing so it won't automatically
+       fail when `core.engine` isn't set unless no targets are found. This
+       lets engines be determined strictly from command-line arguments --
+       derived from targets, or just listed on their own -- whether or not
+       `core.engine` is set. This change eliminates the need for the
+       `no_default` parameter to the `parse_args()` method of App::Sqitch
+       Command. It also greatly reduces the need for the core `--engine`
+       option, which was previously required to work around this issue (see
+       below for its removal).
+     - Refactored config handling in tests to use a custom subclass of
+       App::Sqitch::Config instead of various mocks, temporary files, and the
+       like.
+     - Added advice to use the PL/pgSQL `ASSERT()` function for verify scripts
+       to the Postgres tutorial. Thanks to Sergii Tkachenko for the PR (#425).
+
+     [Target Variables]
+     - The `verify` command now reads `deploy.variables`, and individual
+       `verify.variables override `deploy.variables`, on the assumption that
+       the verify variables in general ought to be the same as the deploy
+       variables. This makes `verify` variable configuration consistent with
+       `revert` variable configuration.
+     - Variables set via the `--set-deploy` option on the `rebase` and
+       `checkout` commands no longer apply to both reverts and deploys, but
+       only deploys. Use the `--set` option to apply a variable to both
+       reverts and deploys.
+     - Added support for core, engine, and target variable configuration. The
+       simplest way to use them is via the `--set` option on the `init`,
+       `engine`, and `target` commands. These commands allow the configuration
+       of database client variables for specific engines and targets, as well
+       as defaults that apply to all change execution commands (`deploy`,
+       `revert`, `verify`, `rebase`, and `checkout`). The commands merge the
+       variables from each level in this priority order:
+       * `--set-deploy` and `--set-revert` options on `rebase` and `checkout`
+       * `--set` option
+       * `target.$target.variables`
+       * `engine.$engine.variables`
+       * `deploy.variables`, `revert.variables`, and `verify.variables`
+       * `core.variables`
+       See `sqitch-configuration` for general documentation of of the
+       hierarchy for merging variables and the documentation for each command
+       for specifics.
+
+     [Options Unification]
+     - Added the `--chdir`/`--cd`/`-C` option to specify a directory to change
+       to before executing any Sqitch commands. Thanks to Thomas Sibley for
+       the suggestion (#411).
+     - Added the `--no-pager` option to disable the pager (#414).
+     - Changed command-line parsing to allow core and command options to
+       appear anywhere on the line. Previously, core options had to come
+       before the command name, and command options after. No more. The caveat
+       is that command options that take arguments should either appear after
+       the command or use the `--opt=val` syntax instead of `--opt val`, so
+       that Sqitch doesn't think `val` is the command. Even in that case, it
+       will search the rest of the arguments to find a valid command.
+       However, to minimize this challenge, the documentation now suggests
+       and demonstrates putting all options after the command, like so:
+       `sqitch [command] [options]`.
+     - Simplified and clarified the distinction between core and command
+       options by removing all options from the core except those that affect
+       output and runtime context. The core options are:
+       * -C --chdir --cd <dir>  Change to directory before performing any actions
+       *    --etc-path          Print the path to the etc directory and exit
+       *    --no-pager          Do not pipe output into a pager
+       *    --quiet             Quiet mode with non-error output suppressed
+       * -V --verbose           Increment verbosity
+       *    --version           Print the version number and exit
+       *    --help              Show a list of commands and exit
+       *    --man               Print the introductory documentation and exit
+     - Relatedly, single-letter core options will now always be uppercase,
+       while single-letter command options will be lowercase. As such, `-V`
+       has been added as an alias for `--version`, although `-v` remains for
+       now, undocumented. It may be removed in the future should a compelling
+       use for `-v` in a command be discovered.
+     - All other options have been moved to the commands they affect. Their
+       use should remain mostly unchanged now that command options are parsed
+       from anywhere on the command-line, although we recommend that all
+       options come after commands. The options were moved as follows:
+       * `--registry`, `--client`, `--db-name`, `--db-user`, `--db-host`, and
+         `--db-port` (and their aliases) have been moved to the `checkout`,
+         `deploy`, `log`, `rebase`, `revert`, `status`, `upgrade`, and
+         `verify` commands.
+       * `--plan-file` and `--top-dir` (deprecated; see below) have been moved
+         to the `add`, `bundle`, `checkout`, `deploy`, `rebase`, `revert`,
+         `rework`, `show`, `status`, `tag`, and `verify` commands. They were
+         already supported by the `init`, `engine`, and `target` commands
+         (where `--top-dir` is not deprecated).
+     - Because some command options conflicted with core options, a few
+       options have been removed altogether, including:
+       * The `--verbose` option on the `--engine` and `--target` commands has
+         been removed, but no visible change should be apparent, since those
+         commands now read the core `--verbose` option.
+       * The undocumented `--dir` alias for `--top-dir` has been removed, as
+         it conflicted with the option of the same name but different meaning
+         in the `init`, `engine`, and `target` commands.
+       * The `-d` alias for `--set-deploy` in the `rebase` and `checkout`
+         commands has been changed to `-e` so as not to conflict with the `-d`
+         alias for `--db-name`.
+       * Added tests for all commands to ensure none of their options conflict
+         with core options. Will help prevent conflicts in the future.
+
+     [Deprecations & Removals]
+     - Deprecated the `--top-dir` option in favor of `--chdir` with a warning
+       except when used for configuration in the `init`, `engine`, and
+       `target` commands.
+     - Removed the core `--deploy-dir`, `--revert-dir`, and `--verify-dir`
+       options, which have been deprecated and triggering warnings since
+       v0.9993 (August 2015). The `--dir` option to the `init`, `engine`, and
+       `target` commands remains the favored interface for specifying script
+       directories.
+     - Removed the deprecated core `--engine` option. The `init` command still
+       supports it, while other commands are able to parse the engine name as
+       an argument --- e.g., `sqitch deploy mysql` --- or implicitly as part
+       of a target, as in `sqitch revert db:pg:tryme`. When Sqitch is unable
+       to determine the engine for a command, the error message no longer
+       mentions `--engine` and instead suggests specifying the engine via the
+       target. This option never triggered an error, but demonstration of its
+       use has been limited to `init` examples.
+     - Removed support for reading the `core.$engine` configuration, which has
+       been deprecated with warnings in favor of `engine.$engine` since 0.997
+       (November 2014). The `sqitch engine update-config` action remains
+       available to update old configurations, but may be removed in the
+       future.
+     - Removed the `--deploy`, `--revert`, and `--verify` options on the `add`
+       command, as well as their `--no-*` variants. They have been deprecated
+       with warnings in favor of the `--with` and `--without` options since
+       v0.990 (January 2014).
+     - Removed the `--deploy-template`, `--revert-template`, and
+       `--verify-template` options to the `add` command. They have been
+       deprecated with warnings in favor of the `--use` option since v0.990
+       (January 2014).
+     - Removed the `add.deploy_template`, `add.revert_template`, and
+	   `add.verify_template` configuration settings. They have been deprecated
+	   with warnings in favor of the `add.templates` configuration section
+       since v0.990 (January 2014).
+     - Removed the `@FIRST` and `@LAST` symbolic tags, which have been
+       deprecated with warnings in favor of `@ROOT` and `@HEAD`, respectively,
+       since 0.997 (November 2014).
+     - Removed the command-specific options with the string "target" in them,
+       such as `--to-target`, `--upto-target`, which have been deprecated with
+       warnings in in favor of options containing the string "change", such as
+       `--to-change` and `--upto-change`, since v0.997 (November 2014).
+     - Remove the `engine` and `target` command `set-*` actions and their
+       corresponding methods, which have been deprecated in favor of the
+       `alter` action since v0.9993 (August 2015).
+     - Removed the automatic updating of change and tag IDs in the Postgres
+       engine. This functionality was added in v0.940 (December 2012), when
+       Postgres was the only engine, and the SHA-1 hash for change and tag IDs
+       was changed. There were very few deployments at the time, and all
+       should long since have been updated.
+
+     [API Changes]
+     - Added the URI-overriding parameters `user`, `host`, `port`, and
+       `dbname` to App::Sqitch::Target so that command options can be used to
+       easily set them.
+     - Added support for passing attribute parameters to the `all_targets`
+       group constructor on App::Sqitch::Target, so that command-line options
+       can be used to assign attributes to all targets read from the
+       configuration.
+     - Aded the `target_params` method to App::Sqitch::Command and updated all
+       commands to use it when constructing targets. This allows commands to
+       define options for Target parameters, as required for moving options to
+       commands as described above.
+     - Added the `class_for` method to App::Sqitch::Command so that the new
+       options parser described above can load a command class without
+       instantiating an instance. Useful for searching command-line arguments
+       for a command name.
+     - Added the `create` constructor to App::Sqitch::Command to let Sqitch
+       instantiate an instance of a command once it finds one via `class_for`.
+       Previously, Sqitch used the `load` method, which handled the
+       functionality of both `class_for` and `create`. That method still
+       exists but is used only in tests.
+     - Added the ConnectingCommand role to define database connection options
+       for the commands that need them.
+     - Added the ContextCommand role to define command options for the
+       location of the plan file and top directory. This is also where use of
+       the deprecated form of `--top-dir` triggers a warning.
+     - Removed the `verbosity` attribute from App::Sqitch::Command::engine and
+       App::Sqitch::Command::target, since the `--verbose` option is no longer
+       needed. These commands now rely on the core `--verbose` option.
+     - Removed the copying of core options from the target class and
+       TargetConfigCommand role, since the attributes fetched from there are
+       no longer core options, but provided as attribute parameters to the
+       constructors by commands.
+     - Removed documentation for the optional `config` parameter to the
+       `all_targets` constructor of App::Sqitch::Target, since it was never
+       used by Sqitch. It always fetched the config from the required `sqitch`
+       parameter. Support for the `config` parameter has not been removed,
+       since third-parties might use it.
+     - Removed the `set_*` methods in the `engine` and `target` commands,
+       which have been deprecated in favor of the new `alter` method since
+       v0.9993 (August 2015).
+     - Removed the `old_id` and `old_info` methods from Change and Tag, which
+       date from v0.940 (December 2012), and were provided only to allow
+       existing Postgres databases to be updated from the old to new ID
+       format, now removed. There should be no other use case for these
+       methods.
+
+0.9998 2018-10-03T20:53:58Z
+     - Fixed an issue where Sqitch would sometimes truncate the registry
+       version number fetched from MySQL, most likely because the Perl runtime
+       was using 32-bit integers. Fixed by casting the version to CHAR in the
+       query, before Perl ever see it. Thanks to Allen Godfrey David for the
+       report.
+     - Added the Snowflake engine.
+     - Now require URI::db v0.19 for Snowflake URI support.
+     - The Vertica and Exasol engines now require DBD::ODBC 1.59, which fixes
+       a Unicode issue. Thanks to Martin J. Evans for the quick fix
+       (perl5-dbi/DBD-ODBC#8)!
+     - Added the `bundle` command to `./Build`. This command installs only the
+       runtime dependencies into the `--install_base` directory. This should
+       simplify building distribution packages, binary installs, Docker images,
+       and the like.
+     - Added the `--with` option to `./Build`, to require that Sqitch be build
+       with the specified engine. Pass once for each engine. See the README
+       for the list of supported engines.
+     - Added a check for Hash::Merge 0.298 during installation, since that
+       release has a fatal bug that breaks Sqitch. If it's installed, the
+       installer will issue a warning and added v0.299 to its list of
+       dependencies. Thanks to Slaven Rezić for the suggestion (#377).
+     - Fixed the PostgreSQL engine so it properly checks the `psql` client
+       version to determine whether or not the `:registry` variable is
+       supported. Previously it relied on the server version, which would fail
+       if the server version was greater than 8.4 but the `psql` client was
+       not. Thanks to multiple folks reporting issues with registry names and
+       search paths (#314).
+     - The plan parser will now complain if a change specifies a duplicate
+       dependency. This should be less confusing than a database unique
+       violation. Thanks to Eric Bréchemier for the suggestion (#344).
+     - Moved the project to its own GitHub organization,
+       [Sqitchers](https://github.com/sqitchers).
+     - Fixed likely cause of Oracle buffer allocation bug when selecting
+       timestamp strings. Thanks to @johannwilfling for the bug report and to
+       @nmaqsudov for the analysis and solution (#316).
+     - Changed the way the conninfo string is passed to `psql` to eliminate
+       argument ordering problems on Windows. Thanks to @highlowhighlow for
+       the report (#384).
+     - Added `$SQITCH_USERNAME` environment variable to complement
+       `$SQITCH_PASSWORD`. It can be used to override the username set in
+       for a target.
+     - Added the `$SQITCH_FULLNAME` and `$SQITCH_EMAIL` environment
+       variables, which take precedence over the values of the `user.name` and
+       `user.email` config variables.
+     - Added the `$SQITCH_ORIG_SYSUSER`, `$SQITCH_ORIG_FULLNAME` and
+       `$SQITCH_ORIG_EMAIL` environment variables. For those situations when
+       Sqitch attempts to read OS data for user information, These new
+       environment variables override these system-derived values. The
+       intention is to allow an originating host to set these values on
+       another host where Sqitch will actually execute.
+     - Fixed an error triggered by whitespace trailing an engine name in the
+       configuration. Thanks to Jeremy Simkins for the report (#400).
+     - Refactored the engine-specific username and password attributes to
+       support a consistent search for values. Sqitch searches first for one
+       of its own environment variables (`$SQITCH_USERNAME` and
+       `$SQITCH_PASSSWORD`), then the target URI, and finally any engine-
+       specific values, which might include additional environment variables,
+       configuration files, the system user, or none at all.
+     - Database engines that implicitly relied on username and/or password
+       environment variables or on the system username now explicitly rely on
+       them. These include the Firebird, MySQL, Postgres, and Vertical
+       engines. This change should exhibit no change in the behavior of these
+       engines.
+     - Added support for the `$MYSQL_HOST` and `$MYSQL_TCP_PORT` environment
+       variables to the MySQL engine.
+     - Documented all supported engine-specific environment variables in the
+       sqitch-environment guide.
+     - Renamed the sqitch-passwords guide to sqitch-authentication and added a
+       section on username specification.
+     - Updated all URLs to use the https scheme. Only exceptions are tt2.org,
+       which doesn't support TLS, and conferences.embarcadero.com, which
+       appears to be down.
+
+0.9997 2018-03-15T21:13:52Z
      - Fixed the Firebird engine to properly detect multiple instances of a
        change specified to `revert` and `verify`, matching the behavior of
        displaying tag-qualified alternates added to the other engines in
@@ -11,7 +397,7 @@ Revision history for Perl extension App::Sqitch
        processes on the same box, as happens with CPAN smoke testing boxes.
      - Fixed an issue where Sqitch would sometimes truncate the registry
        version number fetched from Postgres, most likely because the Perl
-       runtime was using 32-bit integers. Fix by casting the version to text
+       runtime was using 32-bit integers. Fixed by casting the version to text
        in the query, before Perl ever see it. Thanks to Malte Legenhausen for
        the report (#343).
      - The MySQL engine will now read the username from MySQL configuration
@@ -21,6 +407,18 @@ Revision history for Perl extension App::Sqitch
        documentation to be a bit less confusing. Thanks to Emil for reporting
        where he got confused!
      - Added the Exasol engine. Thanks to Johan Wärlander for the PR (#362)!
+     - Fixed an issue where URI::db needed to be explicitly loaded. Thanks to
+       Hugh Esco for the report (#370)!
+     - Changed the exit value for `rebase` and `revert` from 1 to 0 when there
+       is no work to do. This is to match the expectation of non-zero exit
+       statuses only when a command is unsuccessful, as well as the behavior
+       of `deploy` as of v0.995. Nothing to do is considered successful.
+       Thanks to Paul Williams for the PR (#374)!
+     - Update `psql` options to use a conninfo string to honor connection
+       parameter key words for PostgreSQL targets. It can now take advantage
+       of the connection service file using `db:pg:///?service=$PGSERVICE` as
+       well as other connection parameters. Thanks to Paul Williams for the PR
+       (#375)!
 
 0.9996 2017-07-17T18:33:12Z
      - Fixed an error where Oracle sometimes truncated timestamp formats so
@@ -61,7 +459,7 @@ Revision history for Perl extension App::Sqitch
        Hannah for the PR (#342).
      - Passing an engine name or plan file as the `<database>` parameter to
        the `log`, `status`, and `upgrade` commands now works correctly,
-       matching what the documention has said for some time (#324).
+       matching what the documentation has said for some time (#324).
      - Added the `--target` option to the `plan` and `show` commands.
      - Added the `<database>` parameter to the `plan` command.
      - Sqitch now loads targets from all config files, not just the local
@@ -73,7 +471,7 @@ Revision history for Perl extension App::Sqitch
        Please specify a tag-qualified change:", followed by a list of
        tag-qualified variants of the change.
      - Fixed a bug where the verify command would return a database error when
-       it finds no registory. Now it reports that the registry wasn't found in
+       it finds no registry. Now it reports that the registry wasn't found in
        the database.
 
 0.9995 2016-07-27T09:23:55Z
@@ -97,7 +495,7 @@ Revision history for Perl extension App::Sqitch
        environment variable still trumps all. Thanks to Jim Nasby for the pull
        request (#296).
      - Added detection of the `$VISUAL` environment variable to Editor
-       selection, prioritzed after the `core.editor` configuration variable
+       selection, prioritized after the `core.editor` configuration variable
        and before the `$EDITOR` environment variable. Thanks to Jim Nasby for
        the pull request (#296).
      - Updated the DateTime code to set the locale via `set_locale()` instead
@@ -128,7 +526,7 @@ Revision history for Perl extension App::Sqitch
        registry can be found. Thanks to Arnaldo Piccinelli for the spot (Issue
        #271).
      - Fixed the search for change IDs in engines to match the search for
-       changes. Specifically, change ID seaerch now properly handles the
+       changes. Specifically, change ID search now properly handles the
        offset characters `~` and `^`. This bug mainly affected the `verify`
        command, but it's good to address the inconsistency, done mainly by
        adding the `find_change_id` and `change_id_offset_from_id` methods to
@@ -182,7 +580,7 @@ Revision history for Perl extension App::Sqitch
        command, which is a bit more natural. It also means that the
        `--registry` and `--client` options of the `target` are no longer
        deprecated.
-     - The `init` command on longer writes out commented values for the
+     - The `init` command no longer writes out commented values for the
        `deploy_dir`, `revert_dir`, or `verify_dir` settings. I think these
        settings are not commonly used, and it would start to get crowded if we
        also added their "reworked" variants, which will be used still less.
@@ -228,7 +626,7 @@ Revision history for Perl extension App::Sqitch
 0.9992 2015-05-20T23:51:41Z
      - On PostgreSQL, Sqitch now sets the `client_encoding` parameter to
        `UTF8` for its own connection to the database. This ensures that data
-       sent to and from the databse should always be properly encoded and
+       sent to and from the database should always be properly encoded and
        decoded. Users should still set the proper encodings for change scripts
        as appropriate.
      - Fixed test failures due to path differences on Windows.
@@ -349,14 +747,14 @@ Revision history for Perl extension App::Sqitch
      - Improved MySQL missing table error detection by relying on error codes
        instead of matching a (possibly localized) error string.
      - Made the registry upgrade more transparent when deploying. Sqitch is
-       now is a little more vigilent in checking for things being out-of-date
+       now is a little more vigilant in checking for things being out-of-date
        and updating them.
      - Fixed an issue where the `status` command would return an error when
        run against a an older version of the registry.
      - Fixed a Postgres test failure when DBD::Pg is installed but psql is not
        in the path.
      - Now require Config::GitLike 1.15 to build on Windows in order to avoid
-       test failures when Cwd::abs_path dies on non-existant paths.
+       test failures when Cwd::abs_path dies on non-existent paths.
      - Clarified the behavior of each `deploy` reversion mode with regard to
        deploy script vs. verify script failures, and with the expectation that
        deploy scripts are atomic.
@@ -601,7 +999,7 @@ Revision history for Perl extension App::Sqitch
        that the server was not the right version of MySQL. Thanks to Luke
        Young for the report (Issue #158).
      - Made the `checkit()` MySQL function DETERMINISTIC, to improve
-       compatability with MariaDB. Thanks to Jesse Luehrs for the report
+       compatibility with MariaDB. Thanks to Jesse Luehrs for the report
        (Issue #158).
      - Fixed deployment to PostgreSQL 8.4 so that it no longer chokes on the
        `:tableopts`. Thanks to Justin Hawkins for the report!
@@ -615,7 +1013,7 @@ Revision history for Perl extension App::Sqitch
 
 0.991  2014-01-16T23:24:33Z
      - Greatly simplified determining the Firebird ISQL client. It no longer
-       tries so hard to find a full path, but does seach through the path list
+       tries so hard to find a full path, but does search through the path list
        for a likely candidate between fbsql, isql-fb, and isql (or equivalents
        ending in .exe on Windows).
      - Removed a bunch of inappropriately pasted stuff from the Firebird

@@ -1,10 +1,10 @@
 =head1 Name
 
-sqitch-show - Show object information or change file contents
+sqitch-show - Show object information or script contents
 
 =head1 Synopsis
 
-  sqitch show <type> <object>
+  sqitch show [options] <type> <object>
 
 =head1 Description
 
@@ -55,6 +55,13 @@ configuration.
 
 Suppress all output; instead exit with zero status if C<< <object> >> exists
 and is a valid object.
+
+=item C<--plan-file>
+
+=item C<-f>
+
+Path to the deployment plan file. Overrides target, engine, and core
+configuration values. Defaults to F<$top_dir/sqitch.plan>.
 
 =back
 

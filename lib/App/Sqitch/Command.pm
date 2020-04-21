@@ -11,7 +11,7 @@ use Hash::Merge 'merge';
 use Moo;
 use App::Sqitch::Types qw(Sqitch Target);
 
-our $VERSION = '0.9997';
+# VERSION
 
 use constant ENGINES => qw(
     pg
@@ -21,6 +21,7 @@ use constant ENGINES => qw(
     firebird
     vertica
     exasol
+    snowflake
 );
 
 has sqitch => (
@@ -60,16 +61,16 @@ has default_target => (
     isa     => Target,
     lazy    => 1,
     default => sub {
-        my $sqitch = shift->sqitch;
-        my @params = (sqitch => $sqitch);
+        my $self = shift;
+        my $sqitch = $self->sqitch;
+        my @params = $self->target_params;
         unless (
-               $sqitch->options->{engine}
-            || $sqitch->config->get(key => 'core.engine')
+               $sqitch->config->get(key => 'core.engine')
             || $sqitch->config->get(key => 'core.target')
         ) {
             # No specified engine, so specify an engineless URI.
             require URI::db;
-            push @params, uri => URI::db->new('db:');
+            unshift @params, uri => URI::db->new('db:');
         }
         require App::Sqitch::Target;
         return App::Sqitch::Target->new(@params);
@@ -85,43 +86,48 @@ sub command {
     return $class;
 }
 
-sub load {
-    my ( $class, $p ) = @_;
-    my $sqitch = $p->{sqitch};
+sub class_for {
+    my ( $class, $sqitch, $cmd ) = @_;
 
-    # We should have a command.
-    $class->usage unless $p->{command};
-    ( my $cmd = $p->{command} ) =~ s/-/_/g;
+    $cmd =~ s/-/_/g;
 
     # Load the command class.
     my $pkg = __PACKAGE__ . "::$cmd";
-    try {
-        eval "require $pkg" or die $@;
-    }
-    catch {
+    eval "require $pkg; 1" or do {
         # Emit the original error for debugging.
-        $sqitch->debug($_);
-
-        # Suggest help if it's not a valid command.
-        hurl {
-            ident   => 'command',
-            exitval => 1,
-            message => __x(
-                '"{command}" is not a valid command',
-                command => $cmd,
-            ),
-        };
+        $sqitch->debug($@);
+        return undef;
     };
+    return $pkg;
+}
+
+sub load {
+    my ( $class, $p ) = @_;
+    # We should have a command.
+    my $cmd = delete $p->{command} or $class->usage;
+    my $pkg = $class->class_for($p->{sqitch}, $cmd) or hurl {
+        ident   => 'command',
+        exitval => 1,
+        message => __x(
+            '"{command}" is not a valid command',
+            command => $cmd,
+        ),
+    };
+    $pkg->create($p);
+}
+
+sub create {
+    my ( $class, $p ) = @_;
 
     # Merge the command-line options and configuration parameters
-    my $params = $pkg->configure(
+    my $params = $class->configure(
         $p->{config},
-        $pkg->_parse_opts( $p->{args} )
+        $class->_parse_opts( $p->{args} )
     );
 
     # Instantiate and return the command.
-    $params->{sqitch} = $sqitch;
-    return $pkg->new($params);
+    $params->{sqitch} = $p->{sqitch};
+    return $class->new($params);
 }
 
 sub configure {
@@ -179,7 +185,7 @@ sub _pod2usage {
         '-verbose'  => 99,
         '-sections' => '(?i:(Usage|Synopsis|Options))',
         '-exitval'  => 2,
-        %params
+        %params,
     );
 }
 
@@ -203,15 +209,29 @@ sub usage {
     );
 }
 
+sub target_params {
+    return (sqitch => shift->sqitch);
+}
 
 sub parse_args {
     my ($self, %p) = @_;
-    my $sqitch = $self->sqitch;
-    my $config = $sqitch->config;
-    require App::Sqitch::Target;
-    my $target = App::Sqitch::Target->new( sqitch => $sqitch, name => $p{target} );
-    my (%seen, %target_for);
+    my $config = $self->sqitch->config;
+    my @params = $self->target_params;
 
+    # Load the specified or default target.
+    require App::Sqitch::Target;
+    my $deftarget_err;
+    my $target = try {
+        App::Sqitch::Target->new( @params, name => $p{target} )
+    } catch {
+        # Die if a target was specified; otherwise keep the error for later.
+        die $_ if $p{target};
+        $deftarget_err = $_;
+        undef;
+    };
+
+    # Set up the default results.
+    my (%seen, %target_for);
     my %rec = map { $_ => [] } qw(targets unknown);
     $rec{changes} = [] unless $p{no_changes};
     if ($p{target}) {
@@ -219,6 +239,7 @@ sub parse_args {
         $seen{$target->name}++;
     }
 
+    # Iterate over the argsx to look for changes, engines, plans, or targets.
     my %engines = map { $_ => 1 } ENGINES;
     for my $arg (@{ $p{args} }) {
         if ( !$p{no_changes} && $target && -e $target->plan_file && $target->plan->contains($arg) ) {
@@ -226,18 +247,18 @@ sub parse_args {
             push @{ $rec{changes} } => $arg;
         } elsif ($config->get( key => "target.$arg.uri") || URI->new($arg)->isa('URI::db')) {
             # A target. Instantiate and keep for subsequente change searches.
-            $target = App::Sqitch::Target->new( sqitch => $sqitch, name => $arg );
+            $target = App::Sqitch::Target->new( @params, name => $arg );
             push @{ $rec{targets} } => $target unless $seen{$target->name}++;
         } elsif ($engines{$arg}) {
             # An engine. Add its target.
             my $name = $config->get(key => "engine.$arg.target") || "db:$arg:";
-            $target = App::Sqitch::Target->new( sqitch => $sqitch, name => $name );
+            $target = App::Sqitch::Target->new( @params, name => $name );
             push @{ $rec{targets} } => $target unless $seen{$target->name}++;
         } elsif (-e $arg) {
             # Maybe it's a plan file?
             %target_for = map {
                 $_->plan_file => $_
-            } reverse App::Sqitch::Target->all_targets(sqitch => $sqitch) unless %target_for;
+            } reverse App::Sqitch::Target->all_targets(@params) unless %target_for;
             if ($target_for{$arg}) {
                 # It *is* a plan file.
                 $target = $target_for{$arg};
@@ -251,10 +272,6 @@ sub parse_args {
             push @{ $rec{unknown} } => $arg;
         }
     }
-
-    # Make sure we have the default target if none was specified.
-    push @{ $rec{targets} } => $target
-        if $target && !$p{no_default} && !@{ $rec{targets} };
 
     # Replace missing names with unknown values.
     my @names = map { $_ || shift @{ $rec{unknown} } } @{ $p{names} || [] };
@@ -276,13 +293,17 @@ sub parse_args {
         hurl $self->command => __(
             'Cannot specify both --all and engine, target, or plan arugments'
         ) if @targets;
-        @targets = App::Sqitch::Target->all_targets( sqitch => $sqitch );
+        @targets = App::Sqitch::Target->all_targets(@params );
     } elsif (!@targets) {
         # Use all if tag.all is set, otherwise just the default.
         my $key = $self->command . '.all';
         @targets = $self->sqitch->config->get(key => $key, as => 'bool')
-            ? App::Sqitch::Target->all_targets( sqitch => $sqitch )
-            : ($self->default_target);
+            ? App::Sqitch::Target->all_targets(@params )
+            : do {
+                # Fall back on the default unless it's invalid.
+                die $deftarget_err if $deftarget_err;
+                ($target)
+            }
     }
 
     return (@names, \@targets, $rec{changes});
@@ -329,6 +350,8 @@ Returns the list of supported engines, currently:
 
 =item * C<exasol>
 
+=item * C<snowflake>
+
 =back
 
 =head2 Class Methods
@@ -374,6 +397,15 @@ keys, and then merges the configuration values with the options, with the
 command-line options taking priority. You may wish to override this method to
 do something different.
 
+=head3 C<class_for>
+
+  my $subclass = App::Sqitch::Command->subclass_for($sqitch, $cmd_name);
+
+This method attempts to load the subclass of App::Sqitch::Commmand that
+corresponds to the command name. Returns C<undef> and sends errors to the
+C<debug> method of the <$sqitch> object if no such subclass can
+be loaded.
+
 =head2 Constructors
 
 =head3 C<load>
@@ -381,10 +413,10 @@ do something different.
   my $cmd = App::Sqitch::Command->load( \%params );
 
 A factory method for instantiating Sqitch commands. It loads the subclass for
-the specified command, uses the options returned by C<options> to parse
-command-line options, calls C<configure> to merge configuration with the
-options, and finally calls C<new> with the resulting hash. Supported parameters
-are:
+the specified command and calls C<create> to instantiate and return an
+instance of the subclass. Sends error messages to the C<debug> method of the
+C<sqitch> parameter and throws an exception if the subclass does not exist or
+cannot be loaded. Supported parameters are:
 
 =over
 
@@ -406,6 +438,22 @@ The name of the command to be executed.
 An array reference of command-line arguments passed to the command.
 
 =back
+
+=head3 C<create>
+
+  my $pkg = App::Sqitch::Command->class_for( $sqitch, $cmd_name )
+      or die "No such command $cmd_name";
+  my $cmd = $pkg->create({
+      sqitch => $sqitch,
+      config => $config,
+      args   => \@ARGV,
+  });
+
+Creates and returns a new object for a subclass of App::Sqitch::Command. It
+parses options from the C<args> parameter, calls C<configure> to merge
+configuration with the options, and finally calls C<new> with the resulting
+hash. Supported parameters are the same as for C<load> except for the
+C<command> parameter, which will be ignored.
 
 =head3 C<new>
 
@@ -459,12 +507,11 @@ This method returns the default target. It should only be used by commands
 that don't use a C<parse_args()> to find and load a target.
 
 This method should always return a target option, never C<undef>. If the
-C<--engine> option or C<core.engine> configuration option has been set, then
-the target will support that engine. In the latter case, if
-C<engine.$engine.target> is set, that value will be used. Otherwise, the
-returned target will have a URI of C<db:> and no associated engine; the
-C<engine> method will throw an exception. This behavior should be fine for
-commands that don't need to load the engine.
+C<core.engine> configuration option has been set, then the target will support
+that engine. In the latter case, if C<engine.$engine.target> is set, that
+value will be used. Otherwise, the returned target will have a URI of C<db:>
+and no associated engine; the C<engine> method will throw an exception. This
+behavior should be fine for commands that don't need to load the engine.
 
 =head3 C<parse_args>
 
@@ -475,9 +522,9 @@ commands that don't need to load the engine.
   );
 
 Examines each argument to determine whether it's a known change spec or
-identifies a target. Unrecognized arguments will replace false values in the
-C<names> array reference. Any remaining unknown arguments will trigger an
-error.
+identifies a target or engine. Unrecognized arguments will replace false
+values in the C<names> array reference. Any remaining unknown arguments will
+trigger an error.
 
 Returns a list consisting all the desired names, followed by an array
 reference of target objects and an array reference of change specs.
@@ -522,11 +569,6 @@ instead be included in either the C<targets> array -- if it's recognized as a
 target -- or used to set names to return. Any remaining are considered
 unknown arguments and will result in an exception.
 
-=item C<no_default>
-
-If true, no default target will be returned, even if no other targets are
-found. See below for details.
-
 =back
 
 If a target parameter is passed, it will always be instantiated and returned
@@ -534,12 +576,11 @@ as the first item in the "target" array, and arguments recognized as changes
 in the plan associated with that target will be returned as changes.
 
 If no target is passed or appears in the arguments, a default target will be
-instantiated based on the command-line options and configuration -- unless the
-C<no_default> parameter is true. Unlike the target returned by
-C<default_target>, this target B<must> have an associated engine specified by
-the C<--engine> option or configuration. This is on the assumption that it
-will be used by commands that require an engine to do their work. Of course,
-any changes must be recognized from the plan associated with this target.
+instantiated based on the command-line options and configuration. Unlike the
+target returned by C<default_target>, this target B<must> have an associated
+engine specified by the configuration. This is on the assumption that it will
+be used by commands that require an engine to do their work. Of course, any
+changes must be recognized from the plan associated with this target.
 
 Changes are only recognized if they're found in the plan of the target that
 precedes them. If no target precedes them, the target specified by the
@@ -564,6 +605,13 @@ In the case of plan files, C<parse_args()> will return the first target it
 finds for that plan file, even if multiple targets use the same plan file. The
 order of precedence for this determination is the default project target,
 followed by named targets, then engine targets.
+
+=head3 C<target_params>
+
+  my $target = App::Sqitch::Target->new( $cmd->target_params );
+
+Returns a list of parameters suitable for passing to the C<new> or
+C<all_targets> constructors of App::Sqitch::Target.
 
 =head3 C<run>
 
@@ -648,7 +696,7 @@ which case it I<is> sent to C<STDOUT>. Meant to be used to send a lot of data
 to the user at once, such as when display the results of searching the event
 log:
 
-  $iter = $sqitch->engine->search_events;
+  $iter = $engine->search_events;
   while ( my $change = $iter->() ) {
       $cmd->page(join ' - ', @{ $change }{ qw(change_id event change) });
   }
@@ -703,7 +751,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2017 iovation Inc.
+Copyright (c) 2012-2018 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 27;
+use Test::More tests => 22;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use Path::Class;
@@ -14,6 +14,8 @@ use App::Sqitch::Plan;
 use Test::MockModule;
 use Digest::SHA;
 use URI;
+use lib 't/lib';
+use TestConfig;
 
 my $CLASS;
 
@@ -23,15 +25,12 @@ BEGIN {
     delete $ENV{PGDATABASE};
     delete $ENV{PGUSER};
     delete $ENV{USER};
-    $ENV{SQITCH_CONFIG} = 'nonexistent.conf';
 }
 
 can_ok $CLASS, qw(
     name
     info
     id
-    old_info
-    old_id
     lspace
     rspace
     note
@@ -42,10 +41,11 @@ can_ok $CLASS, qw(
     format_planner
 );
 
-my $sqitch = App::Sqitch->new(options => {
-    engine  => 'sqlite',
-    top_dir => dir(qw(t sql))->stringify,
-});
+my $config = TestConfig->new(
+    'core.engine'  => 'sqlite',
+    'core.top_dir' => dir(qw(t sql))->stringify,
+);
+my $sqitch = App::Sqitch->new(config  => $config);
 my $target = App::Sqitch::Target->new(sqitch => $sqitch);
 my $plan   = App::Sqitch::Plan->new(sqitch => $sqitch, target => $target);
 my $change = App::Sqitch::Plan::Change->new( plan => $plan, name => 'roles' );
@@ -75,25 +75,16 @@ is $tag->format_planner, join(
 my $ts = $tag->timestamp->as_string;
 is $tag->as_string, "\@foo $ts ". $tag->format_planner,
     'Should as_string to "@foo" + timstamp + planner';
-my $uri = URI->new('https://github.com/theory/sqitch/');
+my $uri = URI->new('https://github.com/sqitchers/sqitch/');
 $mock_plan->mock( uri => $uri );
 is $tag->info, join("\n",
     'project sql',
-    'uri https://github.com/theory/sqitch/',
+    'uri https://github.com/sqitchers/sqitch/',
     'tag @foo',
     'change ' . $change->id,
     'planner ' . $tag->format_planner,
     'date '    . $ts,
 ), 'Tag info should incldue the URI';
-
-is $tag->old_info, join("\n",
-    'project sql',
-    'uri https://github.com/theory/sqitch/',
-    'tag @foo',
-    'change ' . $change->old_id,
-    'planner ' . $tag->format_planner,
-    'date '    . $ts,
-), 'Old tag info should incldue the URI';
 
 my $date = App::Sqitch::DateTime->new(
     year   => 2012,
@@ -136,7 +127,7 @@ is $tag->change, $change, 'Change should be for previous change';
 
 is $tag->info, join("\n",
     'project sql',
-    'uri https://github.com/theory/sqitch/',
+    'uri https://github.com/sqitchers/sqitch/',
     'tag @howdy',
     'change ' . $change->id,
     'planner Barack Obama <potus@whitehouse.gov>',
@@ -151,22 +142,6 @@ is $tag->id, do {
     )->hexdigest;
 },'Tag ID should be correct';
 
-is $tag->old_info, join("\n",
-    'project sql',
-    'uri https://github.com/theory/sqitch/',
-    'tag @howdy',
-    'change ' . $change->old_id,
-    'planner Barack Obama <potus@whitehouse.gov>',
-    'date 2012-07-16T17:25:07Z'
-), 'Old tag info should include the change';
-
-is $tag->old_id, do {
-    my $content = $tag->old_info;
-    Digest::SHA->new(1)->add(
-        'tag ' . length($content) . "\0" . $content
-    )->hexdigest;
-},'Old tag ID should be correct';
-
 ##############################################################################
 # Test ID for a tag with a UTF-8 name.
 ok $tag = $CLASS->new(
@@ -177,9 +152,9 @@ ok $tag = $CLASS->new(
 
 is $tag->info, join("\n",
     'project sql',
-    'uri https://github.com/theory/sqitch/',
+    'uri https://github.com/sqitchers/sqitch/',
     'tag '     . '@阱阪阬',
-    'change '  . $change->old_id,
+    'change '  . $change->id,
     'planner ' . $tag->format_planner,
     'date '    . $tag->timestamp->as_string,
 ), 'The name should be decoded text in info';
@@ -190,19 +165,3 @@ is $tag->id, do {
         'tag ' . length($content) . "\0" . $content
     )->hexdigest;
 },'Tag ID should be hahsed from encoded UTF-8';
-
-is $tag->old_info, join("\n",
-    'project sql',
-    'uri https://github.com/theory/sqitch/',
-    'tag '     . '@阱阪阬',
-    'change '  . $change->old_id,
-    'planner ' . $tag->format_planner,
-    'date '    . $tag->timestamp->as_string,
-), 'Old name should be decoded text in info';
-
-is $tag->old_id, do {
-    my $content = Encode::encode_utf8 $tag->old_info;
-    Digest::SHA->new(1)->add(
-        'tag ' . length($content) . "\0" . $content
-    )->hexdigest;
-},'Old tag ID should be hahsed from encoded UTF-8';

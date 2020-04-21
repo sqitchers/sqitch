@@ -4,14 +4,21 @@ sqitch-deploy-usage - Sqitch deploy usage statement
 
 =head1 Usage
 
-  sqitch [options] deploy [change options] [<database>]
+  sqitch deploy [options] [<database>]
 
 =head1 Options
 
-    -t --target <target>    database to which to connect
-       --to-change <change> deploy to change
-       --mode <mode>        failure reversion mode
-    -s --set <key=value>    set a database client variable
-       --verify             run verify scripts after each change
-       --no-verify          do not run verify scripts
-       --log-only           log changes without running them
+    -t --target     <target>     database to which to connect
+       --to-change  <change>     deploy to change
+       --mode       <mode>       failure reversion mode
+    -s --set        <key=value>  set a database client variable
+       --verify                  run verify scripts after each change
+       --no-verify               do not run verify scripts
+       --log-only                log changes without running them
+       --registry   <registry>   registry schema or database
+       --db-client  <path>       path to the engine command-line client
+    -d --db-name    <name>       database name
+    -u --db-user    <user>       database user name
+    -h --db-host    <host>       database server host name
+    -p --db-port    <port>       database server port number
+    -f --plan-file  <file>       path to a deployment plan file

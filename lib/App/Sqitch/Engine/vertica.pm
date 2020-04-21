@@ -12,11 +12,11 @@ use App::Sqitch::Types qw(DBH ArrayRef);
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.9997';
+# VERSION
 
 sub key    { 'vertica' }
 sub name   { 'Vertica' }
-sub driver { 'DBD::ODBC 1.43' }
+sub driver { 'DBD::ODBC 1.59' }
 sub default_client { 'vsql' }
 
 sub destination {
@@ -30,14 +30,13 @@ sub destination {
     # Use the URI sans password, and with the database name added.
     my $uri = $self->target->uri->clone;
     $uri->password(undef) if $uri->password;
-    $uri->dbname(
-           $ENV{VSQL_DATABASE}
-        || $self->username
-        || $ENV{VSQL_USER}
-        || $self->sqitch->sysuser
-    );
+    $uri->dbname( $ENV{VSQL_DATABASE} || $self->username );
     return $uri->as_string;
 }
+
+
+sub _def_user { $ENV{VSQL_USER} || shift->sqitch->sysuser }
+sub _def_pass { $ENV{VSQL_PASSWORD} }
 
 has _vsql => (
     is         => 'ro',
@@ -52,8 +51,7 @@ has _vsql => (
             [ dbname   => $uri->dbname    ],
             [ host     => $uri->host      ],
             [ port     => $uri->_port     ],
-            )
-        {
+        ) {
             push @ret, "--$spec->[0]" => $spec->[1] if $spec->[1];
         }
 
@@ -61,14 +59,7 @@ has _vsql => (
             push @ret => map {; '--set', "$_=$vars{$_}" } sort keys %vars;
         }
 
-        push @ret => (
-            '--quiet',
-            '--no-vsqlrc',
-            '--no-align',
-            '--tuples-only',
-            '--set' => 'ON_ERROR_STOP=1',
-            '--set' => 'registry=' . $self->registry,
-        );
+        push @ret => $self->_client_opts;
         return \@ret;
     },
 );
@@ -87,14 +78,11 @@ has dbh => (
         my $target = $self->target;
         my $uri = $self->uri;
         # https://my.vertica.com/docs/5.1.6/HTML/index.htm#2736.htm
-        $uri->dbname($ENV{VSQL_DATABASE})   if !$uri->dbname   && $ENV{VSQL_DATABASE};
-        $uri->host($ENV{VSQL_HOST})         if !$uri->host     && $ENV{VSQL_HOST};
-        $uri->port($ENV{VSQL_PORT})         if !$uri->_port    && $ENV{VSQL_PORT};
-        $uri->user($ENV{VSQL_USER})         if !$uri->user     && $ENV{VSQL_USER};
-        $uri->password($target->password || $ENV{VSQL_PASSWORD})
-            if !$uri->password && ($target->password || $ENV{VSQL_PASSWORD});
+        $uri->dbname($ENV{VSQL_DATABASE}) if !$uri->dbname   && $ENV{VSQL_DATABASE};
+        $uri->host($ENV{VSQL_HOST})       if !$uri->host     && $ENV{VSQL_HOST};
+        $uri->port($ENV{VSQL_PORT})       if !$uri->_port    && $ENV{VSQL_PORT};
 
-        DBI->connect($uri->dbi_dsn, scalar $uri->user, scalar $uri->password, {
+        DBI->connect($uri->dbi_dsn, $self->username, $self->password, {
             PrintError        => 0,
             RaiseError        => 0,
             AutoCommit        => 1,
@@ -112,7 +100,7 @@ has dbh => (
                         $dbh->do(
                             'SET search_path = ' . $dbh->quote($self->registry)
                         );
-                        # http://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
+                        # https://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
                         $dbh->set_err(undef, undef) if $dbh->err;
                     };
                     return;
@@ -196,11 +184,6 @@ sub _no_table_error  {
 
 sub _no_column_error  {
     return $DBI::state && $DBI::state eq '42703'; # ERRCODE_UNDEFINED_COLUMN
-}
-
-sub _ts2char($) {
-    my $col = shift;
-    return qq{to_char($col AT TIME ZONE 'UTC', '"year":YYYY:"month":MM:"day":DD:"hour":HH24:"minute":MI:"second":SS:"time_zone":"UTC"')};
 }
 
 sub _dt($) {
@@ -579,7 +562,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2017 iovation Inc.
+Copyright (c) 2012-2018 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

@@ -113,3 +113,7 @@ exasol
 exaplus
 sql
 sys
+SnowSQL
+DML
+Blockchain
+Merkle

@@ -3,11 +3,12 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 231;
+use Test::More tests => 234;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::Exception;
+use Test::Warn;
 use App::Sqitch::Command::add;
 use Path::Class;
 use Test::File qw(file_not_exists_ok file_exists_ok);
@@ -16,22 +17,17 @@ use File::Path qw(make_path remove_tree);
 use Test::NoWarnings;
 use lib 't/lib';
 use MockOutput;
-
-$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
-$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
+use TestConfig;
 
 my $CLASS = 'App::Sqitch::Command::rework';
 my $test_dir = dir 'test-rework';
 
-ok my $sqitch = App::Sqitch->new(
-    options => {
-        engine  => 'pg',
-        top_dir => $test_dir->stringify,
-    },
-), 'Load a sqitch sqitch object';
+my $config = TestConfig->new(
+    'core.engine'  => 'sqlite',
+    'core.top_dir' => $test_dir->stringify,
+);
+ok my $sqitch = App::Sqitch->new(config  => $config), 'Load a sqitch object';
 
-my $config = $sqitch->config;
 isa_ok my $rework = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'rework',
@@ -49,14 +45,17 @@ sub dep($) {
     return $dep;
 }
 
-
 can_ok $CLASS, qw(
     change_name
     requires
     conflicts
     note
     execute
+    does
 );
+
+ok $CLASS->does("App::Sqitch::Role::ContextCommand"),
+    "$CLASS does ContextCommand";
 
 is_deeply [$CLASS->options], [qw(
     change-name|change|c=s
@@ -65,11 +64,20 @@ is_deeply [$CLASS->options], [qw(
     all|a!
     note|n|m=s@
     open-editor|edit|e!
+    plan-file|f=s
+    top-dir=s
 )], 'Options should be set up';
+
+warning_is {
+    Getopt::Long::Configure(qw(bundling pass_through));
+    ok Getopt::Long::GetOptionsFromArray(
+        [], {}, App::Sqitch->_core_opts, $CLASS->options,
+    ), 'Should parse options';
+} undef, 'Options should not conflict with core options';
 
 ##############################################################################
 # Test configure().
-is_deeply $CLASS->configure($config, {}), {},
+is_deeply $CLASS->configure($config, {}), { _cx => [] },
     'Should have default configuration with no config or opts';
 
 is_deeply $CLASS->configure($config, {
@@ -80,15 +88,16 @@ is_deeply $CLASS->configure($config, {
     requires  => [qw(foo bar)],
     conflicts => ['baz'],
     note      => [qw(hi there)],
+    _cx       => [],
 }, 'Should have get requires, conflicts, and note options';
 
 # open_editor handling
 CONFIG: {
-    local $ENV{SQITCH_CONFIG} = File::Spec->catfile(qw(t rework.conf));
-    my $config = App::Sqitch::Config->new;
-    is_deeply $CLASS->configure($config, {}), {}, 'Grabs nothing from config';
+    my $config = TestConfig->from(local => File::Spec->catfile(qw(t rework.conf)));
+    is_deeply $CLASS->configure($config, {}), { _cx => []},
+        'Grabs nothing from config';
 
-    ok my $sqitch = App::Sqitch->new, 'Load default Sqitch project';
+    ok my $sqitch = App::Sqitch->new(config => $config), 'Load Sqitch project';
     isa_ok my $rework = App::Sqitch::Command->load({
         sqitch  => $sqitch,
         command => 'rework',
@@ -143,7 +152,7 @@ $mock_plan->mock(plan => $plan);
 
 ok my $add = App::Sqitch::Command::add->new(
     sqitch => $sqitch,
-    change_name => 'foo',,
+    change_name => 'foo',
     template_directory => Path::Class::dir(qw(etc templates))
 ), 'Create another add with template_directory';
 file_not_exists_ok($_) for ($deploy_file, $revert_file, $verify_file);
@@ -178,7 +187,7 @@ file_contents_identical($deploy_file2, $deploy_file);
 file_contents_identical($verify_file2, $verify_file);
 file_contents_identical($revert_file, $deploy_file);
 file_contents_is($revert_file2, <<'EOF', 'New revert should revert');
--- Revert empty:foo from pg
+-- Revert empty:foo from sqlite
 
 BEGIN;
 
@@ -432,8 +441,8 @@ MULTIPLAN: {
     } qw(pg sqlite mysql);
 
     # Load up the configuration for this project.
-    local $ENV{SQITCH_CONFIG} = $conf;
-    my $sqitch = App::Sqitch->new;
+    my $config = TestConfig->from(local => $conf);
+    my $sqitch = App::Sqitch->new(config => $config);
     ok my $rework = $CLASS->new(
         sqitch             => $sqitch,
         note               => ['Testing multiple plans'],
@@ -660,8 +669,8 @@ MULTITARGET: {
     } qw(pg sqlite);
 
     # Load up the configuration for this project.
-    local $ENV{SQITCH_CONFIG} = $conf;
-    my $sqitch = App::Sqitch->new;
+    $config = TestConfig->from(local => $conf);
+    $sqitch = App::Sqitch->new(config => $config);
     ok my $rework = $CLASS->new(
         sqitch             => $sqitch,
         note               => ['Testing multiple plans'],
@@ -784,8 +793,8 @@ MULTITAG: {
     } qw(pg sqlite);
 
     # Load up the configuration for this project.
-    local $ENV{SQITCH_CONFIG} = $conf;
-    my $sqitch = App::Sqitch->new;
+    $config = TestConfig->from(local => $conf);
+    $sqitch = App::Sqitch->new(config => $config);
     ok my $rework = $CLASS->new(
         sqitch             => $sqitch,
         note               => ['Testing multiple plans'],
@@ -893,8 +902,8 @@ ONETOP: {
     }
 
     # Load up the configuration for this project.
-    local $ENV{SQITCH_CONFIG} = $conf;
-    my $sqitch = App::Sqitch->new;
+    $config = TestConfig->from(local => $conf);
+    $sqitch = App::Sqitch->new(config => $config);
     ok my $rework = $CLASS->new(
         sqitch             => $sqitch,
         note               => ['Testing multiple plans'],

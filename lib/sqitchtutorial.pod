@@ -15,8 +15,8 @@ a VCS for deployment planning, and work with other developers to make sure
 changes remain in sync and in the proper order.
 
 We'll start by creating a new project from scratch, a fictional antisocial
-networking site called Flipr. All examples use L<Git|http://git-scm.com/> as
-the VCS and L<PostgreSQL|http://www.postgresql.org/> as the storage engine,
+networking site called Flipr. All examples use L<Git|https://git-scm.com/> as
+the VCS and L<PostgreSQL|https://www.postgresql.org/> as the storage engine,
 but for the most part you can substitute other VCSes and database engines in
 the examples as appropriate.
 
@@ -24,13 +24,15 @@ If you'd like to manage an SQLite database, see L<sqitchtutorial-sqlite>.
 
 If you'd like to manage an Oracle database, see L<sqitchtutorial-oracle>.
 
-If you'd like to manage an MySQL database, see L<sqitchtutorial-mysql>.
+If you'd like to manage a MySQL database, see L<sqitchtutorial-mysql>.
 
-If you'd like to manage an Firebird database, see L<sqitchtutorial-firebird>.
+If you'd like to manage a Firebird database, see L<sqitchtutorial-firebird>.
 
-If you'd like to manage an Vertica database, see L<sqitchtutorial-vertica>.
+If you'd like to manage a Vertica database, see L<sqitchtutorial-vertica>.
 
 If you'd like to manage an Exasol database, see L<sqitchtutorial-exasol>.
+
+If you'd like to manage a Snowflake database, see L<sqitchtutorial-snowflake>.
 
 =head1 Starting a New Project
 
@@ -46,14 +48,15 @@ source code repository. So let's do that with Git:
   > git commit -am 'Initialize project, add README.'
 
 If you're a Git user and want to follow along the history, the repository
-used in these examples is L<on GitHub|https://github.com/theory/sqitch-intro>.
+used in these examples is L<on GitHub|https://github.com/sqitchers/sqitch-intro>.
 
 Now that we have a repository, let's get started with Sqitch. Every Sqitch
 project must have a name associated with it, and, optionally, a unique URI. We
 recommend including the URI, as it increases the uniqueness of object
-identifiers internally, so let's specify one when we initialize Sqitch:
+identifiers internally, and will prevent the deployment of a different project
+with the same name. So let's specify one when we initialize Sqitch:
 
-  > sqitch init flipr --uri https://github.com/theory/sqitch-intro/ --engine pg
+  > sqitch init flipr --uri https://github.com/sqitchers/sqitch-intro/ --engine pg
   Created sqitch.conf
   Created sqitch.plan
   Created deploy/
@@ -73,7 +76,7 @@ Let's have a look at F<sqitch.conf>:
   	# client = psql
 
 Good, it picked up on the fact that we're creating changes for the PostgreSQL
-engine, thanks to the C<-engine pg> option, and saved it to the file.
+engine, thanks to the C<--engine pg> option, and saved it to the file.
 Furthermore, it wrote a commented-out C<[engine "pg"]> section with all the
 available PostgreSQL engine-specific settings commented out and ready to be
 edited as appropriate.
@@ -108,7 +111,7 @@ Back to the repository. Have a look at the plan file, F<sqitch.plan>:
   > cat sqitch.plan
   %syntax-version=1.0.0
   %project=flipr
-  %uri=https://github.com/theory/sqitch-intro/
+  %uri=https://github.com/sqitchers/sqitch-intro/
   
 
 Note that it has picked up on the name and URI of the app we're building.
@@ -148,10 +151,14 @@ script, so we add this to F<revert/appschema.sql>:
 
   DROP SCHEMA flipr;
 
-Now we can try deploying this change. We tell Sqitch where to send the change
-via a L<database URI|https://github.com/theory/uri-db/>:
+Now we can try deploying this change. First, we need to create a database
+to deploy to:
 
   > createdb flipr_test
+
+Now we tell Sqitch where to send the change via a
+L<database URI|https://github.com/libwww-perl/uri-db/>:
+
   > sqitch deploy db:pg:flipr_test
   Adding registry tables to db:pg:flipr_test
   Deploying to db:pg:flipr_test
@@ -182,12 +189,19 @@ did what it was supposed to. It should do so without regard to any data that
 might be in the database, and should throw an error if the deploy was not
 successful. In PostgreSQL, the simplest way to do so for non-queryable objects
 such as schemas is to take advantage the
-L<access privilege inquiry functions|http://www.postgresql.org/docs/current/static/functions-info.html#FUNCTIONS-INFO-ACCESS-TABLE>.
+L<access privilege inquiry functions|https://www.postgresql.org/docs/current/static/functions-info.html#FUNCTIONS-INFO-ACCESS-TABLE>.
 These functions conveniently throw exceptions if the object being inquired
 does not exist. For our new schema, C<has_schema_privilege()> will do very
 nicely. Put this query into F<verify/appschema.sql>:
 
   SELECT pg_catalog.has_schema_privilege('flipr', 'usage');
+
+B<Important!> This query isn't verifying that the user has C<usage> privilege
+on schema C<flipr>. The verification will pass even if the current user
+has no usage rights.
+
+B<Important!> Both C<SELECT false;> and C<SELECT true;> queries will successfully
+pass C<verify> step. Only queries that raise an exception will fail.
 
 Such functionality may not be available to other databases, but you can use
 I<any> query that will throw an exception if the schema doesn't exist. One
@@ -196,6 +210,27 @@ other databases, assuming division by zero is fatal, you could do something
 like this:
 
   SELECT 1/COUNT(*) FROM information_schema.schemata WHERE schema_name = 'flipr';
+
+In Postgres 9.5+ you can use C<PL/pgSQL> anonymous functions with
+C<ASSERT> / C<RAISE> statements.
+
+  DO $$
+  BEGIN
+     ASSERT (SELECT has_schema_privilege('flipr', 'usage'));
+  END $$;
+
+You can use variables to perform more complex checks:
+
+  DO $$
+  DECLARE
+      result varchar;
+  BEGIN
+     result := (SELECT name FROM flipr.pipelines WHERE id = 1);
+     ASSERT result = 'Example';
+  END $$;
+
+This example ensures the record with C<id=1> in C<pipelines> table
+has C<name> field equals C<'Example'>.
 
 Either way, run the C<verify> script with the L<C<verify>|sqitch-verify>
 command:
@@ -357,14 +392,14 @@ When we look at the status, the deployment will be there:
 =head1 On Target
 
 I'm getting a little tired of always having to type C<db:pg:flipr_test>,
-aren't you? This L<database connection URI|https://github.com/theory/uri-db/>
+aren't you? This L<database connection URI|https://github.com/libwww-perl/uri-db/>
 tells Sqitch how to connect to the deployment target, but we don't have
 to keep using the URI. We can name the target:
 
   > sqitch target add flipr_test db:pg:flipr_test
 
 The L<C<target>|sqitch-target> command, inspired by
-L<C<git-remote>|http://git-scm.com/docs/git-remote>, allows management of one
+L<C<git-remote>|https://git-scm.com/docs/git-remote>, allows management of one
 or more named deployment targets. We've just added a target named
 C<flipr_test>, which means we can use the string C<flipr_test> for the target,
 rather than the URI. But since we're doing so much testing, we can also use
@@ -599,7 +634,7 @@ Now might be a good time to have a look at the deployment plan:
   > cat sqitch.plan
   %syntax-version=1.0.0
   %project=flipr
-  %uri=https://github.com/theory/sqitch-intro/
+  %uri=https://github.com/sqitchers/sqitch-intro/
 
   appschema 2013-12-30T23:19:45Z Marge N. O’Vera <marge@example.com> # Add schema for all flipr objects.
   users [appschema] 2013-12-30T23:49:00Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
@@ -828,6 +863,10 @@ deploying it:
 
 Looks much the same as before, eh? Package it up and ship it!
 
+  > cd ..
+  > mv bundle flipr-v1.0.0-dev1
+  > tar -czf flipr-v1.0.0-dev1.tgz flipr-v1.0.0-dev1
+
 =head1 Flip Out
 
 Now that we've got the basics of user management done, let's get to work on
@@ -911,7 +950,7 @@ Look good?
   # 
   Nothing to deploy (up-to-date)
 
-Note the use of C<--show tags> to show all the deployed tags. Now make it so:
+Note the use of C<--show-tags> to show all the deployed tags. Now make it so:
 
   > git add .
   [flips e8f4655] Add flips table.
@@ -1005,7 +1044,7 @@ And:
 
   COMMIT;
 
-Check the L<example git repository|https://github.com/theory/sqitch-intro> for
+Check the L<example git repository|https://github.com/sqitchers/sqitch-intro> for
 the complete details. Test L<C<deploy>|sqitch-deploy> and
 L<C<revert>|sqitch-revert>, then commit it to the repository. The status
 should end up looking something like this:
@@ -1121,7 +1160,7 @@ resolve conflicts in that file. Except in Git. Fortunately for us, we can tell
 Git to resolve conflicts in F<sqitch.plan> differently. Because we only ever
 append lines to the file, we can have it use the "union" merge driver, which,
 according to L<its
-docs|http://git-scm.com/docs/gitattributes#_built-in_merge_drivers>:
+docs|https://git-scm.com/docs/gitattributes#_built-in_merge_drivers>:
 
 =over
 
@@ -1160,11 +1199,11 @@ Ah, that looks a bit better. Let's have a look at the plan:
   > cat sqitch.plan
   %syntax-version=1.0.0
   %project=flipr
-  %uri=https://github.com/theory/sqitch-intro/
+  %uri=https://github.com/sqitchers/sqitch-intro/
 
   %syntax-version=1.0.0
   %project=flipr
-  %uri=https://github.com/theory/sqitch-intro/
+  %uri=https://github.com/sqitchers/sqitch-intro/
 
   appschema 2013-12-30T23:19:45Z Marge N. O’Vera <marge@example.com> # Add schema for all flipr objects.
   users [appschema] 2013-12-30T23:49:00Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
@@ -1252,7 +1291,7 @@ And double-check our work:
   > cat sqitch.plan
   %syntax-version=1.0.0
   %project=flipr
-  %uri=https://github.com/theory/sqitch-intro/
+  %uri=https://github.com/sqitchers/sqitch-intro/
 
   appschema 2013-12-30T23:19:45Z Marge N. O’Vera <marge@example.com> # Add schema for all flipr objects.
   users [appschema] 2013-12-30T23:49:00Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
@@ -1317,7 +1356,7 @@ a great idea. So we need to modify the C<insert_user()> and C<change_pass()>
 functions to fix that. How?
 
 We'll use
-L<C<pgcrypto>|http://www.postgresql.org/docs/current/static/pgcrypto.html>'s
+L<C<pgcrypto>|https://www.postgresql.org/docs/current/static/pgcrypto.html>'s
 C<crypt()> function to encrypt passwords with a salt, so that they're all
 unique. We just add a change to add C<pgcrypto> to the database, and then we
 can use it. The deploy script should be:
@@ -1353,7 +1392,7 @@ Now we can use C<pgcrypto>. But how to deploy the changes to C<insert_user()>
 and C<change_pass()>?
 
 Normally, modifying functions in database changes is a
-L<PITA|http://www.urbandictionary.com/define.php?term=pita>. You have to make
+L<PITA|https://www.urbandictionary.com/define.php?term=pita>. You have to make
 changes like these:
 
 =over
@@ -1442,7 +1481,7 @@ F<deploy/insert_user.sql> and F<revert/insert_user.sql> are identical. This is
 on the assumption that the deploy script will be changed (we're reworking it,
 remember?), and that the revert script should actually change things back to
 how they were before. Of course, the original deploy script may not be
-L<idempotent|http://en.wikipedia.org/wiki/Idempotence> -- that is, able to be
+L<idempotent|https://en.wikipedia.org/wiki/Idempotence> -- that is, able to be
 applied multiple times without changing the result beyond the initial
 application. If it's not, you will likely need to modify it so that it
 properly restores things to how they were after the original deploy script was
@@ -1553,7 +1592,7 @@ in the new script files that include tags.
 But what about the verify script? How can we verify that the functions have
 been modified to use C<crypt()>? I think the simplest thing to do is to
 examine the body of the function, using
-L<C<pg_get_functiondef()>|http://www.postgresql.org/docs/9.2/static/functions-info.html#FUNCTIONS-INFO-CATALOG-TABLE>. So the C<insert_user> verify script looks like this:
+L<C<pg_get_functiondef()>|https://www.postgresql.org/docs/9.2/static/functions-info.html#FUNCTIONS-INFO-CATALOG-TABLE>. So the C<insert_user> verify script looks like this:
 
   -- Verify flipr:insert_user on pg
 
@@ -1624,7 +1663,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2017 iovation Inc.
+Copyright (c) 2012-2018 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

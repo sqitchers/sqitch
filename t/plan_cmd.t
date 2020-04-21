@@ -3,35 +3,32 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 227;
+use Test::More tests => 229;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::NoWarnings;
 use Test::Exception;
+use Test::Warn;
 use Test::MockModule;
 use Path::Class;
 use Term::ANSIColor qw(color);
 use Encode;
 use lib 't/lib';
 use MockOutput;
+use TestConfig;
 use LC;
-
-$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
-$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
 
 my $CLASS = 'App::Sqitch::Command::plan';
 require_ok $CLASS;
 
-ok my $sqitch = App::Sqitch->new(
-    options => {
-        engine   => 'sqlite',
-        top_dir   => Path::Class::Dir->new('test-plan_command')->stringify,
-        plan_file => file(qw(t sql sqitch.plan))->stringify,
-    },
-), 'Load a sqitch sqitch object';
-my $config = $sqitch->config;
+my $config = TestConfig->new(
+    'core.engine'    => 'sqlite',
+    'core.top_dir'   => dir('test-plan_cmd')->stringify,
+    'core.plan_file' => file(qw(t sql sqitch.plan))->stringify,
+);
+ok my $sqitch = App::Sqitch->new(config => $config),
+    'Load a sqitch sqitch object';
 isa_ok my $cmd = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'plan',
@@ -49,6 +46,7 @@ can_ok $cmd, qw(
     options
     execute
     configure
+    headers
 );
 
 is_deeply [$CLASS->options], [qw(
@@ -65,18 +63,25 @@ is_deeply [$CLASS->options], [qw(
     no-color
     abbrev=i
     oneline
+   headers!
 )], 'Options should be correct';
+
+warning_is {
+    Getopt::Long::Configure(qw(bundling pass_through));
+    ok Getopt::Long::GetOptionsFromArray(
+        [], {}, App::Sqitch->_core_opts, $CLASS->options,
+    ), 'Should parse options';
+} undef, 'Options should not conflict with core options';
 
 ##############################################################################
 # Test configure().
-my $cmock = Test::MockModule->new('App::Sqitch::Config');
-
-# Test date_format validation.
 my $configured = $CLASS->configure($config, {});
 isa_ok delete $configured->{formatter}, 'App::Sqitch::ItemFormatter', 'Formatter';
 is_deeply $configured, {},
     'Should get empty hash for no config or options';
-$cmock->mock( get => 'nonesuch' );
+
+# Test date_format validation.
+$config->update('plan.date_format' => 'nonesuch');
 throws_ok { $CLASS->configure($config, {}), {} } 'App::Sqitch::X',
     'Should get error for invalid date format in config';
 is $@->ident, 'datetime',
@@ -85,7 +90,6 @@ is $@->message, __x(
     'Unknown date format "{format}"',
     format => 'nonesuch',
 ), 'Invalid date format error message should be correct';
-$cmock->unmock_all;
 
 throws_ok { $CLASS->configure($config, { date_format => 'non'}), {} }
     'App::Sqitch::X',
@@ -98,11 +102,7 @@ is $@->message, __x(
 ), 'Invalid date format error message should be correct';
 
 # Test format validation.
-$cmock->mock( get => sub {
-    my ($self, %p) = @_;
-    return 'nonesuch' if $p{key} eq 'plan.format';
-    return undef;
-});
+$config = TestConfig->new('plan.format' => 'nonesuch');
 throws_ok { $CLASS->configure($config, {}), {} } 'App::Sqitch::X',
     'Should get error for invalid format in config';
 is $@->ident, 'plan',
@@ -111,7 +111,6 @@ is $@->message, __x(
     'Unknown plan format "{format}"',
     format => 'nonesuch',
 ), 'Invalid format error message should be correct';
-$cmock->unmock_all;
 
 throws_ok { $CLASS->configure($config, { format => 'non'}), {} }
     'App::Sqitch::X',
@@ -124,6 +123,7 @@ is $@->message, __x(
 ), 'Invalid format error message should be correct';
 
 # Test color configuration.
+$config = TestConfig->new;
 $configured = $CLASS->configure( $config, { no_color => 1 } );
 is $configured->{formatter}->color, 'never',
     'Configuration should respect --no-color, setting "never"';
@@ -138,66 +138,49 @@ $configured = $CLASS->configure( $config, { oneline => 1, format => 'format:foo'
 is $configured->{format}, 'foo', '--oneline should not override --format';
 is $configured->{formatter}{abbrev}, 5, '--oneline should not overrride --abbrev';
 
-my $config_color = 'auto';
-$cmock->mock( get => sub {
-    my ($self, %p) = @_;
-    return $config_color if $p{key} eq 'plan.color';
-    return undef;
-});
-
-my $cmd_config = {};
-$cmock->mock( get_section => sub { $cmd_config } );
-
+$config->update('plan.color' => 'auto');
 $configured = $CLASS->configure( $config, { no_color => 1 } );
-
 is $configured->{formatter}->color, 'never',
     'Configuration should respect --no-color even when configure is set';
 
 NEVER: {
-    $config_color = 'never';
-    $cmd_config = { color => $config_color };
-    my $configured = $CLASS->configure( $config, $cmd_config );
+    my $configured = $CLASS->configure( $config, { color => 'never' } );
     is $configured->{formatter}->color, 'never',
         'Configuration should respect color option';
 
     # Try it with config.
-    $cmd_config = { color => $config_color };
+    $config->update('plan.color' => 'never');
     $configured = $CLASS->configure( $config, {} );
     is $configured->{formatter}->color, 'never',
         'Configuration should respect color config';
 }
 
 ALWAYS: {
-    $config_color = 'always';
-    $cmd_config = { color => $config_color };
-    my $configured = $CLASS->configure( $config, $cmd_config );
+    my $configured = $CLASS->configure( $config, { color => 'always' } );
     is_deeply $configured->{formatter}->color, 'always',
         'Configuration should respect color option';
 
     # Try it with config.
-    $cmd_config = { color => $config_color };
+    $config->update('plan.color' => 'always');
     $configured = $CLASS->configure( $config, {} );
     is_deeply $configured->{formatter}->color, 'always',
         'Configuration should respect color config';
 }
 
 AUTO: {
-    $config_color = 'auto';
-    $cmd_config = { color => $config_color };
     for my $enabled (0, 1) {
-        my $configured = $CLASS->configure( $config, $cmd_config );
+        $config->update('plan.color' => 'always');
+        my $configured = $CLASS->configure( $config, { color => 'auto' } );
         is_deeply $configured->{formatter}->color, 'auto',
             'Configuration should respect color option';
 
         # Try it with config.
-        $cmd_config = { color => $config_color };
+        $config->update('plan.color' => 'auto');
         $configured = $CLASS->configure( $config, {} );
         is_deeply $configured->{formatter}->color, 'auto',
             'Configuration should respect color config';
     }
 }
-
-$cmock->unmock_all;
 
 ###############################################################################
 # Test named formats.
@@ -606,6 +589,7 @@ isa_ok $cmd = $CLASS->new(
     max_count         => 10,
     skip              => 5,
     reverse           => 1,
+    headers           => 0,
 ), $CLASS, 'plan with attributes';
 
 ok $cmd->execute, 'Execute plan with attributes';
@@ -633,12 +617,9 @@ my $fmt_params2 = {
 };
 
 is_deeply +MockOutput->get_page, [
-    ['# ', __x 'Project: {project}', project => $plan->project ],
-    ['# ', __x 'File:    {file}', file => $plan->file ],
-    [''],
     [ $cmd->formatter->format( $cmd->format, $fmt_params  ) ],
     [ $cmd->formatter->format( $cmd->format, $fmt_params2 ) ],
-], 'Both events should have been paged';
+], 'Both events should have been paged without headers';
 
 # Make sure we catch bad format codes.
 isa_ok $cmd = $CLASS->new(

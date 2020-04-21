@@ -3,31 +3,28 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 81;
+use Test::More tests => 86;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::Exception;
+use Test::Warn;
 use Test::NoWarnings;
 use Path::Class qw(file dir);
 use File::Path qw(make_path remove_tree);
 use lib 't/lib';
 use MockOutput;
-
-$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
-$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
+use TestConfig;
 
 my $CLASS = 'App::Sqitch::Command::tag';
 
 my $dir = dir 'test-tag_cmd';
-ok my $sqitch = App::Sqitch->new(
-    options => {
-        engine => 'sqlite',
-        top_dir => $dir->stringify,
-    },
-), 'Load a sqitch sqitch object';
-my $config = $sqitch->config;
+my $config = TestConfig->new(
+    'core.engine' => 'sqlite',
+    'core.top_dir' => $dir->stringify,
+);
+ok my $sqitch = App::Sqitch->new(config => $config),
+    'Load a sqitch sqitch object';
 isa_ok my $tag = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'tag',
@@ -40,35 +37,49 @@ can_ok $CLASS, qw(
     configure
     note
     execute
+    does
 );
+
+ok $CLASS->does("App::Sqitch::Role::ContextCommand"),
+    "$CLASS does ContextCommand";
 
 is_deeply [$CLASS->options], [qw(
     tag-name|tag|t=s
     change-name|change|c=s
     all|a!
     note|n|m=s@
+    plan-file|f=s
+    top-dir=s
 )], 'Should have note option';
+
+warning_is {
+    Getopt::Long::Configure(qw(bundling pass_through));
+    ok Getopt::Long::GetOptionsFromArray(
+        [], {}, App::Sqitch->_core_opts, $CLASS->options,
+    ), 'Should parse options';
+} undef, 'Options should not conflict with core options';
 
 ##############################################################################
 # Test configure().
-my $cmock = Test::MockModule->new('App::Sqitch::Config');
-my (@vals, @params);
-$cmock->mock( get => sub { shift; push @params, \@_; shift @vals } );
+my (@params, $orig_get);
+my $cmock = TestConfig->mock(
+    get => sub { my $c = shift; push @params, \@_; $orig_get->($c, @_) },
+);
+$orig_get = $cmock->original('get');
 
-is_deeply $CLASS->configure($config, {}), {},
+is_deeply $CLASS->configure($config, {}), { _cx => [] },
     'Should get empty hash for no config or options';
 is_deeply \@params, [], 'Should not have fetched boolean tag.all config';
 @params = ();
 is_deeply $CLASS->configure(
     $config,
-    { tag_name => 'foo', change_name => 'bar', all => 1}
+    { tag_name => 'foo', change_name => 'bar', all => 1 }
 ),
-    { tag_name => 'foo', change_name => 'bar', all => 1 },
+    { tag_name => 'foo', change_name => 'bar', all => 1, _cx => [] },
     'Should get populated hash for no all options';
 
 is_deeply \@params, [], 'Should not have fetched boolean tag.all config';
 @params = ();
-
 $cmock->unmock_all;
 
 ##############################################################################
@@ -87,12 +98,23 @@ $tag_mocker->mock(request_note => sub {
     $self->note;
 });
 
+my $reload = sub {
+    my $plan = shift;
+    $plan->_plan( $plan->load);
+    delete $plan->{$_} for qw(_changes _lines project uri);
+    1;
+};
+
 my $plan = $tag->default_target->plan;
 ok $plan->add( name => 'foo' ), 'Add change "foo"';
+$plan->write_to( $plan->file );
 
+# Tag it.
+isa_ok $tag = App::Sqitch::Command::tag->new({ sqitch => $sqitch }),
+    $CLASS, 'new tag command';
 ok $tag->execute('alpha'), 'Tag @alpha';
+ok $reload->($plan), 'Reload plan';
 is $plan->get('@alpha')->name, 'foo', 'Should have tagged "foo"';
-ok $plan->load, 'Reload plan';
 is $plan->get('@alpha')->name, 'foo', 'New tag should have been written';
 is [$plan->tags]->[-1]->note, '', 'New tag should have empty note';
 is_deeply \%request_params, { for => __ 'tag' }, 'Should have requested a note';
@@ -115,6 +137,7 @@ is_deeply \%request_params, { for => __ 'tag' }, 'Should have requested a note';
 
 # Add a tag.
 ok $plan->tag( name => '@beta' ), 'Add tag @beta';
+$plan->write_to( $plan->file );
 ok $tag->execute, 'Execute with no arg again';
 is_deeply +MockOutput->get_info, [
     ['@alpha'],
@@ -133,7 +156,7 @@ $plan = $tag->default_target->plan;
 ok $tag->execute, 'Tag @gamma';
 is $plan->get('@gamma')->name, 'foo', 'Gamma tag should be on change "foo"';
 is [$plan->tags]->[-1]->note, "hello\n\nthere", 'Gamma tag should have note';
-ok $plan->load, 'Reload plan';
+ok $reload->($plan), 'Reload plan';
 is $plan->get('@gamma')->name, 'foo', 'Gamma tag should have been written';
 is [$plan->tags]->[-1]->note, "hello\n\nthere", 'Written tag should have note';
 is_deeply \%request_params, { for => __ 'tag' }, 'Should have requested a note';
@@ -156,9 +179,11 @@ $plan = $tag->default_target->plan;
 
 ok $plan->add( name => 'bar' ), 'Add change "bar"';
 ok $plan->add( name => 'baz' ), 'Add change "baz"';
+$plan->write_to( $plan->file );
 ok $tag->execute('delta', 'bar'), 'Tag change "bar" with @delta';
+ok $reload->($plan), 'Reload plan';
 is $plan->get('@delta')->name, 'bar', 'Should have tagged "bar"';
-ok $plan->load, 'Reload plan';
+ok $reload->($plan), 'Reload plan';
 is $plan->get('@delta')->name, 'bar', 'New tag should have been written';
 is [$plan->tags]->[-1]->note, 'here we go', 'New tag should have the proper note';
 is_deeply \%request_params, { for => __ 'tag' }, 'Should have requested a note';
@@ -182,7 +207,7 @@ $plan = $tag->default_target->plan;
 
 ok $tag->execute('zeta'), 'Tag change "bar" with @zeta';
 is $plan->get('@zeta')->name, 'bar', 'Should have tagged "bar" with @zeta';
-ok $plan->load, 'Reload plan';
+ok $reload->($plan), 'Reload plan';
 is $plan->get('@zeta')->name, 'bar', 'Tag @zeta should have been written';
 is [$plan->tags]->[-1]->note, 'here we go', 'Tag @zeta should have the proper note';
 is_deeply \%request_params, { for => __ 'tag' }, 'Should have requested a note';
@@ -198,25 +223,15 @@ is_deeply +MockOutput->get_info, [
 
 ##############################################################################
 # Let's deal with multiple engines.
-my $conf = $dir->file('sqitch.conf');
-$conf->spew(join "\n",
-    '[core]',
-    'engine = pg',
-    '[engine "pg"]',
-    'top_dir = pg',
-    '[engine "sqlite"]',
-    'top_dir = sqlite',
-    '[engine "mysql"]',
-    'top_dir = mysql',
+$config->replace(
+    'core.engine'             => 'sqlite',
+    'engine.pg.plan_file'     => $plan->file->stringify,
+    'engine.sqlite.plan_file' => $plan->file->stringify,
+    'engine.mysql.plan_file'  => $plan->file->stringify,
 );
 
-local $ENV{SQITCH_CONFIG} = $conf->stringify;
-ok $sqitch = App::Sqitch->new(
-    options => {
-        engine => 'sqlite',
-        top_dir => $dir->stringify,
-    },
-), 'Load another sqitch sqitch object';
+ok $sqitch = App::Sqitch->new(config => $config),
+    'Load another sqitch sqitch object';
 
 isa_ok $tag = App::Sqitch::Command::tag->new({
     sqitch => $sqitch,
@@ -247,35 +262,24 @@ is $@->message, __(
 # Great. Now try two plans!
 (my $pg = $dir->file('pg.plan')->stringify) =~ s{\\}{\\\\}g;
 (my $sqlite = $dir->file('sqlite.plan')->stringify) =~ s{\\}{\\\\}g;
-$conf->spew(join "\n",
-    '[core]',
-    'engine = pg',
-    "top_dir = $dir",
-    '[engine "pg"]',
-    "plan_file = $pg",
-    '[engine "sqlite"]',
-    "plan_file = $sqlite",
-);
-
 $dir->file("$_.plan")->spew(
     "%project=tag\n\n${_}_change 2012-07-16T17:25:07Z Hi <hi\@foo.com>\n"
 ) for qw(pg sqlite);
 
-ok $sqitch = App::Sqitch->new,
+$config->replace(
+    'core.engine'             => 'pg',
+    'core.top_dir'            => $dir->stringify,
+    'engine.pg.plan_file'     => $pg,
+    'engine.sqlite.plan_file' => $sqlite,
+    'tag.all'                 => 1,
+);
+ok $sqitch = App::Sqitch->new(config => $config),
     'Load another sqitch sqitch object';
-
-# Mock getting tag.all.
-my $get;
-$cmock->mock( get => sub {
-    return 1 if $_[2] eq 'tag.all';
-    return $get->(@_);
-});
-$get = $cmock->original('get');
-
 isa_ok $tag = App::Sqitch::Command::tag->new({
     sqitch => $sqitch,
     note   => ['here we go again'],
 }), $CLASS, 'yet another tag command';
+
 ok $tag->execute('dubdub'), 'Tag with @dubdub';
 my @targets = App::Sqitch::Target->all_targets(sqitch => $sqitch);
 is @targets, 2, 'Should have two targets';
@@ -317,9 +321,14 @@ is_deeply +MockOutput->get_info, [
     ],
 ], 'The shoot info message should the sqlite plan getting tagged';
 
-$cmock->unmock_all;
-
 # Without --all or tag.all, we should just get the default target.
+$config->replace(
+    'core.engine'             => 'pg',
+    'core.to_dir'             => $dir->stringify,
+    'engine.pg.plan_file'     => $pg,
+    'engine.sqlite.plan_file' => $sqlite,
+);
+$sqitch = App::Sqitch->new(config => $config);
 isa_ok $tag = App::Sqitch::Command::tag->new({
     sqitch => $sqitch,
     note   => ['here we go again'],

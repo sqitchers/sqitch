@@ -18,7 +18,8 @@ sqitch-target-usage - Sqitch target usage statement
     --uri        <uri>          database URI
     --registry   <registry>     registry schema or database
     --client     <path>         path to engine command-line client
-    --plan-file  <file>         path to deployment plan file
+ -f --plan-file  <file>         path to deployment plan file
     --top-dir    <dir>          path to directory with plan and scripts
     --extension  <ext>          change script file name extension
     --dir        <name>=<path>  path to named directory
+    -s --set     <key=value>    set a database client variable

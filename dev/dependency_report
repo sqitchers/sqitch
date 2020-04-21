@@ -1,0 +1,176 @@
+#!/usr/bin/env perl -w
+
+# This script reads in the Sqitch META.json file and generates a dependency
+# report. The idea is to review the build-time dependency list to ensure that
+# they are well and trully build-time-only. Also, check the runtime list to
+# ensure that they are runtime-only. And finally, review the overalpping list
+# to ensure that all of the items there are used at runtime. If it all checks
+# out and looks reasonable, copy the list of build-time-only dependencies into
+# the __DATA__ section of inc/Module/Build/Sqitch.pm. This allows the `./Build
+# bundle` command to remove any build-only dependencies from the bundle.
+
+package App::Sqitch::PhaseReporter;
+our $VERSION = '0.01';
+
+use strict;
+use warnings;
+use v5.28;
+use utf8;
+
+use HTTP::Tiny;
+use JSON::PP;
+use Getopt::Long;
+
+my $api_uri = 'https://fastapi.metacpan.org/v1';
+eval { HTTP::Tiny::Handle->_assert_ssl };
+$api_uri = s/^https:/http:/ if $@;
+
+sub new {
+    my $class = shift;
+    return bless {
+        dist_for => {},
+        http     => HTTP::Tiny->new(agent => __PACKAGE__ . "/$VERSION"),
+        tree     => 1,
+        report   => 1,
+        verbose  => 0,
+        @_,
+    } => $class;
+}
+
+sub run {
+    my ($self, $meta) = @_;
+    my $feat = $meta->{optional_features} || {};
+    $self->{skipdists} = {
+        'Module-Build' => 'Module::Build',
+        'Module-Signature' => 'Module::Signature',
+        'ExtUtils-MakeMaker' => 'ExtUtils::MakeMaker',
+        'ExtUtils-Manifest' => 'ExtUtils::Manifest',
+        'ExtUtils-Install' => 'ExtUtils::Install',
+        'ExtUtils-ParseXS' => 'ExtUtils::ParseXS',
+        'Dist-CheckConflicts' => 'Dist::CheckConflicts',
+        'Perl-Tidy' => 'Perl::Tidy',
+        'AppConfig' => 'AppConfig', # Used only by Template Toolkit bin scripts.
+    };
+    $self->{deps} = { runtime => {}, build => {} };
+
+    say 'Mapping dependencies...' if $self->{verbose};
+
+    for my $depends ( $meta->{prereqs}, (map { $_->{prereqs} || {} } values %{ $feat }) ) {
+        # Collect build dependencies.
+        while (my ($phase, $relations) = each %{ $depends }) {
+            if ($phase eq 'runtime') {
+                # Collect as runtime dependencies.
+                $self->{phase} = 'runtime';
+            } elsif ($phase eq 'configure' || $phase eq 'build') {
+                # Collect as build dependencies.
+                $self->{phase} = 'build';
+            } else {
+                # Not interested in other phases.
+                next;
+            }
+
+            while (my ($rel, $deps) = each %{ $relations }) {
+                # Collect only required and recommended dependencies.
+                next if $rel !~ /^re(?:quires|commends)/;
+                while (my ($mod, $ver) = each %{ $deps }) {
+                    $self->report_on($mod, 0);
+                }
+            }
+        }
+    }
+
+    if ($self->{report}) {
+        # Generate the report.
+        my $bld = $self->{deps}{build};
+        my $run = $self->{deps}{runtime};
+
+        # Report build dependencies.
+        say "\nBuild-only dependencies";
+        say "        $_" for sort grep { !$run->{$_} } keys %{ $bld };
+
+        # Report runtime dependencies.
+        say "\nRuntime-only dependencies";
+        say "        $_" for sort grep { !$bld->{$_} } keys %{ $run };
+
+        say "\nOverlapping dependencies";
+        say "        $_" for sort grep { $bld->{$_} } keys %{ $run };
+    }
+}
+
+sub report_on {
+    my ($self, $module, $indent) = @_;
+    my $mod = $self->_fetch($module);
+    my $dist = $mod->{distribution};
+    return if $dist eq 'perl';
+
+    if ( $self->{skipdists}{$dist} && $self->{deps}{build}{$dist} ) {
+        # Skip skipdists if we've seen them once already.
+        return;
+    }
+
+    # Return if we've seen it before.
+    my $tree = $self->{tree};
+    print +(' ' x $indent), "$self->{phase}: $dist => $module" if $tree;
+    if ( exists $self->{deps}{ $self->{phase} }{$dist} ) {
+        say ' (seen)' if $tree;
+        return;
+    }
+
+    # Show skipped build dependencies just the once.
+    if ($self->{skipdists}{$dist}) {
+        $self->{deps}{build}{$dist} = $self->{skipdists}{$dist};
+        say ' (skipping)' if $tree;
+        return;
+    }
+    $self->{deps}{ $self->{phase} }{$dist} = $module;
+    say '' if $tree;
+
+    # Recurse for required or recommended runtime, configure, or build
+    # dependencies.
+    for my $dep (@{ $mod->{release}{_source}{dependency} }) {
+        next if $dep->{relationship} !~ /^re(?:quires|commends)/;
+        next if $dep->{phase} !~ /^(?:runtime|configure|build)/;
+        # If not runtine, collect as build dep. Otherwise keep existing dep list.
+        local $self->{phase} = 'build' if is_build($dep);
+        $self->report_on($dep->{module}, $indent+2);
+    }
+}
+
+sub is_build {
+    my $dep = shift;
+    return 0 if $dep->{module} =~ /^Win32\b/; # Allow all Win32.
+    return $dep->{phase} ne 'runtime'
+        || $dep->{module} =~ /^Test\b/
+        || $dep->{module} =~ /^ExtUtils\b/
+        || $dep->{module} =~ /^Module::Build/
+        || $dep->{module} =~ /^CPAN/;
+}
+
+sub _fetch {
+    my ($self, $module) = @_;
+    return $self->{dist_for}{$module} ||= do {
+        my $uri = "$api_uri/module/$module?join=release";
+        my $res = $self->{http}->get($uri);
+        die "Fetch $uri failed: $res->{status} $res->{reason}" unless $res->{success};
+        decode_json $res->{content};
+    };
+};
+
+
+my %opts = (
+    tree    => 1,
+    report  => 1,
+    verbose => 1,
+);
+GetOptions(
+    'tree|t!'     => \$opts{tree},
+    'report|r!'   => \$opts{report},
+    'verbose|v+'  => \$opts{verbose},
+);
+
+my $fn = shift || die "Usage: $0 META.josn\n";
+open my $fh, '<:raw', $fn or die "Cannot open $fn: $!\n";
+my $meta = decode_json join '', <$fh>;
+close $fh;
+
+App::Sqitch::PhaseReporter->new(%opts)->run($meta);

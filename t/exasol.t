@@ -22,6 +22,7 @@ use App::Sqitch::Target;
 use App::Sqitch::Plan;
 use lib 't/lib';
 use DBIEngineTest;
+use TestConfig;
 
 my $CLASS;
 
@@ -30,9 +31,6 @@ delete $ENV{"VSQL_$_"} for qw(USER PASSWORD DATABASE HOST PORT);
 BEGIN {
     $CLASS = 'App::Sqitch::Engine::exasol';
     require_ok $CLASS or die;
-    $ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
-    $ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.user';
-    $ENV{SQITCH_USER_CONFIG}   = 'nonexistent.sys';
 }
 
 is_deeply [$CLASS->config_vars], [
@@ -42,7 +40,8 @@ is_deeply [$CLASS->config_vars], [
 ], 'config_vars should return three vars';
 
 my $uri = URI::db->new('db:exasol:');
-my $sqitch = App::Sqitch->new(options => { engine => 'exasol' });
+my $config = TestConfig->new('core.engine' => 'exasol');
+my $sqitch = App::Sqitch->new(config => $config);
 my $target = App::Sqitch::Target->new(
     sqitch => $sqitch,
     uri    => $uri,
@@ -55,7 +54,7 @@ isa_ok my $exa = $CLASS->new(
 is $exa->key, 'exasol', 'Key should be "exasol"';
 is $exa->name, 'Exasol', 'Name should be "Exasol"';
 
-my $client = 'exaplus' . ($^O eq 'MSWin32' ? '.exe' : '');
+my $client = 'exaplus' . (App::Sqitch::ISWIN ? '.exe' : '');
 is $exa->client, $client, 'client should default to exaplus';
 is $exa->registry, 'sqitch', 'registry default should be "sqitch"';
 is $exa->uri, $uri, 'DB URI should be "db:exasol:"';
@@ -109,18 +108,16 @@ ENV: {
     is $exa->target->name, 'db:exasol:',
         'Target name should NOT fall back on sysuser';
     is $exa->registry_destination, $exa->destination,
-        'Meta target should be the same as destination';
+        'Registry target should be the same as destination';
 }
 
 ##############################################################################
 # Make sure config settings override defaults.
-my %config = (
+$config->update(
     'engine.exasol.client'   => '/path/to/exaplus',
     'engine.exasol.target'   => 'db:exasol://me:myself@localhost:4444',
     'engine.exasol.registry' => 'meta',
 );
-my $mock_config = Test::MockModule->new('App::Sqitch::Config');
-$mock_config->mock(get => sub { $config{ $_[2] } });
 
 $target = App::Sqitch::Target->new( sqitch => $sqitch );
 ok $exa = $CLASS->new(sqitch => $sqitch, target => $target),
@@ -143,27 +140,6 @@ is $exa->_script, join( "\n" => (
     'WHENEVER SQLERROR EXIT 4;',
     'DEFINE registry=meta;',
 ) ), '_script should use registry from config settings';
-
-##############################################################################
-# Now make sure that (deprecated?) Sqitch options override configurations.
-$sqitch = App::Sqitch->new(
-    options => {
-        engine     => 'exasol',
-        client     => '/some/other/exaplus',
-    },
-);
-
-$target = App::Sqitch::Target->new( sqitch => $sqitch );
-ok $exa = $CLASS->new(sqitch => $sqitch, target => $target),
-    'Create a exasol with sqitch with options';
-
-is $exa->client, '/some/other/exaplus', 'client should be as optioned';
-is_deeply [$exa->exaplus], [qw(
-    /some/other/exaplus
-    -u me
-    -p myself
-    -c localhost:4444
-), @std_opts], 'exaplus command should be as optioned';
 
 ##############################################################################
 # Test _run() and _capture().
@@ -229,7 +205,7 @@ WIN32: {
     $file = $tmpdir->file('"foo$bar".sql');
     my $mock_file = Test::MockModule->new(ref $file);
     # Windows doesn't like the quotation marks, so prevent it from writing.
-    $mock_file->mock(copy_to => 1) if $^O eq 'MSWin32';
+    $mock_file->mock(copy_to => 1) if App::Sqitch::ISWIN;
     is $exa->_file_for_script($file), $tmpdir->file('""foo_bar"".sql'),
         'File with special char and quotes should be aliased';
 }
@@ -268,7 +244,6 @@ is_deeply \@capture, ['@"foo/bar.sql"'],
     'Verify file should be passed to run() for high verbosity';
 
 $mock_sqitch->unmock_all;
-$mock_config->unmock_all;
 $mock_exa->unmock_all;
 
 ##############################################################################
@@ -303,6 +278,51 @@ is $exa->_char2ts($dt), '2017-11-06 10:47:35',
     '_char2ts should present timestamp at UTC w/o tz identifier';
 
 ##############################################################################
+# Test SQL helpers.
+is $exa->_listagg_format, q{GROUP_CONCAT(%s SEPARATOR ' ')}, 'Should have _listagg_format';
+is $exa->_ts_default, 'current_timestamp', 'Should have _ts_default';
+is $exa->_regex_op, 'REGEXP_LIKE', 'Should have _regex_op';
+is $exa->_simple_from, ' FROM dual', 'Should have _simple_from';
+is $exa->_limit_default, '18446744073709551611', 'Should have _limit_default';
+
+DBI: {
+    local *DBI::errstr;
+    ok !$exa->_no_table_error, 'Should have no table error';
+    ok !$exa->_no_column_error, 'Should have no column error';
+    $DBI::errstr = 'object foo not found';
+    ok $exa->_no_table_error, 'Should now have table error';
+    ok $exa->_no_column_error, 'Should now have no column error';
+}
+
+is_deeply [$exa->_limit_offset(8, 4)],
+    [['LIMIT 8', 'OFFSET 4'], []],
+    'Should get limit and offset';
+is_deeply [$exa->_limit_offset(0, 2)],
+    [['LIMIT 18446744073709551611', 'OFFSET 2'], []],
+    'Should get limit and offset when offset only';
+is_deeply [$exa->_limit_offset(12, 0)], [['LIMIT 12'], []],
+    'Should get only limit with 0 offset';
+is_deeply [$exa->_limit_offset(12)], [['LIMIT 12'], []],
+    'Should get only limit with noa offset';
+is_deeply [$exa->_limit_offset(0, 0)], [[], []],
+    'Should get no limit or offset for 0s';
+is_deeply [$exa->_limit_offset()], [[], []],
+    'Should get no limit or offset for no args';
+
+is_deeply [$exa->_regex_expr('corn', 'Obama$')],
+    ['corn REGEXP_LIKE ?', '.*Obama$'],
+    'Should use regexp_like and prepend wildcard to regex';
+is_deeply [$exa->_regex_expr('corn', '^Obama')],
+    ['corn REGEXP_LIKE ?', '^Obama.*'],
+    'Should use regexp_like and append wildcard to regex';
+is_deeply [$exa->_regex_expr('corn', '^Obama$')],
+    ['corn REGEXP_LIKE ?', '^Obama$'],
+    'Should not chande regex with both anchors';
+is_deeply [$exa->_regex_expr('corn', 'Obama')],
+    ['corn REGEXP_LIKE ?', '.*Obama.*'],
+    'Should append wildcards to both ends without anchors';
+
+##############################################################################
 # Can we do live tests?
 my $dbh;
 END {
@@ -334,12 +354,7 @@ my $err = try {
 };
 
 DBIEngineTest->run(
-    class         => $CLASS,
-    sqitch_params => [options => {
-        engine    => 'exasol',
-        top_dir   => Path::Class::dir(qw(t engine)),
-        plan_file => Path::Class::file(qw(t engine sqitch.plan)),
-    }],
+    class             => $CLASS,
     target_params     => [ uri => $uri ],
     alt_target_params => [ uri => $uri, registry => 'sqitchtest' ],
     skip_unless       => sub {

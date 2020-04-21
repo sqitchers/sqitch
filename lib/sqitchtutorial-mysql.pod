@@ -15,20 +15,22 @@ for deployment planning, and work with other developers to make sure changes
 remain in sync and in the proper order.
 
 We'll start by creating new project from scratch, a fictional antisocial
-networking site called Flipr. All examples use L<Git|http://git-scm.com/> as
-the VCS and L<MySQL|http://dev.mysql.com/> as the storage engine.
+networking site called Flipr. All examples use L<Git|https://git-scm.com/> as
+the VCS and L<MySQL|https://dev.mysql.com/> as the storage engine.
 
-If you'd like to manage an PostgreSQL database, see L<sqitchtutorial>.
+If you'd like to manage a PostgreSQL database, see L<sqitchtutorial>.
 
 If you'd like to manage an SQLite database, see L<sqitchtutorial-sqlite>.
 
 If you'd like to manage an Oracle database, see L<sqitchtutorial-oracle>.
 
-If you'd like to manage an Firebird database, see L<sqitchtutorial-firebird>.
+If you'd like to manage a Firebird database, see L<sqitchtutorial-firebird>.
 
-If you'd like to manage an Vertica database, see L<sqitchtutorial-vertica>.
+If you'd like to manage a Vertica database, see L<sqitchtutorial-vertica>.
 
 If you'd like to manage an Exasol database, see L<sqitchtutorial-exasol>.
+
+If you'd like to manage a Snowflake database, see L<sqitchtutorial-snowflake>.
 
 =head1 Starting a New Project
 
@@ -47,14 +49,15 @@ source code repository. So let's do that with Git:
    create mode 100644 README.md
 
 If you're a Git user and want to follow along the history, the repository used
-in these examples is L<on GitHub|https://github.com/theory/sqitch-mysql-intro>.
+in these examples is L<on GitHub|https://github.com/sqitchers/sqitch-mysql-intro>.
 
 Now that we have a repository, let's get started with Sqitch. Every Sqitch
 project must have a name associated with it, and, optionally, a unique URI. We
 recommend including the URI, as it increases the uniqueness of object
-identifiers internally, so let's specify one when we initialize Sqitch:
+identifiers internally, and will prevent the deployment of a different project
+with the same name. So let's specify one when we initialize Sqitch:
 
-  > sqitch init flipr --uri https://github.com/theory/sqitch-mysql-intro/ --engine mysql
+  > sqitch init flipr --uri https://github.com/sqitchers/sqitch-mysql-intro/ --engine mysql
   Created sqitch.conf
   Created sqitch.plan
   Created deploy/
@@ -111,7 +114,7 @@ Back to the repository. Have a look at the plan file, F<sqitch.plan>:
   > cat sqitch.plan
   %syntax-version=1.0.0
   %project=flipr
-  %uri=https://github.com/theory/sqitch-mysql-intro/
+  %uri=https://github.com/sqitchers/sqitch-mysql-intro/
 
 
 Note that it has picked up on the name and URI of the app we're building.
@@ -174,9 +177,14 @@ script, so we edit this to F<revert/appuser.sql> to look like this:
 
   COMMIT;
 
-Now we can try deploying this change:
+Now we can try deploying this change. First, we need to create a database
+to deploy to:
 
   > mysql -u root --execute 'CREATE DATABASE flipr_test'
+
+Now we tell Sqitch where to send the change via a
+L<database URI|https://github.com/libwww-perl/uri-db/>:
+
   > sqitch deploy db:mysql://root@/flipr_test
   Deploying changes to db:mysql://root@/flipr_test
     + appuser .. ok
@@ -375,14 +383,14 @@ When we look at the status, the deployment will be there:
 
 I'm getting a little tired of always having to type
 C<db:mysql://root@/flipr_test>, aren't you?  This
-L<database connection URI|https://github.com/theory/uri-db/> tells Sqitch how
+L<database connection URI|https://github.com/libwww-perl/uri-db/> tells Sqitch how
 to connect to the deployment target, but we don't have to keep using the URI.
 We can name the target:
 
   > sqitch target add flipr_test db:mysql://root@/flipr_test
 
 The L<C<target>|sqitch-target> command, inspired by
-L<C<git-remote>|http://git-scm.com/docs/git-remote>, allows management of one
+L<C<git-remote>|https://git-scm.com/docs/git-remote>, allows management of one
 or more named deployment targets. We've just added a target named
 C<flipr_test>, which means we can use the string C<flipr_test> for the target,
 rather than the URI. But since we're doing so much testing, we can also tell
@@ -613,7 +621,7 @@ Now might be a good time to have a look at the deployment plan:
   > cat sqitch.plan
   %syntax-version=1.0.0
   %project=flipr
-  %uri=https://github.com/theory/sqitch-mysql-intro/
+  %uri=https://github.com/sqitchers/sqitch-mysql-intro/
 
   appuser 2013-12-31T21:04:04Z Marge N. O’Vera <marge@example.com> # Creates a an application user.
   users [appuser] 2013-12-31T21:32:48Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
@@ -875,6 +883,10 @@ Looks good, eh? Go ahead and revert it:
 
 Now package it up and ship it!
 
+  > cd ..
+  > mv bundle flipr-v1.0.0-dev1
+  > tar -czf flipr-v1.0.0-dev1.tgz flipr-v1.0.0-dev1
+
 =head1 Flip Out
 
 Now that we've got the basics of user management done, let's get to work on
@@ -961,7 +973,7 @@ Look good?
   # 
   Nothing to deploy (up-to-date)
 
-Note the use of C<--show tags> to show all the deployed tags. Now make it so:
+Note the use of C<--show-tags> to show all the deployed tags. Now make it so:
 
   > git add .
   > git commit -am 'Add flips table.'
@@ -1073,7 +1085,7 @@ And:
 
   COMMIT;
 
-Check the L<example git repository|https://github.com/theory/sqitch-intro> for
+Check the L<example git repository|https://github.com/sqitchers/sqitch-intro> for
 the complete details. Test L<C<deploy>|sqitch-deploy> and
 L<C<revert>|sqitch-revert>, then commit it to the repository. The status
 should end up looking something like this:
@@ -1189,7 +1201,7 @@ resolve conflicts in that file. Except in Git. Fortunately for us, we can tell
 Git to resolve conflicts in F<sqitch.plan> differently. Because we only ever
 append lines to the file, we can have it use the "union" merge driver, which,
 according to L<its
-docs|http://git-scm.com/docs/gitattributes#_built-in_merge_drivers>:
+docs|https://git-scm.com/docs/gitattributes#_built-in_merge_drivers>:
 
 =over
 
@@ -1228,7 +1240,7 @@ Ah, that looks a bit better. Let's have a look at the plan:
   > cat sqitch.plan
   %syntax-version=1.0.0
   %project=flipr
-  %uri=https://github.com/theory/sqitch-mysql-intro/
+  %uri=https://github.com/sqitchers/sqitch-mysql-intro/
 
   appuser 2013-12-31T21:04:04Z Marge N. O’Vera <marge@example.com> # Creates a an application user.
   users [appuser] 2013-12-31T21:32:48Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
@@ -1316,7 +1328,7 @@ And double-check our work:
   > cat sqitch.plan
   %syntax-version=1.0.0
   %project=flipr
-  %uri=https://github.com/theory/sqitch-mysql-intro/
+  %uri=https://github.com/sqitchers/sqitch-mysql-intro/
 
   appuser 2013-12-31T21:04:04Z Marge N. O’Vera <marge@example.com> # Creates a an application user.
   users [appuser] 2013-12-31T21:32:48Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
@@ -1389,7 +1401,7 @@ function to encrypt passwords with a salt, so that they're all unique. But how
 to deploy the changes to C<insert_user()> and C<change_pass()>?
 
 Normally, modifying functions in database changes is a
-L<PITA|http://www.urbandictionary.com/define.php?term=pita>. You have to make
+L<PITA|https://www.urbandictionary.com/define.php?term=pita>. You have to make
 changes like these:
 
 =over
@@ -1480,7 +1492,7 @@ F<deploy/insert_user.sql> and F<revert/insert_user.sql> are identical. This is
 on the assumption that the deploy script will be changed (we're reworking it,
 remember?), and that the revert script should actually change things back to
 how they were before. Of course, the original deploy script may not be
-L<idempotent|http://en.wikipedia.org/wiki/Idempotence> -- that is, able to be
+L<idempotent|https://en.wikipedia.org/wiki/Idempotence> -- that is, able to be
 applied multiple times without changing the result beyond the initial
 application. If it's not, you will likely need to modify it so that it
 properly restores things to how they were after the original deploy script was
@@ -1619,7 +1631,7 @@ in the new script files that include tags.
 But what about the verify script? How can we verify that the functions have
 been modified to use C<ENCRYPT()>? I think the simplest thing to do is to
 examine the body of the function as returned by
-L<C<INFORMATION_SCHEMA.ROUTINES>|http://dev.mysql.com/doc/refman/5.6/en/routines-table.html>
+L<C<INFORMATION_SCHEMA.ROUTINES>|https://dev.mysql.com/doc/refman/5.6/en/routines-table.html>
 So the C<insert_user> verify script looks like this:
 
   -- Verify flipr:insert_user on mysql
@@ -1689,7 +1701,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2017 iovation Inc.
+Copyright (c) 2012-2018 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

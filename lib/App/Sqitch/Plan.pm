@@ -18,7 +18,7 @@ use Moo;
 use App::Sqitch::Types qw(Str Int HashRef ChangeList LineList Maybe Sqitch URI File Target);
 use constant SYNTAX_VERSION => '1.0.0';
 
-our $VERSION = '0.9997';
+# VERSION
 
 # Like [:punct:], but excluding _. Copied from perlrecharclass.
 my $punct = q{-!"#$%&'()*+,./:;<=>?@[\\]^`{|}~};
@@ -35,8 +35,7 @@ my $name_re = qr{
     (?<![$punct])\b                # last character isn't punctuation
 }x;
 
-# XXX FIRST & LAST deprecated. Remove at some point?
-my %reserved = map { $_ => undef } qw(ROOT HEAD FIRST LAST);
+my %reserved = map { $_ => undef } qw(ROOT HEAD);
 
 sub name_regex { $name_re }
 
@@ -410,7 +409,7 @@ sub _parse {
 
             # Got dependencies?
             if (my $deps = $params{dependencies}) {
-                my (@req, @con);
+                my (@req, @con, %seen_dep);
                 for my $depstring (split /[[:blank:]]+/, $deps) {
                     my $dep_params = App::Sqitch::Plan::Depend->parse(
                         $depstring,
@@ -422,6 +421,10 @@ sub _parse {
                         plan => $self,
                         %{ $dep_params },
                     );
+                    # Prevent dupes.
+                    $raise_syntax_error->(
+                        __x( 'Duplicate dependency "{dep}"', dep => $depstring ),
+                    ) if $seen_dep{$depstring}++;
                     if ($dep->conflicts) {
                         push @con => $dep;
                     } else {
@@ -1594,7 +1597,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2017 iovation Inc.
+Copyright (c) 2012-2018 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

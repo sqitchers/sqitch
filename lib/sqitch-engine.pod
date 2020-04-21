@@ -33,6 +33,8 @@ includes:
 
 =item * C<exasol>
 
+=item * C<snowflake>
+
 =back
 
 Each engine may have a number of properties:
@@ -149,6 +151,8 @@ deployment plan file and the change script directories.
 
 =item C<--plan-file>
 
+=item C<-f>
+
   sqitch engine add pg --plan-file my.plan
 
 Specifies the path to the deployment plan file. Defaults to
@@ -190,7 +194,7 @@ Supported keys are:
 
   sqitch engine add pg --target db:pg:widgets
 
-Specifies the name or L<URI|https://github.com/theory/uri-db/> of the target
+Specifies the name or L<URI|https://github.com/libwww-perl/uri-db/> of the target
 database for the engine.
 
 =item C<--registry>
@@ -207,6 +211,14 @@ database name (as in SQLite and MySQL). Defaults to C<sqitch>.
 
 Specifies the path to the command-line client for the engine. Defaults to a
 client in the current path named appropriately for the engine.
+
+=item C<-s>
+
+=item C<--set>
+
+Set a variable name and value for use by the database engine client, if it
+supports variables. The format must be C<name=value>, e.g.,
+C<--set defuser='Homer Simpson'>.
 
 =back
 

@@ -4,7 +4,7 @@ sqitch-plan-usage - Sqitch plan usage statement
 
 =head1 Usage
 
-  sqitch [options] plan [plan options] [<database>]
+  sqitch plan [options] [<database>]
 
 =head1 Options
 
@@ -27,3 +27,6 @@ Formatting
     --no-color                    never use ANSI colors
     --abbrev                      abbreviate change IDs
     --oneline                     shorthand for --format oneline --abbrev 6
+    --headers                     show headers for plan file and project
+    --no-headers                  don't show plan headers
+

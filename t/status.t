@@ -3,31 +3,28 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 120;
+use Test::More tests => 124;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::NoWarnings;
 use Test::Exception;
+use Test::Warn;
 use Test::MockModule;
 use Path::Class;
 use lib 't/lib';
 use MockOutput;
+use TestConfig;
 
 my $CLASS = 'App::Sqitch::Command::status';
 require_ok $CLASS;
 
-$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
-$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
-
-ok my $sqitch = App::Sqitch->new(
-    options => {
-        engine  => 'sqlite',
-        top_dir => Path::Class::Dir->new('test-status'),
-    },
-), 'Load a sqitch object';
-my $config = $sqitch->config;
+my $config = TestConfig->new(
+    'core.engine'  => 'sqlite',
+    'core.top_dir' => 'test-status',
+);
+ok my $sqitch = App::Sqitch->new(config  => $config),
+    'Load a sqitch object';
 isa_ok my $status = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'status',
@@ -46,7 +43,11 @@ can_ok $status, qw(
     emit_changes
     emit_tags
     emit_status
+    does
 );
+
+ok $CLASS->does("App::Sqitch::Role::$_"), "$CLASS does $_"
+    for qw(ContextCommand ConnectingCommand);
 
 is_deeply [ $CLASS->options ], [qw(
     project=s
@@ -54,7 +55,22 @@ is_deeply [ $CLASS->options ], [qw(
     show-tags
     show-changes
     date-format|date=s
+    plan-file|f=s
+    top-dir=s
+    registry=s
+    client|db-client=s
+    db-name|d=s
+    db-user|db-username|u=s
+    db-host|h=s
+    db-port|p=i
 )], 'Options should be correct';
+
+warning_is {
+    Getopt::Long::Configure(qw(bundling pass_through));
+    ok Getopt::Long::GetOptionsFromArray(
+        [], {}, App::Sqitch->_core_opts, $CLASS->options,
+    ), 'Should parse options';
+} undef, 'Options should not conflict with core options';
 
 my $engine_mocker = Test::MockModule->new('App::Sqitch::Engine::sqlite');
 my @projs;
@@ -91,12 +107,8 @@ isa_ok $status = $CLASS->new(
 is $status->project, 'foo', 'Should have project "foo"';
 
 # Look up the project in the database.
-ok $sqitch = App::Sqitch->new(
-    options => {
-        engine  => 'sqlite',
-        top_dir => Path::Class::Dir->new('test-status')->stringify,
-    },
-), 'Load a sqitch object with SQLite';
+ok $sqitch = App::Sqitch->new( config => $config),
+    'Load a sqitch object with SQLite';
 
 ok $status = $CLASS->new(sqitch => $sqitch), 'Create another status command';
 $status->target($status->default_target);
@@ -130,9 +142,10 @@ is $status->project, 'status', 'Should find single project';
 $engine_mocker->unmock_all;
 
 # Fall back on plan project name.
-ok $sqitch = App::Sqitch->new(
-    options => { top_dir => Path::Class::Dir->new(qw(t sql))->stringify },
-), 'Load another sqitch object';
+
+ok $sqitch = App::Sqitch->new(config => TestConfig->new(
+    'core.top_dir' => dir(qw(t sql))->stringify,
+));
 
 isa_ok $status = $CLASS->new( sqitch => $sqitch ), $CLASS,
     'another status command';
@@ -150,11 +163,9 @@ is $status->target_name, 'foo', 'Should have target "foo"';
 
 ##############################################################################
 # Test configure().
-my $cmock = Test::MockModule->new('App::Sqitch::Config');
-is_deeply $CLASS->configure($config, {}), {},
+is_deeply $CLASS->configure($config, {}), {_params => [], _cx => []},
     'Should get empty hash for no config or options';
-my @vals = ('nonesuch');
-$cmock->mock( get => sub { shift @vals } );
+$config->update('status.date_format' => 'nonesuch');
 throws_ok { $CLASS->configure($config, {}), {} } 'App::Sqitch::X',
     'Should get error for invalid date format in config';
 is $@->ident, 'datetime',
@@ -164,12 +175,16 @@ is $@->message, __x(
     format => 'nonesuch',
 ), 'Invalid date format error message should be correct';
 
-@vals = (undef, 1, 0);
+$config->replace(
+    'status.show_changes' => 1,
+    'status.show_tags'   => 0,
+);
 is_deeply $CLASS->configure($config, {}), {
     show_changes => 1,
     show_tags    => 0,
+    _params      => [],
+    _cx          => [],
 }, 'Should get bool values set from config';
-$cmock->unmock_all;
 
 throws_ok { $CLASS->configure($config, { date_format => 'non'}), {} }
     'App::Sqitch::X',
@@ -260,7 +275,8 @@ $engine_mocker->mock(current_changes => sub {
     planner_email   => 'anna@example.com',
     planned_at      => $dt->clone->subtract( hours => 4 ),
 });
-$sqitch = App::Sqitch->new(options => { engine  => 'sqlite' });
+$config->replace('core.engine' => 'sqlite');
+$sqitch = App::Sqitch->new(config => $config);
 ok $status = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'status',
@@ -423,14 +439,13 @@ is_deeply +MockOutput->get_comment, [
 ##############################################################################
 # Test emit_status().
 my $file = file qw(t plans multi.plan);
-$sqitch = App::Sqitch->new(options => {
-    plan_file => $file->stringify,
-    engine  => 'sqlite',
-});
+$config->update('core.plan_file' => $file->stringify);
+$sqitch = App::Sqitch->new(config => $config);
 ok $status = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'status',
-    config  => $config,}), 'Create status command with actual plan command';
+    config  => $config,
+}), 'Create status command with actual plan command';
 $status->target($target = $status->default_target);
 my @changes = $target->plan->changes;
 
@@ -519,7 +534,7 @@ ok $status->execute('db:sqlite:'), 'Execute with target arg';
 $check_output->();
 is $target_name_arg, 'db:sqlite:', 'Name "db:sqlite:" should have been passed to Target';
 
-# Pass the database in an option.
+# Pass the target in an option.
 ok $status = App::Sqitch::Command->load({
     sqitch  => $sqitch,
     command => 'status',
@@ -552,7 +567,7 @@ is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
 # Test with unknown plan.
 for my $spec (
-    [ 'specified', App::Sqitch->new( options => { engine => 'sqlite' }) ],
+    [ 'specified', App::Sqitch->new(config => $config) ],
     [ 'external', $sqitch ],
 ) {
     my ( $desc, $sqitch ) = @{ $spec };

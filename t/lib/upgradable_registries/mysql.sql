@@ -163,7 +163,7 @@ END;
 
 CREATE TRIGGER ck_insert_dependency BEFORE INSERT ON dependencies
 FOR EACH ROW BEGIN
-    -- DO does not work. http://bugs.mysql.com/bug.php?id=69647
+    -- DO does not work. https://bugs.mysql.com/bug.php?id=69647
     SET @dummy := checkit(
             (NEW.type = 'require'  AND NEW.dependency_id IS NOT NULL)
          OR (NEW.type = 'conflict' AND NEW.dependency_id IS NULL),
@@ -174,7 +174,7 @@ END;
 
 CREATE TRIGGER ck_update_dependency BEFORE UPDATE ON dependencies
 FOR EACH ROW BEGIN
-    -- DO does not work. http://bugs.mysql.com/bug.php?id=69647
+    -- DO does not work. https://bugs.mysql.com/bug.php?id=69647
     SET @dummy := checkit(
             (NEW.type = 'require'  AND NEW.dependency_id IS NOT NULL)
          OR (NEW.type = 'conflict' AND NEW.dependency_id IS NULL),

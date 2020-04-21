@@ -12,6 +12,15 @@ use File::Copy ();
 
 __PACKAGE__->add_property($_) for qw(etcdir installed_etcdir);
 
+# List one more more engines to include in a bundle install.
+# --with postgres --with msyql
+__PACKAGE__->add_property(with => []);
+
+# Set dual_life to true to force dual-life modules such as Pod::Simple to be
+# incliuded in the bundle directory.
+# --dual_life 1
+__PACKAGE__->add_property(dual_life => 0);
+
 sub new {
     my ( $class, %p ) = @_;
     if ($^O eq 'MSWin32') {
@@ -24,7 +33,14 @@ sub new {
         $p{requires}{'Win32::Locale'} = 0;
         $p{requires}{'Win32::ShellQuote'} = 0;
         $p{requires}{'DateTime::TimeZone::Local::Win32'} = 0;
-        $p{build_requires}{'Config::GitLike'} = '1.15';
+    }
+    if (eval { require Hash::Merge; 1 } && $Hash::Merge::VERSION eq '0.298') {
+        warn join "\n", (
+            '**************************************************************',
+            '* You have Hash::Merge $Hash::Merge::VERSION, which is broken.',
+            "**************************************************************\n",
+        );
+        $p{requires}{'Hash::Merge'} = '0.299';
     }
     my $self = $class->SUPER::new(%p);
     $self->add_build_element('etc');
@@ -188,7 +204,7 @@ sub process_pm_files {
 
 sub fix_shebang_line {
     my $self = shift;
-    # Noting to do before after 5.10.0.
+    # Noting to do after 5.10.0.
     return $self->SUPER::fix_shebang_line(@_) if $] > 5.010000;
 
     # Remove -C from the shebang line.
@@ -196,7 +212,7 @@ sub fix_shebang_line {
         my $FIXIN = IO::File->new($file) or die "Can't process '$file': $!";
         local $/ = "\n";
         chomp(my $line = <$FIXIN>);
-        next unless $line =~ s/^\s*\#!\s*//;     # Not a shbang file.
+        next unless $line =~ s/^\s*\#!\s*//;     # Not a shebang file.
 
         my ($cmd, $arg) = (split(' ', $line, 2), '');
         next unless $cmd =~ /perl/i && $arg =~ s/ -C\w+//;
@@ -224,4 +240,85 @@ sub fix_shebang_line {
     return $self->SUPER::fix_shebang_line(@_);
 }
 
-1;
+sub ACTION_bundle {
+    my ($self, @params) = @_;
+    my $base = $self->install_base or die "No --install_base specified\n";
+
+    # XXX Consider replacing with a Carton or Carmel-based solution?
+    SHHH: {
+        local $SIG{__WARN__} = sub {}; # Menlo has noisy warnings.
+        local $ENV{PERL_CPANM_OPT}; # Override cpanm options.
+        require Menlo::Sqitch;
+        my $feat = $self->with || [];
+        $feat = [$feat] unless ref $feat;
+        my $app = Menlo::Sqitch->new(
+            quiet          => $self->quiet,
+            verbose        => $self->verbose,
+            notest         => 1,
+            self_contained => 1,
+            skip_installed => 0,
+            install_types  => [qw(requires recommends)],
+            local_lib      => File::Spec->rel2abs($base),
+            pod2man        => undef,
+            features       => { map { $_ => 1 } @{ $feat } },
+        );
+
+        if ($self->dual_life) {
+            # Force Install dual-life modules.
+            $app->{argv} = [qw(
+                File::Temp Scalar::Util Pod::Usage  Digest::SHA Pod::Escapes
+                Pod::Find  Getopt::Long Time::HiRes File::Path  List::Util
+                Encode     Pod::Simple  Time::Local parent      IO::File  if
+                Term::ANSIColor
+            )];
+            die "Error installing modules: $@\n" if $app->run;
+        }
+
+        # Install required modules, but not Sqitch itself.
+        $app->{argv} = ['.'];
+        $app->{installdeps} = 1;
+        die "Error installing modules: $@\n" if $app->run;
+
+        # Remove unneeded build-time dependencies.
+        die "Error removing build modules: $@\n"
+            unless $app->remove_build_dependencies;
+    }
+
+    # Install Sqitch. Required to intall man pages.
+    $self->depends_on('install');
+
+    # Delete unneeded files.
+    $self->delete_filetree(File::Spec->catdir($base, qw(lib perl5 Test)));
+    $self->delete_filetree(File::Spec->catdir($base, qw(bin)));
+    for my $file (@{ $self->rscan_dir($base, qr/[.](?:meta|packlist)$/) }) {
+        $self->delete_filetree($file);
+    }
+
+    # Install sqitch script using FindBin.
+    $self->_copy_findbin_script;
+
+    # Delete empty directories.
+    File::Find::finddepth(sub{rmdir},$base);
+}
+
+sub _copy_findbin_script {
+    my $self = shift;
+    # XXX Switch to lib/perl5.
+    my $bin = $self->install_destination('script');
+    my $script = File::Spec->catfile(qw(bin sqitch));
+    my $dest = File::Spec->catfile($bin, 'sqitch');
+    my $result = $self->copy_if_modified($script, $bin, 'flatten') or return;
+    $self->fix_shebang_line($result) unless $self->is_vmsish;
+    $self->_set_findbin($result);
+    $self->make_executable($result);
+}
+
+sub _set_findbin {
+    my ($self, $file) = @_;
+    local $^I = '';
+    local @ARGV = ($file);
+    while (<>) {
+        s{^BEGIN}{use FindBin;\nuse lib "\$FindBin::RealBin/../lib/perl5";\nBEGIN};
+        print;
+    }
+}

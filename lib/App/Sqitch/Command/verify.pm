@@ -10,9 +10,12 @@ use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 use List::Util qw(first);
 use namespace::autoclean;
-extends 'App::Sqitch::Command';
 
-our $VERSION = '0.9997';
+extends 'App::Sqitch::Command';
+with 'App::Sqitch::Role::ContextCommand';
+with 'App::Sqitch::Role::ConnectingCommand';
+
+# VERSION
 
 has target => (
     is  => 'ro',
@@ -33,9 +36,7 @@ has variables => (
     is       => 'ro',
     isa      => HashRef,
     lazy     => 1,
-    default  => sub {
-        shift->sqitch->config->get_section( section => 'verify.variables' );
-    },
+    default  => sub { {} },
 );
 
 sub options {
@@ -43,8 +44,6 @@ sub options {
         target|t=s
         from-change|from=s
         to-change|to=s
-        from-target=s
-        to-target=s
         set|s=s%
     );
 }
@@ -58,27 +57,23 @@ sub configure {
         exists $opt->{$_}
     } qw(target from_change to_change);
 
-    # Handle deprecated options.
-    for my $key (qw(from to)) {
-        if (my $val = $opt->{"$key\_target"}) {
-            App::Sqitch->warn(__x(
-                'Option --{old} has been deprecated; use --{new} instead',
-                old => "$key-target",
-                new => "$key-change",
-            ));
-            $params{"$key\_change"} ||= $val;
-        }
-    }
-
     if ( my $vars = $opt->{set} ) {
-        # Merge with config.
-        $params{variables} = {
-            %{ $config->get_section( section => 'verify.variables' ) || {} },
-            %{ $vars },
-        };
+        $params{variables} = $vars;
     }
 
     return \%params;
+}
+
+sub _collect_vars {
+    my ($self, $target) = @_;
+    my $cfg = $self->sqitch->config;
+    return (
+        %{ $cfg->get_section(section => 'core.variables') },
+        %{ $cfg->get_section(section => 'deploy.variables') },
+        %{ $cfg->get_section(section => 'verify.variables') },
+        %{ $target->variables }, # includes engine
+        %{ $self->variables },   # --set
+    );
 }
 
 sub execute {
@@ -106,7 +101,7 @@ sub execute {
 
     # Now get to work.
     my $engine = $target->engine;
-    if (my %v = %{ $self->variables }) { $engine->set_variables(%v) }
+    $engine->set_variables( $self->_collect_vars($target) );
     $engine->verify($from, $to);
     return $self;
 }
@@ -187,7 +182,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2017 iovation Inc.
+Copyright (c) 2012-2018 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

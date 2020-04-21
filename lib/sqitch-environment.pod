@@ -10,6 +10,8 @@ Sqitch supports a number of environment variables that affect its
 functionality. This document lists them all, along with brief descriptions of
 their purposes and pointers to relevant documentation.
 
+=head2 Sqitch Environment
+
 =over
 
 =item C<SQITCH_CONFIG>
@@ -28,10 +30,59 @@ Path to the system's configuration file. Overrides the default, which is a
 file named C<sqitch.conf> in the directory identified by C<sqitch --etc>. See
 L<sqitch-config> for details.
 
+=item C<SQITCH_TARGET>
+
+The name or URI of the database target to connect to. Overrides values stored
+in the configuration, but not command-line options or arguments.
+
+=item C<SQITCH_USERNAME>
+
+Username to use when connecting to a database, for those database engines that
+support authentication. Overrides values stored in a target URI or the
+configuration. See L<sqitch-authentication> for details.
+
 =item C<SQITCH_PASSWORD>
 
 Password to use when connecting to a database, for those database engines that
-support it. See L<sqitch-passwords> for details.
+support authentication. Overrides values stored in a target URI or the
+configuration. See L<sqitch-authentication> for details.
+
+=item C<SQITCH_FULLNAME>
+
+Full name of the current user. Used to identify the user adding a change to a
+plan file or deploying a change. Supersedes the <user.name> L<sqitch-config>
+variable.
+
+=item C<SQITCH_EMAIL>
+
+Email address of the current user. Used to identify the user adding a change to
+a plan file or deploying a change. Supersedes the C<user.email> L<sqitch-config>
+variable.
+
+=item C<SQITCH_ORIG_SYSUSER>
+
+Username from the original system. Intended for use by scripts that run Sqitch
+from another host, where the originating host username should be passed to the
+execution host, such as
+L<this Docker script|https://github.com/sqitchers/docker-sqitch/blob/master/docker-sqitch.sh>.
+
+=item C<SQITCH_ORIG_FULLNAME>
+
+Full name of the original system user. Intended for use by scripts that run
+Sqitch from another host, where the originating host user's identity should be
+passed to the execution host, such as
+L<this Docker script|https://github.com/sqitchers/docker-sqitch/blob/master/docker-sqitch.sh>.
+This value will be used only when neither the C<$SQITCH_FULLNAME> nor the
+C<user.name> L<sqitch-config> variable is set.
+
+=item C<SQITCH_ORIG_EMAIL>
+
+Email address of the original user. Intended for use by scripts that run
+Sqitch on a separate host, where the originating host user's identity should
+be passed to the execution host, such as
+L<this Docker script|https://github.com/sqitchers/docker-sqitch/blob/master/docker-sqitch.sh>.
+This value will be used only when neither the C<$SQITCH_EMAIL> nor the
+C<user.email> L<sqitch-config> variable is set.
 
 =item C<SQITCH_EDITOR>
 
@@ -52,6 +103,229 @@ C<more>.
 
 =back
 
+=head2 Engine Environments
+
+In addition to Sqitch's environment variables, some of the database engines
+support environment variables of their own. These are not comprehensive for
+all variables supported by a database engine, but document those supported by
+Sqitch's implementation for each engine.
+
+=head3 PostgreSQL
+
+All the usual
+L<PostgreSQL environment variables|https://www.postgresql.org/docs/current/static/libpq-envars.html>
+should be implicitly used. However, the following variables are explicitly
+recognized by Sqitch:
+
+=over
+
+=item C<PGUSER>
+
+The username to use to connect to the server. Superseded by
+C<$SQITCH_USERNAME> and the target URI username.
+
+=item C<PGPASSWORD>
+
+The password to use to connect to the server. Superseded by
+C<$SQITCH_PASSWORD> and the target URI password.
+
+=item C<PGHOST>
+
+The PostgreSQL server host to connect to. Superseded by the target URI host
+name.
+
+=item C<PGPORT>
+
+The PostgreSQL server port to connect to. Superseded by the target URI port.
+
+=item C<PGDATABASE>
+
+The name of the database to connect to. Superseded by the target URI database
+name.
+
+=back
+
+=head3 SQLite
+
+SQLite provides no environment variable support.
+
+=head3 MySQL
+
+Sqitch recognizes and takes advantage of the following
+L<MySQL environment variables|https://dev.mysql.com/doc/refman/5.7/en/environment-variables.html>:
+
+=over
+
+=item C<MYSQL_PWD>
+
+The password to use to connect to the server. Superseded by
+C<$SQITCH_PASSWORD> and the target URI password.
+
+=item C<MYSQL_HOST>
+
+The MySQL server host to connect to. Superseded by the target URI host
+name.
+
+=item C<MYSQL_TCP_PORT>
+
+The MySQL server port to connect to. Superseded by the target URI port.
+
+=back
+
+=head3 Oracle
+
+Sqitch's Oracle engine supports a few environment variables:
+
+=over
+
+=item C<ORACLE_HOME>
+
+Required to point to the Oracle home directory, and contain both the SQL*Plus
+client and the shared libraries with which the Perl Oracle driver was
+compiled.
+
+=item C<TNS_ADMIN>
+
+The directory in which the Oracle networking interface will find its configuration
+files, notably F<tnsnames.ora>. Defaults to C<$ORACLE HOME/network/admin> if not
+set.
+
+=item C<TWO_TASK>
+
+The name of the Oracle database to connect to. Superseded by the target URI.
+
+=item C<LOCAL>
+
+The name of the Oracle database to connect to. Windows only. Superseded by the
+target URI.
+
+=item C<ORACLE_SID>
+
+The System Identifier (SID) representing the Oracle database to connect to.
+Superseded by the target URI, C<TWO_TASK> and C<LOCAL> on Windows.
+
+=back
+
+In addition, the Oracle engine in Sqitch explicitly overrides the C<NLS_LANG>
+and C<SQLPATH> environment variables. The former is set to
+C<AMERICAN_AMERICA.AL32UTF8> to ensure that all database connections use the
+UTF-8 encoding. The latter is set to an empty string, to prevent SQL*Plus
+executing SQL scripts unexpectedly.
+
+=head3 Firebird
+
+The Sqitch Firebird engine supports the following environment variables:
+
+=over
+
+=item C<ISC_USER>
+
+The username to use to connect to Firebird. Superseded by
+C<$SQITCH_USERNAME> and the target URI username.
+
+=item C<ISC_PASSWORD>
+
+The password to use to connect to Firebird. Superseded by C<$SQITCH_PASSWORD>
+and the target URI password.
+
+=back
+
+=head3 Vertica
+
+Sqitch provides explicit support for the following
+L<Vertica environment variables|https://www.vertica.com/docs/8.1.x/HTML/index.htm#Authoring/ConnectingToVertica/vsql/vsqlEnvironmentVariables.htm>:
+
+=over
+
+=item C<VSQL_USER>
+
+The username to use to connect to the server. Superseded by
+C<$SQITCH_USERNAME> and the target URI username.
+
+=item C<VSQL_PASSWORD>
+
+The password to use to connect to the server. Superseded by
+C<$SQITCH_PASSWORD> and the target URI password.
+
+=item C<VSQL_HOST>
+
+The PostgreSQL server host to connect to. Superseded by the target URI host
+name.
+
+=item C<VSQL_PORT>
+
+The PostgreSQL server port to connect to. Superseded by the target URI port.
+
+=item C<VSQL_DATABASE>
+
+The name of the database to connect to. Superseded by the target URI database
+name.
+
+=back
+
+=head3 Exasol
+
+The Sqitch Exasol engine supports no special environment variables. It does,
+however, override THE C<SQLPATH> environment variable, to prevent EXAplus
+executing SQL scripts unexpectedly.
+
+=head3 Snowflake
+
+Sqitch provides explicit support for the following
+L<Snowflake environment variables|https://docs.snowflake.net/manuals/user-guide/snowsql-start.html#connection-syntax>:
+
+=over
+
+=item C<SNOWSQL_ACCOUNT>
+
+The name assigned to the snowflake account. Superseded by the target URI host
+name.
+
+=item C<SNOWSQL_USER>
+
+The username to use to connect to the server. Superseded by
+C<$SQITCH_USERNAME> and the target URI username.
+
+=item C<SNOWSQL_PWD>
+
+The password to use to connect to the server. Superseded by
+C<$SQITCH_PASSWORD> and the target URI password.
+
+=item C<SNOWSQL_PRIVATE_KEY_PASSPHRASE>
+
+The passphrase for the private key file when using key pair authentication.
+See L<sqitch-authentication> for details.
+
+=item C<SNOWSQL_ROLE>
+
+The role to use when connecting to the server. Superseded by the target URI
+database C<role> query parameter.
+
+=item C<SNOWSQL_HOST>
+
+The PostgreSQL server host to connect to. Superseded by the target URI host
+name.
+
+=item C<SNOWSQL_PORT>
+
+The PostgreSQL server port to connect to. Superseded by the target URI port.
+
+=item C<SNOWSQL_DATABASE>
+
+The name of the database to connect to. Superseded by the target URI database
+name.
+
+=item C<SNOWSQL_REGION>
+
+The snowflake region. Superseded by the target URI host name.
+
+=item C<SNOWSQL_WAREHOUSE>
+
+The warehouse to use. Superseded by the target URI database C<warehouse> query
+parameter.
+
+=back
+
 =head1 See Also
 
 =over
@@ -60,7 +334,7 @@ C<more>.
 
 =item * L<sqitch-config>
 
-=item * L<sqitch-passwords>
+=item * L<sqitch-authentication>
 
 =back
 

@@ -1,5 +1,5 @@
 /*
- * Sqitch database deployment metadata v1.0.;
+ * Sqitch database deployment metadata v1.1.;
  */
 
 /*

@@ -9,11 +9,14 @@ use App::Sqitch::Types qw(HashRef);
 use App::Sqitch::X qw(hurl);
 use Path::Class;
 use Try::Tiny;
+use URI::db;
 use Locale::TextDomain qw(App-Sqitch);
 use List::Util qw(first);
 use File::Path qw(make_path);
 use namespace::autoclean;
 use constant extra_target_keys => ();
+
+# VERSION
 
 requires 'command';
 requires 'options';
@@ -31,12 +34,13 @@ has properties => (
 around options => sub {
     my ($orig, $class) = @_;
     return ($class->$orig), (map { "$_=s" } $class->extra_target_keys), qw(
-        plan-file=s
+        plan-file|f=s
         registry=s
         client=s
         extension=s
         top-dir=s
         dir|d=s%
+        set|s=s%
     );
 };
 
@@ -97,6 +101,11 @@ around configure => sub {
         }
     }
 
+    # Copy variables.
+    if ( my $vars = $opt->{set} ) {
+        $props->{variables} = $vars;
+    }
+
     # All done.
     $params->{properties} = $props;
     return $params;
@@ -130,23 +139,6 @@ sub BUILD {
             uri    => $uri,
         ) unless first { $engine eq $_ } App::Sqitch::Command::ENGINES;
 
-    }
-
-    # Copy core options.
-    my $opts = $self->sqitch->options;
-    for my $name (qw(
-        top_dir
-        plan_file
-        engine
-        registry
-        client
-        target
-        extension
-        deploy_dir
-        revert_dir
-        verify_dir
-    )) {
-        $props->{$name} ||= $opts->{$name} if exists $opts->{$name};
     }
 }
 
@@ -342,6 +334,25 @@ sub write_plan {
     return $self;
 }
 
+sub config_params {
+    my ($self, $key) = @_;
+    my @vars;
+    while (my ($prop, $val) = each %{ $self->properties } ) {
+        if (ref $val eq 'HASH') {
+            push @vars => map {{
+                key   => "$key.$prop.$_",
+                value => $val->{$_},
+            }} keys %{ $val };
+        } else {
+            push @vars => {
+                key   => "$key.$prop",
+                value => $val,
+            };
+        }
+    }
+    return \@vars;
+}
+
 1;
 
 __END__
@@ -481,6 +492,13 @@ Creates the list of directories on the file system. Directories that already
 exist are skipped. Messages are sent to C<info()> for each directory, and an
 error is thrown on the first to fail.
 
+=head3 C<config_params>
+
+  my @params = $cmd->config_params($key);
+
+Returns a list of parameters to pass to the L<App::Sqitch::Config> C<set>
+method, built up from the C<properties>.
+
 =head1 See Also
 
 =over
@@ -508,7 +526,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2017 iovation Inc.
+Copyright (c) 2012-2018 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

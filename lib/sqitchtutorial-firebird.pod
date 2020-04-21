@@ -15,20 +15,22 @@ VCS for deployment planning, and work with other developers to make sure
 changes remain in sync and in the proper order.
 
 We'll start by creating new project from scratch, a fictional antisocial
-networking site called Flipr. All examples use L<Git|http://git-scm.com/> as
-the VCS and L<Firebird|http://www.firebirdsql.org/> as the storage engine.
+networking site called Flipr. All examples use L<Git|https://git-scm.com/> as
+the VCS and L<Firebird|https://www.firebirdsql.org/> as the storage engine.
 
-If you'd like to manage an PostgreSQL database, see L<sqitchtutorial>.
+If you'd like to manage a PostgreSQL database, see L<sqitchtutorial>.
 
 If you'd like to manage an SQLite database, see L<sqitchtutorial-sqlite>.
 
 If you'd like to manage an Oracle database, see L<sqitchtutorial-oracle>.
 
-If you'd like to manage an MySQL database, see L<sqitchtutorial-mysql>.
+If you'd like to manage a MySQL database, see L<sqitchtutorial-mysql>.
 
-If you'd like to manage an Vertica database, see L<sqitchtutorial-vertica>.
+If you'd like to manage a Vertica database, see L<sqitchtutorial-vertica>.
 
 If you'd like to manage an Exasol database, see L<sqitchtutorial-exasol>.
+
+If you'd like to manage a Snowflake database, see L<sqitchtutorial-snowflake>.
 
 =head1 Starting a New Project
 
@@ -48,14 +50,15 @@ source code repository. So let's do that with Git:
 
 If you're a Git user and want to follow along the history, the
 repository used in these examples is
-L<on GitHub|https://github.com/theory/sqitch-firebird-intro>.
+L<on GitHub|https://github.com/sqitchers/sqitch-firebird-intro>.
 
 Now that we have a repository, let's get started with Sqitch. Every Sqitch
 project must have a name associated with it, and, optionally, a unique URI. We
 recommend including the URI, as it increases the uniqueness of object
-identifiers internally, so let's specify one when we initialize Sqitch:
+identifiers internally, and will prevent the deployment of a different project
+with the same name. So let's specify one when we initialize Sqitch:
 
-  > sqitch init flipr --uri https://github.com/theory/sqitch-firebird-intro/ --engine firebird
+  > sqitch init flipr --uri https://github.com/sqitchers/sqitch-firebird-intro/ --engine firebird
   Created sqitch.conf
   Created sqitch.plan
   Created deploy/
@@ -75,7 +78,7 @@ Let's have a look at F<sqitch.conf>:
   	# client = isql-fb
 
 Good, it picked up on the fact that we're creating changes for the Firebird
-engine, thanks to the C<-engine firebird> option, and saved it to the
+engine, thanks to the C<--engine firebird> option, and saved it to the
 file. Furthermore, it wrote a commented-out C<[engine "firebird"]> section
 with all the available Firebird engine-specific settings commented out and
 ready to be edited as appropriate.
@@ -85,7 +88,7 @@ settings. But it will also read F<~/.sqitch/sqitch.conf> for user-specific
 settings.
 
 The current implementation of the engine will try to find Firebird's
-L<C<firebird> client|http://www.firebirdsql.org/manual/isql-commands.html>
+L<C<firebird> client|https://www.firebirdsql.org/manual/isql-commands.html>
 (implemented for GNU/Linux and Microsoft Windows).  This might fail,
 so we go ahead an tell it where to find the client on our computer,
 for example on GNU/Linux with the standard location of the Firebird
@@ -121,7 +124,7 @@ Back to the repository. Have a look at the plan file, F<sqitch.plan>:
   > cat sqitch.plan
   %syntax-version=1.0.0
   %project=flipr
-  %uri=https://github.com/theory/sqitch-firebird-intro/
+  %uri=https://github.com/sqitchers/sqitch-firebird-intro/
   
 
 Note that it has picked up on the name and URI of the app we're building.
@@ -190,7 +193,9 @@ script, so we edit this to F<revert/users.sql> to look like this:
 
   COMMIT;
 
-Now we can try deploying this change:
+Now we can try deploying this change. We tell Sqitch where to send the change
+via a L<database URI|https://github.com/libwww-perl/uri-db/>. Here we've
+specified a database file, F</tmp/flipr_test/flipr.fdb>:
 
   > sqitch deploy db:firebird://sysdba:masterkey@localhost//tmp/flipr_test/flipr.fdb
   Adding registry tables to db:firebird://sysdba:@localhost//tmp/flipr_test/sqitch.fdb
@@ -203,7 +208,19 @@ change was deployed; by default, its name is C<sqitch.$suffix>, where
 C<$suffix> is the same as the suffix on the target database, if any. It lives
 in the same directory as the target database, which means that one registry
 database is used for all the databases with the same suffix in a single
-directory.
+directory. In this case, we should end up with two databases:
+
+=over
+
+=item * F</tmp/flipr_test/sqitch.fdb>
+
+The Sqitch registry database.
+
+=item * F</tmp/flipr_test/flipr.fdb>
+
+The database Sqitch manages.
+
+=back
 
 Next, Sqitch deploys changes to the target database. We only have one change
 so far; the C<+> reinforces the idea that the change is being I<added> to the
@@ -387,14 +404,14 @@ When we look at the status, the deployment will be there:
 
 I'm getting a little tired of always having to type
 C<db:firebird://sysdba:masterkey@localhost//tmp/flipr_test/flipr.fdb>, aren't
-you? This L<database connection URI|https://github.com/theory/uri-db/> tells
+you? This L<database connection URI|https://github.com/libwww-perl/uri-db/> tells
 Sqitch how to connect to the deployment target, but we don't have to keep
 using the URI. We can name the target:
 
   > sqitch target add flipr_test db:firebird://sysdba:masterkey@localhost//tmp/flipr_test/flipr.fdb
 
 The L<C<target>|sqitch-target> command, inspired by
-L<C<git-remote>|http://git-scm.com/docs/git-remote>, allows management of one
+L<C<git-remote>|https://git-scm.com/docs/git-remote>, allows management of one
 or more named deployment targets. We've just added a target named
 C<flipr_test>, which means we can use the string C<flipr_test> for the target,
 rather than the URI. But since we're doing so much testing, we can also tell
@@ -778,7 +795,7 @@ Look good?
   # 
   Nothing to deploy (up-to-date)
 
-Note the use of C<--show tags> to show all the deployed tags. Now make it so:
+Note the use of C<--show-tags> to show all the deployed tags. Now make it so:
 
   > rm -rf flipr-v1.0.0-dev1*
   > git add .
@@ -875,7 +892,7 @@ resolve conflicts in that file. Except in Git. Fortunately for us, we can tell
 Git to resolve conflicts in F<sqitch.plan> differently. Because we only ever
 append lines to the file, we can have it use the "union" merge driver, which,
 according to L<its
-docs|http://git-scm.com/docs/gitattributes#_built-in_merge_drivers>:
+docs|https://git-scm.com/docs/gitattributes#_built-in_merge_drivers>:
 
 =over
 
@@ -909,7 +926,7 @@ Ah, that looks a bit better. Let's have a look at the plan:
   > cat sqitch.plan
   %syntax-version=1.0.0
   %project=flipr
-  %uri=https://github.com/theory/sqitch-firebird-intro/
+  %uri=https://github.com/sqitchers/sqitch-firebird-intro/
 
   users 2014-01-05T22:01:30Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
   flips [users] 2014-01-05T22:21:24Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.
@@ -972,7 +989,7 @@ And double-check our work:
   > cat sqitch.plan
   %syntax-version=1.0.0
   %project=flipr
-  %uri=https://github.com/theory/sqitch-firebird-intro/
+  %uri=https://github.com/sqitchers/sqitch-firebird-intro/
 
   users 2014-01-05T22:01:30Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
   flips [users] 2014-01-05T22:21:24Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.
@@ -1017,7 +1034,7 @@ demands. The upshot is that we need to update the C<userflips> view, which is
 used for the feature in question, to include the Twitter user names.
 
 Normally, modifying views in database changes is a
-L<PITA|http://www.urbandictionary.com/define.php?term=pita>. You have to make
+L<PITA|https://www.urbandictionary.com/define.php?term=pita>. You have to make
 changes like these:
 
 =over
@@ -1111,7 +1128,7 @@ remember?), and that the revert script should actually change things back to
 how they were before.
 
 Fortunately, our view deploy scripts are already almost
-L<idempotent|http://en.wikipedia.org/wiki/Idempotence> -- that is, able to be
+L<idempotent|https://en.wikipedia.org/wiki/Idempotence> -- that is, able to be
 applied multiple times without changing the result beyond the initial
 application. If it's not, you will likely need to modify it so that it
 properly restores things to how they were after the original deploy script was
@@ -1224,7 +1241,7 @@ is planned to make managing idempotent reworkings even easier. Stay tuned.
 
 =head1 License
 
-Copyright (c) 2012-2017 iovation Inc.
+Copyright (c) 2012-2018 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

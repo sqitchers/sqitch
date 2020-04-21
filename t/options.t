@@ -3,14 +3,24 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 26;
-#use Test::More 'no_plan';
+use Test::More;
 use Test::MockModule;
+use Test::Exception;
 use Capture::Tiny 0.12 ':all';
+use Locale::TextDomain qw(App-Sqitch);
+use lib 't/lib';
+use TestConfig;
 
-$ENV{SQITCH_CONFIG}        = 'nonexistent.conf';
-$ENV{SQITCH_USER_CONFIG}   = 'nonexistent.user';
-$ENV{SQITCH_SYSTEM_CONFIG} = 'nonexistent.sys';
+my ($catch_chdir, $chdir_to, $chdir_fail);
+BEGIN {
+    $catch_chdir = 0;
+    # Stub out chdir.
+    *CORE::GLOBAL::chdir = sub {
+        return CORE::chdir(@_) unless $catch_chdir;
+        $chdir_to = shift;
+        return !$chdir_fail;
+    };
+}
 
 my $CLASS;
 
@@ -19,55 +29,89 @@ BEGIN {
     use_ok $CLASS or die;
 }
 
-##############################################################################
-# Test _split_args.
-can_ok $CLASS, '_split_args';
-
-is_deeply [ $CLASS->_split_args('help') ], [[], 'help', []],
-    'Split on command-only';
-
-is_deeply [ $CLASS->_split_args('--help', 'help') ], [
-    ['--help'],
-    'help',
-    [],
-], 'Split on core option plus command';
-
-is_deeply [ $CLASS->_split_args('--help', 'help', '--foo') ], [
-    ['--help'],
-    'help',
-    ['--foo'],
-], 'Split on core option plus command plus command option';
-
-is_deeply [ $CLASS->_split_args('--plan-file', 'foo', 'help', '--foo') ], [
-    ['--plan-file', 'foo'],
-    'help',
-    ['--foo'],
-], 'Option with arg should work';
-
-is_deeply [$CLASS->_split_args(qw(
-    --plan-file
-    foo
+is_deeply [$CLASS->_core_opts], [qw(
+    chdir|cd|C=s
+    etc-path
+    no-pager
+    quiet
+    verbose|V|v+
     help
-    --foo
-))], [
-    ['--plan-file', 'foo'],
-    'help',
-    ['--foo'],
-], 'Option with arg should work';
+    man
+    version
+)], 'Options should be correct';
 
-is_deeply [ $CLASS->_split_args('--help') ], [['--help'], undef, []],
-    'Should handle no command';
+##############################################################################
+# Test _find_cmd.
+can_ok $CLASS, '_find_cmd';
 
-is_deeply [ $CLASS->_split_args('-vvv', 'deploy') ],
-    [['-vvv'], 'deploy', []],
-    'Spliting args when using bundling should work';
-
-# Make sure an invalid option is caught.
-INVALID: {
+CMD: {
+    # Mock output methods.
     my $mocker = Test::MockModule->new($CLASS);
-    $mocker->mock(_pod2usage => sub {  pass '_pod2usage should be called' });
-    is capture_stderr { $CLASS->_split_args('--foo', 'foo', 'help', '--bar') },
-        "Unknown option: foo\n", 'Should exit for invalid option';
+    my $pod;
+    $mocker->mock(_pod2usage => sub { $pod = $_[1]; undef });
+    my @vent;
+    $mocker->mock(vent => sub { shift; push @vent => \@_ });
+
+    # Try no args.
+    my @args = ();
+    is $CLASS->_find_cmd(\@args), undef, 'Should find no command for no args';
+    is $pod, 'sqitchcommands', 'Should have passed "sqitchcommands" to _pod2usage';
+    is_deeply \@vent, [], 'Should have vented nothing';
+    ($pod, @vent) = ();
+
+    # Try an invalid command.
+    @args = qw(barf);
+    is $CLASS->_find_cmd(\@args), undef, 'Should find no command for invalid command';
+    is $pod, 'sqitchcommands', 'Should have passed "sqitchcommands" to _pod2usage';
+    is_deeply \@vent, [
+        [__x '"{command}" is not a valid command',  command => 'barf'],
+    ], 'Should have vented an invalid command message';
+    ($pod, @vent) = ();
+
+    # Obvious options should be ignored.
+    for my $opt (qw(
+        --foo
+        --client=psql
+        -R
+        -X=yup
+    )) {
+        @args = ($opt, 'crack');
+        is $CLASS->_find_cmd(\@args), undef,
+            "Should find no command with option $opt";
+        is $pod, 'sqitchcommands', 'Should have passed "sqitchcommands" to _pod2usage';
+        is_deeply \@vent, [
+            [__x '"{command}" is not a valid command',  command => 'crack'],
+        ], qq{Should not have reported $opt as invalid command};
+        ($pod, @vent) = ();
+    }
+
+    # Lone -- should cancel processing.
+    @args = ('--', 'tag');
+    is $CLASS->_find_cmd(\@args), undef, 'Should find no command after --';
+    is $pod, 'sqitchcommands', 'Should have passed "sqitchcommands" to _pod2usage';
+    is_deeply \@vent, [], 'Should have vented nothing';
+    ($pod, @vent) = ();
+
+    # Valid command should be removed from args.
+    for my $cmd (qw(bundle config help plan show tag)) {
+        @args = (qw(--foo=bar -xy), $cmd, qw(--quack back -x y -z));
+        my $class = "App::Sqitch::Command::$cmd";
+
+        is $CLASS->_find_cmd(\@args), $class, qq{Should find class for "$cmd"};
+        is $pod, undef, 'Should not have called _pod2usage';
+        is_deeply \@vent, [], 'Should have vented nothing';
+        is_deeply \@args, [qw(--foo=bar -xy --quack back -x y -z)],
+            qq{Should have removed "$cmd" from args};
+        ($pod, @vent) = ();
+
+        @args = (qw(--foo=bar), $cmd, qw(verify -x));
+        is $CLASS->_find_cmd(\@args), $class, qq{Should find class for "$cmd" again};
+        is $pod, undef, 'Should not have called _pod2usage';
+        is_deeply \@vent, [], 'Should have vented nothing';
+        is_deeply \@args, [qw(--foo=bar verify -x)],
+            qq{Should have left subsequent valid command after "$cmd" in args};
+        ($pod, @vent) = ();
+    }
 }
 
 ##############################################################################
@@ -97,47 +141,14 @@ $mock->mock(warn => undef);
 ##############################################################################
 # Try lots of options.
 my $opts = $CLASS->_parse_core_opts([
-    '--plan-file'  => 'plan.txt',
-    '--engine'     => 'pg',
-    '--registry'   => 'reg',
-    '--client'     => 'psql',
-    '--db-name'    => 'try',
-    '--db-user'    => 'bob',
-    '--db-host'    => 'local',
-    '--db-port'    => 2020,
-    '--top-dir'    => 'ddl',
-    '--deploy-dir' => 'dep',
-    '--revert-dir' => 'rev',
-    '--verify-dir' => 'tst',
-    '--extension'  => 'ext',
     '--verbose', '--verbose',
+    '--no-pager',
 ]);
 
 is_deeply $opts, {
-    plan_file   => 'plan.txt',
-    engine      => 'pg',
-    registry    => 'reg',
-    client      => 'psql',
-    db_name     => 'try',
-    db_username => 'bob',
-    db_host     => 'local',
-    db_port     => 2020,
-    top_dir     => 'ddl',
-    deploy_dir  => 'dep',
-    revert_dir  => 'rev',
-    verify_dir  => 'tst',
-    extension   => 'ext',
     verbosity   => 2,
+    no_pager    => 1,
 }, 'Should parse lots of options';
-
-for my $dir (qw(
-    top_dir
-    deploy_dir
-    revert_dir
-    verify_dir
-)) {
-    isa_ok $opts->{$dir}, 'Path::Class::Dir', $dir;
-}
 
 # Make sure --quiet trumps --verbose.
 is_deeply $CLASS->_parse_core_opts([
@@ -147,19 +158,9 @@ is_deeply $CLASS->_parse_core_opts([
 ##############################################################################
 # Try short options.
 is_deeply $CLASS->_parse_core_opts([
-  '-d' => 'mydb',
-  '-u' => 'fred',
-  '-h' => 'db1',
-  '-p' => 5431,
-  '-f' => 'foo.plan',
-  '-vvv',
+  '-VVV',
 ]), {
-    db_name     => 'mydb',
-    db_username => 'fred',
-    db_host     => 'db1',
-    db_port     => 5431,
-    verbosity   => 3,
-    plan_file   => 'foo.plan',
+    verbosity => 3,
 }, 'Short options should work';
 
 USAGE: {
@@ -175,3 +176,35 @@ USAGE: {
         'foo'       => 'bar',
     }, 'Proper args should have been passed to Pod::Usage';
 }
+
+# Test --chdir.
+$catch_chdir = 1;
+ok $opts = $CLASS->_parse_core_opts(['--chdir', 'foo/bar']),
+    'Parse --chdir';
+is $chdir_to, 'foo/bar', 'Should have changed to foo/bar';
+is_deeply $opts, {}, 'Should have preserved no opts';
+
+ok $opts = $CLASS->_parse_core_opts(['--cd', 'go/dir']), 'Parse --cd';
+is $chdir_to, 'go/dir', 'Should have changed to go/dir';
+is_deeply $opts, {}, 'Should have preserved no opts';
+
+ok $opts = $CLASS->_parse_core_opts(['-C', 'hi crampus']), 'Parse -C';
+is $chdir_to, 'hi crampus', 'Should have changed to hi cramus';
+is_deeply $opts, {}, 'Should have preserved no opts';
+
+# Make sure it fails properly.
+CHDIE: {
+    local $! = 9;
+    $chdir_fail = 1;
+    my $exp_err = do { chdir 'nonesuch'; $! };
+    throws_ok { $CLASS->_parse_core_opts(['-C', 'nonesuch']) }
+        'App::Sqitch::X', 'Should get error when chdir fails';
+    is $@->ident, 'fs', 'Error ident should be "fs"';
+    is $@->message, __x(
+        'Cannot change to directory {directory}: {error}',
+        directory => 'nonesuch',
+        error     => $exp_err,
+    ), 'Error message should be correct';
+}
+
+done_testing;

@@ -4,7 +4,7 @@ sqitch-add-usage - Sqitch add usage statement
 
 =head1 Usage
 
-  sqitch [options] add [change options] [<template options>] <change> [<target>]
+  sqitch add [options] [template options] <change> [<target>]
 
 =head1 Options
 
@@ -22,3 +22,4 @@ sqitch-add-usage - Sqitch add usage statement
        --with    [script]     create named script
        --without [script]     do not create named script
     -e --edit, --open-editor  open change scripts in an editor
+    -f --plan-file  <file>    path to a deployment plan file

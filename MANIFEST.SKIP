@@ -38,3 +38,7 @@
 ^dist\.ini$
 ^MYMETA\.yml$
 ^MYMETA\.json$
+
+# Development tools.
+^xt/
+^dev/
