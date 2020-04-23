@@ -44,6 +44,7 @@ sub execute {
     my ( $self, $type, $key ) = @_;
     $self->usage unless $type && $key;
 
+    require App::Sqitch::Target;
     my $target = $self->target ? App::Sqitch::Target->new(
         $self->target_params,
         name   => $self->target,
