@@ -28,6 +28,9 @@ Revision history for Perl extension App::Sqitch
        the earliest change with a modified deploy script. Handy for rapid
        rebasing during iterative development cycles. Thanks to Matthieu
        Foucault for this feature (#477)!
+     - Fixed an issue where the Snowflake engine would complain about not
+       finding the account name even for commands that don't need them, such
+       as `init`. Thanks to Stack Overflow user vbp13 for the report (#502).
 
 1.0.0  2019-06-04T12:56:22Z
      - Fixed test failure due to a hard-coded system error that may be

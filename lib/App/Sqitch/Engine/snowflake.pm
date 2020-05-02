@@ -91,6 +91,7 @@ has _snowcfg => (
 has uri => (
     is => 'ro',
     isa => URIDB,
+    lazy => 1,
     default => sub {
         my $self = shift;
         my $uri  = $self->SUPER::uri;
