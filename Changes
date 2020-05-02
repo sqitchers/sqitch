@@ -8,6 +8,18 @@ Revision history for Perl extension App::Sqitch
      - Fixed an issue when the full name of the current user is not set so
        that it properly falls back on the username. Thanks to Slaven Rezić and
        Matthieu Foucault for the report and testing various fixes (#473).
+     - Eliminated an error when using the `-t` option to specify a target, due
+       to a missing dependency declaration in the Target class. Thanks to
+       Clinton Adams for the fix (#509)!
+     - Updated the IPC::System::Simple Win32 workaround added in 0.9999 to
+       properly support released versions of IPC::System::Simple. This fixes
+       errors running the database command-line clients on Windows (#503).
+     - Sqitch now only passes the `--password` option to the MySQL client if
+       it was not read from the `.my.cnf` file, as it's more secure to let
+       the client use `.my.cnf`, and it eliminates a warning from recent
+       versions of the client. Thanks to Kiel R Stirling for the fix (#484)!
+     - Added a note to the tutorials to skip setting the `engine.$engine.client`
+       config when using the Docker image.
 
 1.0.0  2019-06-04T12:56:22Z
      - Fixed test failure due to a hard-coded system error that may be
