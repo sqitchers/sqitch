@@ -10,6 +10,8 @@ sqitch-rebase - Revert and redeploy database changes
   sqitch rebase [options] [<database>] <change>
   sqitch rebase [options] [<database>] <change> --upto-change <change>
   sqitch rebase [options] [<database>] <change> <change>
+  sqitch rebase [options] [<database>] --revised
+  sqitch rebase [options] [<database>] --revised --upto-change <change>
 
 =head1 Description
 
@@ -62,6 +64,12 @@ L<sqitchchanges> for the various ways in which changes can be specified.
 
 Specify the deployment change. Defaults to the last point in the plan. See
 L<sqitchchanges> for the various ways in which changes can be specified.
+
+=item C<--revised>
+
+Finds the change to revert onto based on modifications to deploy scripts. Reverts
+the change prior to earliest change with a revised deploy script. Handy for
+quick rebases during iterative development cycles.
 
 =item C<--mode>
 

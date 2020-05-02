@@ -373,15 +373,8 @@ sub verify {
     }
 
     # Figure out where to start and end relative to the plan.
-    my $from_idx = defined $from
-        ? $self->_trim_to('verify', $from, \@changes)
-        : 0;
-
-    my $to_idx = defined $to ? $self->_trim_to('verify', $to, \@changes, 1) : do {
-        if (my $id = $self->latest_change_id) {
-            $plan->index_of( $id );
-        }
-    } // $plan->count - 1;
+    my $from_idx = $self->_from_idx('verify', $from, \@changes);
+    my $to_idx = $self->_to_idx('verify', $to, \@changes);
 
     # Run the verify tests.
     if ( my $count = $self->_verify_changes($from_idx, $to_idx, !$to, @changes) ) {
@@ -402,6 +395,22 @@ sub verify {
     $sqitch->emit(__ 'Verify successful');
 
     return $self;
+}
+
+sub _from_idx {
+    my ( $self, $ident, $from, $changes) = @_;
+    return 0 unless defined $from;
+    return $self->_trim_to($ident, $from, $changes)
+}
+
+sub _to_idx {
+    my ( $self, $ident, $to, $changes) = @_;
+    my $plan = $self->plan;
+    return $self->_trim_to($ident, $to, $changes, 1) if defined $to;
+    if (my $id = $self->latest_change_id) {
+        return $plan->index_of( $id ) // $plan->count - 1;
+    }
+    return $plan->count - 1;
 }
 
 sub _trim_to {
@@ -1090,6 +1099,80 @@ sub upgrade_registry {
         $self->_register_release($version);
         $oldver = $version;
     }
+
+    return $self;
+}
+
+sub _find_planned_deployed_divergence_idx {
+    my ($self, $from_idx, @deployed_changes) = @_;
+    my $i = -1;
+    my $plan = $self->plan;
+
+    foreach my $change (@deployed_changes) {
+        $i++;
+        return $i if $i + $from_idx >= $plan->count
+            || $change->script_hash ne $plan->change_at($i + $from_idx)->script_hash;
+    }
+
+    return -1;
+}
+
+sub planned_deployed_common_ancestor_id {
+    my ( $self ) = @_;
+    my @deployed_changes = $self->_load_changes( $self->deployed_changes );
+    my $divergent_idx = $self->_find_planned_deployed_divergence_idx(0, @deployed_changes);
+
+    return $deployed_changes[-1]->id if $divergent_idx == -1;
+    return undef if $divergent_idx == 0;
+    return $deployed_changes[$divergent_idx - 1]->id;
+}
+
+sub check {
+    my ( $self, $from, $to ) = @_;
+    $self->_check_registry;
+    my $sqitch   = $self->sqitch;
+    my $plan     = $self->plan;
+    my @deployed_changes  = $self->_load_changes( $self->deployed_changes );
+    my $num_failed = 0;
+
+    $sqitch->info(__x(
+        'Checking {destination}',
+        destination => $self->destination,
+    ));
+
+    if (!@deployed_changes) {
+        my $msg = $plan->count
+            ? __ 'No changes deployed'
+            : __ 'Nothing to check (no planned or deployed changes)';
+        $sqitch->info($msg);
+        return $self;
+    }
+
+    # Figure out where to start and end relative to the plan.
+    my $from_idx = $self->_from_idx('check', $from, \@deployed_changes);
+    $self->_to_idx('check', $to, \@deployed_changes);
+
+    my $divergent_change_idx = $self->_find_planned_deployed_divergence_idx($from_idx, @deployed_changes);
+    if ($divergent_change_idx != -1) {
+        $num_failed++;
+        $sqitch->emit(__x(
+            'Script signatures diverge at change {change}',
+            change => $deployed_changes[$divergent_change_idx]->format_name_with_tags,
+        ));
+    }
+
+    hurl {
+        ident => 'check',
+        message => __nx(
+            'Failed one check',
+            'Failed {count} checks',
+            $num_failed,
+            count => $num_failed,
+        ),
+        exitval => $num_failed,
+    } if $num_failed;
+
+    $sqitch->emit(__ 'Check successful');
 
     return $self;
 }
