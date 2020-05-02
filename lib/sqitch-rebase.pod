@@ -67,10 +67,9 @@ L<sqitchchanges> for the various ways in which changes can be specified.
 
 =item C<--revised>
 
-Finds the change to revert onto based on the output of L<sqitch-check>. The
-change to be reverted onto will be the change that is before the first
-discrepancy between planned and deployed changes. This option checks the
-script hashes, and will re-deploy all changes whose deploy script was altered.
+Finds the change to revert onto based on modifications to deploy scripts. Reverts
+the change prior to earliest change with a revised deploy script. Handy for
+quick rebases during iterative development cycles.
 
 =item C<--mode>
 

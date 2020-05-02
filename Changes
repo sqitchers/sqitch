@@ -20,6 +20,14 @@ Revision history for Perl extension App::Sqitch
        versions of the client. Thanks to Kiel R Stirling for the fix (#484)!
      - Added a note to the tutorials to skip setting the `engine.$engine.client`
        config when using the Docker image.
+     - Added the new `check` command, which compares the SHA1 hashes of the
+       deploy scripts to the database, and reports if any have been modified
+       since they were deployed. Thanks to Matthieu Foucault for the pull
+       request and diligent work on this feature (#477)!
+     - Added the `--revised` option to the `rebase` command, to rebase onto
+       the earliest change with a modified deploy script. Handy for rapid
+       rebasing during iterative development cycles. Thanks to Matthieu
+       Foucault for this feature (#477)!
 
 1.0.0  2019-06-04T12:56:22Z
      - Fixed test failure due to a hard-coded system error that may be

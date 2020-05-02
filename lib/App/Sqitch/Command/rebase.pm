@@ -37,7 +37,7 @@ sub options {
     return qw(
         onto-change|onto=s
         upto-change|upto=s
-        revised!
+        revised
     );
 }
 
@@ -70,17 +70,15 @@ sub execute {
 
     my $engine = $target->engine;
     # Warn on too many changes.
-    my $onto = $self->revised ?
-        $engine->planned_deployed_common_ancestor_id :
-        $self->onto_change // shift @{ $changes };
+    my $onto = $self->revised
+        ? $engine->planned_deployed_common_ancestor_id
+        : $self->onto_change // shift @{ $changes };
     my $upto = $self->upto_change // shift @{ $changes };
     $self->warn(__x(
         'Too many changes specified; rebasing onto "{onto}" up to "{upto}"',
         onto => $onto,
         upto => $upto,
     )) if @{ $changes };
-
-
 
     # Now get to work.
     $engine->with_verify( $self->verify );

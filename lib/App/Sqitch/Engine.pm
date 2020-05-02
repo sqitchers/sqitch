@@ -399,27 +399,24 @@ sub verify {
 
 sub _from_idx {
     my ( $self, $ident, $from, $changes) = @_;
-    return defined $from
-        ? $self->_trim_to($ident, $from, $changes)
-        : 0;
+    return 0 unless defined $from;
+    return $self->_trim_to($ident, $from, $changes)
 }
 
 sub _to_idx {
     my ( $self, $ident, $to, $changes) = @_;
     my $plan = $self->plan;
-    return defined $to ? $self->_trim_to($ident, $to, $changes, 1) : do {
-        if (my $id = $self->latest_change_id) {
-            $plan->index_of( $id );
-        }
-    } // $plan->count - 1;
+    return $self->_trim_to($ident, $to, $changes, 1) if defined $to;
+    if (my $id = $self->latest_change_id) {
+        return $plan->index_of( $id ) // $plan->count - 1;
+    }
+    return $plan->count - 1;
 }
-
 
 sub _trim_to {
     my ( $self, $ident, $key, $changes, $pop ) = @_;
     my $sqitch = $self->sqitch;
     my $plan   = $self->plan;
-
 
     # Find the to change in the database.
     my $to_id = $self->change_id_for_key( $key ) || hurl $ident => (
@@ -1113,7 +1110,8 @@ sub _find_planned_deployed_divergence_idx {
 
     foreach my $change (@deployed_changes) {
         $i++;
-        return $i if $i + $from_idx >= $plan->count || $change->script_hash ne $plan->change_at($i + $from_idx)->script_hash;
+        return $i if $i + $from_idx >= $plan->count
+            || $change->script_hash ne $plan->change_at($i + $from_idx)->script_hash;
     }
 
     return -1;
@@ -1150,7 +1148,6 @@ sub check {
         return $self;
     }
 
-
     # Figure out where to start and end relative to the plan.
     my $from_idx = $self->_from_idx('check', $from, \@deployed_changes);
     $self->_to_idx('check', $to, \@deployed_changes);
@@ -1160,8 +1157,8 @@ sub check {
         $num_failed++;
         $sqitch->emit(__x(
             'Script signatures diverge at change {change}',
-            change=>$deployed_changes[$divergent_change_idx]->format_name_with_tags,
-            ))
+            change => $deployed_changes[$divergent_change_idx]->format_name_with_tags,
+        ));
     }
 
     hurl {

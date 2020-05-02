@@ -8,8 +8,8 @@ sqitch-check-usage - Sqitch check usage statement
 
 =head1 Options
 
-    -t --target <target>       database to which to connect
-          --project <project>  project for which to perform the checks
+    -t --target     <target>   database to which to connect
+       --project    <project>  project for which to perform the checks
        --registry   <registry> registry schema or database
        --db-client  <path>     path to the engine command-line client
     -d --db-name    <name>     database name

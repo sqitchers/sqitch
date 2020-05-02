@@ -8,11 +8,10 @@ sqitch-check - Checks for divergences between planned and deployed changes.
 
 =head1 Description
 
-Runs various checks on the state of the working directory and the database.
-The SHA1 hashes of the deployed scripts are compared the the ones from the
-working directory. Where discrepancies are found, messages are printed,
-indicating to the user that the working directory deploy scripts are different
-from the scripts that were used to deploy to the database.
+Compares the state of the working directory and the database by comparing the
+SHA1 hashes of the deploy scripts. Fails and reports divergence for all
+changes with non-matching hashes, indicating that the project deploy scripts
+differ from the scripts that were used to deploy to the database.
 
 The C<< <database> >> parameter specifies the database to which to connect,
 and may also be specified as the C<--target> option. It can be target name,
