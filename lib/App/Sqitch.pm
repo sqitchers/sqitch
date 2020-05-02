@@ -332,7 +332,7 @@ sub run {
         ( my $msg = shift ) =~ s/\s+at\s+.+/\n/ms;
         die $msg;
     };
-    if (ISWIN && IPC::System::Simple->VERSION <= 1.25) {
+    if (ISWIN && IPC::System::Simple->VERSION < 1.28) {
         runx ( shift, $self->quote_shell(@_) );
         return $self;
     }
