@@ -27,9 +27,9 @@ has upto_change => (
     isa => Str,
 );
 
-has revised => (
-    is  => 'ro',
-    isa => Bool,
+has modified => (
+    is      => 'ro',
+    isa     => Bool,
     default => 0,
 );
 
@@ -37,7 +37,7 @@ sub options {
     return qw(
         onto-change|onto=s
         upto-change|upto=s
-        revised
+        modified|m
     );
 }
 
@@ -46,7 +46,7 @@ sub configure {
     return { map { $_ => $opt->{$_} } grep { exists $opt->{$_} } qw(
         onto_change
         upto_change
-        revised
+        modified
     ) };
 }
 
@@ -64,13 +64,9 @@ sub execute {
         target => $target->name,
     )) if @{ $targets };
 
-    # Fail if both onto-change and revised are specified
-    hurl __ 'You cannot use both --revised and specify a change to rebase onto'
-        if ($self->onto_change && $self->revised);
-
-    my $engine = $target->engine;
     # Warn on too many changes.
-    my $onto = $self->revised
+    my $engine = $target->engine;
+    my $onto = $self->modified
         ? $engine->planned_deployed_common_ancestor_id
         : $self->onto_change // shift @{ $changes };
     my $upto = $self->upto_change // shift @{ $changes };

@@ -27,6 +27,12 @@ has to_change => (
     isa => Str,
 );
 
+has modified => (
+    is      => 'ro',
+    isa     => Bool,
+    default => 0,
+);
+
 has no_prompt => (
     is  => 'ro',
     isa => Bool
@@ -56,6 +62,7 @@ sub options {
         to-change|to|change=s
         set|s=s%
         log-only
+        modified|m
         y
     );
 }
@@ -67,6 +74,7 @@ sub configure {
         to_change
         log_only
         target
+        modified
     );
 
     if ( my $vars = $opt->{set} ) {
@@ -113,14 +121,16 @@ sub execute {
     )) if @{ $targets };
 
     # Warn on too many changes.
-    my $change = $self->to_change // shift @{ $changes };
+    my $engine = $target->engine;
+    my $change = $self->modified
+        ? $engine->planned_deployed_common_ancestor_id
+        : $self->to_change // shift @{ $changes };
     $self->warn(__x(
         'Too many changes specified; reverting to "{change}"',
         change => $change,
     )) if @{ $changes };
 
     # Now get to work.
-    my $engine = $target->engine;
     $engine->no_prompt( $self->no_prompt );
     $engine->prompt_accept( $self->prompt_accept );
     $engine->log_only( $self->log_only );

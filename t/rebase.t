@@ -27,6 +27,7 @@ can_ok $CLASS, qw(
     new
     onto_change
     upto_change
+    modified
     log_only
     execute
     deploy_variables
@@ -42,7 +43,7 @@ ok $CLASS->does("App::Sqitch::Role::$_"), "$CLASS does $_"
 is_deeply [$CLASS->options], [qw(
     onto-change|onto=s
     upto-change|upto=s
-    revised
+    modified|m
     plan-file|f=s
     top-dir=s
     registry=s
@@ -304,6 +305,7 @@ isa_ok $rebase = $CLASS->new(sqitch => $sqitch), $CLASS;
 is $rebase->target,      undef, 'Should have undef target';
 is $rebase->onto_change, undef, 'onto_change should be undef';
 is $rebase->upto_change, undef, 'upto_change should be undef';
+ok !$rebase->modified, 'modified should be false';
 
 # Mock the engine interface.
 my $mock_engine = Test::MockModule->new('App::Sqitch::Engine::sqlite');
@@ -576,7 +578,7 @@ is_deeply \@vars, [[], []],
     'No vars should have been passed through to the engine';
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
-# Test --revised
+# Test --modified
 $common_ancestor_id = '42';
 isa_ok $rebase = $CLASS->new(
     target           => 'db:sqlite:lolwut',
@@ -584,7 +586,7 @@ isa_ok $rebase = $CLASS->new(
     log_only         => 1,
     verify           => 1,
     sqitch           => $sqitch,
-    revised          => 1,
+    modified         => 1,
 ), $CLASS, 'Object with to and variables';
 
 @vars = @dep_args = @rev_args = ();
