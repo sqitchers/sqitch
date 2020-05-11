@@ -24,9 +24,9 @@ Revision history for Perl extension App::Sqitch
        deploy scripts to the database, and reports if any have been modified
        since they were deployed. Thanks to Matthieu Foucault for the pull
        request and diligent work on this feature (#477)!
-     - Added the `--revised` option to the `rebase` command, to rebase onto
-       the earliest change with a modified deploy script. Handy for rapid
-       rebasing during iterative development cycles. Thanks to Matthieu
+     - Added the `--modified` option to the `rebase` and `revert` commands, to
+       revert to the earliest change with a modified deploy script. Handy for
+       rapid rebasing during iterative development cycles. Thanks to Matthieu
        Foucault for this feature (#477)!
      - Fixed an issue where the Snowflake engine would complain about not
        finding the account name even for commands that don't need them, such

@@ -9,9 +9,9 @@ sqitch-rebase-usage - Sqitch rebase usage statement
 =head1 Options
 
     -t --target <target>              database to which to connect
+    -m --modified                     revert to before the earliest modified change
        --onto --onto-change <change>  revert to change
        --upto --upto-change <change>  deploy to change
-       --revised                      revert to the common ancestor between the planned and deployed changes
        --mode <mode>                  deploy reversion mode (all, tag, change)
        --verify                       run verify scripts after each change
        --no-verify                    do not run verify scripts

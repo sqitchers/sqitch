@@ -25,6 +25,7 @@ can_ok $CLASS, qw(
     configure
     new
     to_change
+    modified
     log_only
     execute
     variables
@@ -39,6 +40,7 @@ is_deeply [$CLASS->options], [qw(
     to-change|to|change=s
     set|s=s%
     log-only
+    modified|m
     y
     plan-file|f=s
     top-dir=s
@@ -145,9 +147,11 @@ isa_ok my $revert = $CLASS->new(
 ), $CLASS, 'new revert with target';
 is $revert->target, 'foo', 'Should have target "foo"';
 is $revert->to_change, undef, 'to_change should be undef';
+ok !$revert->modified, 'modified should be false';
 isa_ok $revert = $CLASS->new(sqitch => $sqitch, no_prompt => 1), $CLASS;
 is $revert->target, undef, 'Should have undef default target';
 is $revert->to_change, undef, 'to_change should be undef';
+ok !$revert->modified, 'modified should be false';
 
 ##############################################################################
 # Test _collect_vars.
@@ -236,6 +240,8 @@ my @args;
 $mock_engine->mock(revert => sub { shift; @args = @_ });
 my @vars;
 $mock_engine->mock(set_variables => sub { shift; @vars = @_ });
+my $common_ancestor_id;
+$mock_engine->mock(planned_deployed_common_ancestor_id => sub { return $common_ancestor_id; });
 
 my $mock_cmd = Test::MockModule->new($CLASS);
 my $orig_method;
@@ -347,5 +353,18 @@ is $@->message, __nx(
     2,
     arg => 'greg, jon',
 ), 'Should get an exeption for two unknown args';
+
+# Now specify --modified.
+isa_ok $revert = $CLASS->new(
+    sqitch    => $sqitch,
+    target    => 'db:sqlite:welp',
+    modified  => 1,
+), $CLASS, 'Object with to and variables';
+ok $revert->modified, 'modified should be true';
+$common_ancestor_id = 42;
+@args = ();
+ok $revert->execute, 'Execute again';
+is $target->name, 'db:sqlite:welp', 'Target name should be from option';
+is_deeply \@args, [$common_ancestor_id], 'the common ancestor id should be passed to the engine revert';
 
 done_testing;

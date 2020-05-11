@@ -7,6 +7,7 @@ sqitch-revert - Revert changes to a database
   sqitch revert [options] [<database>]
   sqitch revert [options] [<database>] <change>
   sqitch revert [options] [<database>] --to-change <change>
+  sqitch revert [options] [<database>] --modified
 
 =head1 Description
 
@@ -53,6 +54,13 @@ the name of a target in the configuration.
 
 Specify the reversion change. Defaults to reverting all changes. See
 L<sqitchchanges> for the various ways in which changes can be specified.
+
+=item C<-m>
+
+=item C<--modified>
+
+Finds the change to revert onto based on modifications to deploy scripts. Reverts
+the change prior to earliest change with a revised deploy script.
 
 =item C<-s>
 
