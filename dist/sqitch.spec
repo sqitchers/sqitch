@@ -67,6 +67,7 @@ BuildRequires:  perl(Test::Exception)
 BuildRequires:  perl(Test::File)
 BuildRequires:  perl(Test::File::Contents) >= 0.20
 BuildRequires:  perl(Test::MockModule) >= 0.17
+BuildRequires:  perl(Test::MockObject::Extends) >= 1.20180705
 BuildRequires:  perl(Test::More) >= 0.94
 BuildRequires:  perl(Test::NoWarnings) >= 0.083
 BuildRequires:  perl(Test::Warn)
@@ -305,6 +306,10 @@ also be installed.
 # No additional files required.
 
 %changelog
+* Sun May 17 2020 David E. Wheeler <david.wheeler@iovation.com> 1.1.0-1
+- Upgrade to v1.1.0.
+- Added the Test::MockObject::Extends build requirement.
+
 * Tue Jun 4 2019 David E. Wheeler <david.wheeler@iovation.com> 1.0.0-1
 - Upgrade to v1.0.0.
 - Config::GitLike now requires v1.15.
