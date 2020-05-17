@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use utf8;
 use Moo;
-use Types::Standard qw(Str);
+use Types::Standard qw(Str Bool);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use List::Util qw(first);
@@ -27,10 +27,17 @@ has upto_change => (
     isa => Str,
 );
 
+has modified => (
+    is      => 'ro',
+    isa     => Bool,
+    default => 0,
+);
+
 sub options {
     return qw(
         onto-change|onto=s
         upto-change|upto=s
+        modified|m
     );
 }
 
@@ -39,6 +46,7 @@ sub configure {
     return { map { $_ => $opt->{$_} } grep { exists $opt->{$_} } qw(
         onto_change
         upto_change
+        modified
     ) };
 }
 
@@ -57,7 +65,10 @@ sub execute {
     )) if @{ $targets };
 
     # Warn on too many changes.
-    my $onto = $self->onto_change // shift @{ $changes };
+    my $engine = $target->engine;
+    my $onto = $self->modified
+        ? $engine->planned_deployed_common_ancestor_id
+        : $self->onto_change // shift @{ $changes };
     my $upto = $self->upto_change // shift @{ $changes };
     $self->warn(__x(
         'Too many changes specified; rebasing onto "{onto}" up to "{upto}"',
@@ -65,9 +76,7 @@ sub execute {
         upto => $upto,
     )) if @{ $changes };
 
-
     # Now get to work.
-    my $engine = $target->engine;
     $engine->with_verify( $self->verify );
     $engine->no_prompt( $self->no_prompt );
     $engine->prompt_accept( $self->prompt_accept );
@@ -160,7 +169,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2018 iovation Inc.
+Copyright (c) 2012-2020 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

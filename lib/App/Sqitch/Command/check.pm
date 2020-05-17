@@ -1,14 +1,14 @@
-package App::Sqitch::Command::revert;
+package App::Sqitch::Command::check;
 
 use 5.010;
 use strict;
 use warnings;
 use utf8;
 use Moo;
-use Types::Standard qw(Str Bool HashRef);
-use List::Util qw(first);
+use Types::Standard qw(Str HashRef);
 use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
+use List::Util qw(first);
 use namespace::autoclean;
 
 extends 'App::Sqitch::Command';
@@ -22,31 +22,14 @@ has target => (
     isa => Str,
 );
 
-has to_change => (
+has from_change => (
     is  => 'ro',
     isa => Str,
 );
 
-has modified => (
-    is      => 'ro',
-    isa     => Bool,
-    default => 0,
-);
-
-has no_prompt => (
+has to_change => (
     is  => 'ro',
-    isa => Bool
-);
-
-has prompt_accept => (
-    is  => 'ro',
-    isa => Bool
-);
-
-has log_only => (
-    is       => 'ro',
-    isa      => Bool,
-    default  => 0,
+    isa => Str,
 );
 
 has variables => (
@@ -59,37 +42,24 @@ has variables => (
 sub options {
     return qw(
         target|t=s
-        to-change|to|change=s
+        from-change|from=s
+        to-change|to=s
         set|s=s%
-        log-only
-        modified|m
-        y
     );
 }
 
 sub configure {
     my ( $class, $config, $opt ) = @_;
 
-    my %params = map { $_ => $opt->{$_} } grep { exists $opt->{$_} } qw(
-        to_change
-        log_only
-        target
-        modified
-    );
+    my %params = map {
+        $_ => $opt->{$_}
+    } grep {
+        exists $opt->{$_}
+    } qw(target from_change to_change);
 
     if ( my $vars = $opt->{set} ) {
-        $params{variables} = $vars
+        $params{variables} = $vars;
     }
-
-    $params{no_prompt} = delete $opt->{y} // $config->get(
-        key => 'revert.no_prompt',
-        as  => 'bool',
-    ) // 0;
-
-    $params{prompt_accept} = $config->get(
-        key => 'revert.prompt_accept',
-        as  => 'bool',
-    ) // 1;
 
     return \%params;
 }
@@ -100,7 +70,7 @@ sub _collect_vars {
     return (
         %{ $cfg->get_section(section => 'core.variables') },
         %{ $cfg->get_section(section => 'deploy.variables') },
-        %{ $cfg->get_section(section => 'revert.variables') },
+        %{ $cfg->get_section(section => 'check.variables') },
         %{ $target->variables }, # includes engine
         %{ $self->variables },   # --set
     );
@@ -121,21 +91,18 @@ sub execute {
     )) if @{ $targets };
 
     # Warn on too many changes.
-    my $engine = $target->engine;
-    my $change = $self->modified
-        ? $engine->planned_deployed_common_ancestor_id
-        : $self->to_change // shift @{ $changes };
+    my $from = $self->from_change // shift @{ $changes };
+    my $to   = $self->to_change   // shift @{ $changes };
     $self->warn(__x(
-        'Too many changes specified; reverting to "{change}"',
-        change => $change,
+        'Too many changes specified; checking from "{from}" to "{to}"',
+        from => $from,
+        to   => $to,
     )) if @{ $changes };
 
     # Now get to work.
-    $engine->no_prompt( $self->no_prompt );
-    $engine->prompt_accept( $self->prompt_accept );
-    $engine->log_only( $self->log_only );
+    my $engine = $target->engine;
     $engine->set_variables( $self->_collect_vars($target) );
-    $engine->revert( $change );
+    $engine->check($from, $to);
     return $self;
 }
 
@@ -145,69 +112,48 @@ __END__
 
 =head1 Name
 
-App::Sqitch::Command::revert - Revert Sqitch changes from a database
+App::Sqitch::Command::check - Runs various checks and prints a report
 
 =head1 Synopsis
 
-  my $cmd = App::Sqitch::Command::revert->new(%params);
+  my $cmd = App::Sqitch::Command::check->new(%params);
   $cmd->execute;
 
 =head1 Description
 
-If you want to know how to use the C<revert> command, you probably want to be
-reading C<sqitch-revert>. But if you really want to know how the C<revert> command
+If you want to know how to use the C<check> command, you probably want to be
+reading C<sqitch-check>. But if you really want to know how the C<check> command
 works, read on.
 
 =head1 Interface
 
-=head2 Class Methods
-
-=head3 C<options>
-
-  my @opts = App::Sqitch::Command::revert->options;
-
-Returns a list of L<Getopt::Long> option specifications for the command-line
-options for the C<revert> command.
-
 =head2 Attributes
 
-=head3 C<log_only>
+=head3 C<target_name>
 
-Boolean indicating whether to log the deploy without running the scripts.
-
-=head3 C<no_prompt>
-
-Boolean indicating whether or not to prompt the user to really go through with
-the revert.
-
-=head3 C<prompt_accept>
-
-Boolean value to indicate whether or not the default value for the prompt,
-should the user hit C<return>, is to accept the prompt or deny it.
+The name or URI of the database target as specified by the C<--target> option.
 
 =head3 C<target>
 
-The deployment target URI.
-
-=head3 C<to_change>
-
-Change to revert to.
+An L<App::Sqitch::Target> object from which to perform the checks. Must be
+instantiated by C<execute()>.
 
 =head2 Instance Methods
 
 =head3 C<execute>
 
-  $revert->execute;
+  $check->execute;
 
-Executes the revert command.
+Executes the check command. The current state of the target database will be
+compared to the plan in order to show where things stand.
 
 =head1 See Also
 
 =over
 
-=item L<sqitch-revert>
+=item L<sqitch-check>
 
-Documentation for the C<revert> command to the Sqitch command-line client.
+Documentation for the C<check> command to the Sqitch command-line client.
 
 =item L<sqitch>
 
@@ -218,10 +164,11 @@ The Sqitch command-line client.
 =head1 Author
 
 David E. Wheeler <david@justatheory.com>
+Matthieu Foucault <matthieu@button.is>
 
 =head1 License
 
-Copyright (c) 2012-2020 iovation Inc.
+Copyright (c) 2012-2019 iovation Inc., Button Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

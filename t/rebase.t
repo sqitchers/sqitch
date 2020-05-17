@@ -27,6 +27,7 @@ can_ok $CLASS, qw(
     new
     onto_change
     upto_change
+    modified
     log_only
     execute
     deploy_variables
@@ -42,6 +43,7 @@ ok $CLASS->does("App::Sqitch::Role::$_"), "$CLASS does $_"
 is_deeply [$CLASS->options], [qw(
     onto-change|onto=s
     upto-change|upto=s
+    modified|m
     plan-file|f=s
     top-dir=s
     registry=s
@@ -303,6 +305,7 @@ isa_ok $rebase = $CLASS->new(sqitch => $sqitch), $CLASS;
 is $rebase->target,      undef, 'Should have undef target';
 is $rebase->onto_change, undef, 'onto_change should be undef';
 is $rebase->upto_change, undef, 'upto_change should be undef';
+ok !$rebase->modified, 'modified should be false';
 
 # Mock the engine interface.
 my $mock_engine = Test::MockModule->new('App::Sqitch::Engine::sqlite');
@@ -312,6 +315,8 @@ my @rev_args;
 $mock_engine->mock(revert => sub { shift; @rev_args = @_ });
 my @vars;
 $mock_engine->mock(set_variables => sub { shift; push @vars => [@_] });
+my $common_ancestor_id;
+$mock_engine->mock(planned_deployed_common_ancestor_id => sub { return $common_ancestor_id; });
 
 ##############################################################################
 # Test _collect_deploy_vars and _collect_revert_vars.
@@ -573,6 +578,25 @@ is_deeply \@vars, [[], []],
     'No vars should have been passed through to the engine';
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
+# Test --modified
+$common_ancestor_id = '42';
+isa_ok $rebase = $CLASS->new(
+    target           => 'db:sqlite:lolwut',
+    no_prompt        => 1,
+    log_only         => 1,
+    verify           => 1,
+    sqitch           => $sqitch,
+    modified         => 1,
+), $CLASS, 'Object with to and variables';
+
+@vars = @dep_args = @rev_args = ();
+ok $rebase->execute, 'Execute again';
+is $target->name, 'db:sqlite:lolwut', 'Target name should be from option';
+ok $target->engine->no_prompt, 'Engine should be no_prompt';
+ok $target->engine->log_only, 'Engine should be log_only';
+ok $target->engine->with_verify, 'Engine should verify';
+is_deeply \@rev_args, [$common_ancestor_id], 'the common ancestor id should be passed to the engine revert';
+
 # Mix it up with options.
 isa_ok $rebase = $CLASS->new(
     target           => 'db:sqlite:lolwut',
@@ -632,16 +656,20 @@ is_deeply +MockOutput->get_warn, [[__x(
 throws_ok { $rebase->execute(qw(greg)) } 'App::Sqitch::X',
     'Should get an exception for unknown arg';
 is $@->ident, 'rebase', 'Unknow arg ident should be "rebase"';
-is $@->message, __x(
+is $@->message, __nx(
     'Unknown argument "{arg}"',
+    'Unknown arguments: {arg}',
+    1,
     arg => 'greg',
 ), 'Should get an exeption for two unknown arg';
 
 throws_ok { $rebase->execute(qw(greg jon)) } 'App::Sqitch::X',
     'Should get an exception for unknown args';
 is $@->ident, 'rebase', 'Unknow args ident should be "rebase"';
-is $@->message, __x(
+is $@->message, __nx(
+    'Unknown argument "{arg}"',
     'Unknown arguments: {arg}',
+    2,
     arg => 'greg, jon',
 ), 'Should get an exeption for two unknown args';
 

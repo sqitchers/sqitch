@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 633;
+use Test::More tests => 670;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -13,6 +13,7 @@ use Path::Class;
 use Test::Exception;
 use Test::NoWarnings;
 use Test::MockModule;
+use Test::MockObject::Extends;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use App::Sqitch::DateTime;
@@ -20,6 +21,7 @@ use List::Util qw(max);
 use lib 't/lib';
 use MockOutput;
 use TestConfig;
+use Clone qw(clone);
 
 my $CLASS;
 
@@ -2788,7 +2790,7 @@ is $engine->_verify_changes(1, 1, 0, $changes[1]), 0,
 is_deeply +MockOutput->get_emit_literal, [[
     '  * users @alpha ..', '', ' ',
 ]], 'Declared output should list the change';
-is_deeply +MockOutput->get_emit, [['ok']],
+is_deeply +MockOutput->get_emit, [[__ 'ok']],
     'Emitted Output should reflect the verification of the change';
 is_deeply +MockOutput->get_comment, [], 'Should have no comments';
 is_deeply $engine->seen, [
@@ -2801,7 +2803,7 @@ is $engine->_verify_changes(0, 0, 0, $changes[0]), 0,
 is_deeply +MockOutput->get_emit_literal, [[
     '  * roles ..', '', ' ',
 ]], 'Declared output should list the change';
-is_deeply +MockOutput->get_emit, [['ok']],
+is_deeply +MockOutput->get_emit, [[__ 'ok']],
     'Emitted Output should reflect the verification of the change';
 is_deeply +MockOutput->get_comment, [], 'Should have no comments';
 is_deeply +MockOutput->get_vent, [
@@ -2817,7 +2819,7 @@ is_deeply +MockOutput->get_emit_literal, [
     ['  * roles ..', '.......', ' '],
     ['  * users @alpha ..', '', ' '],
 ], 'Declared output should list both changes';
-is_deeply +MockOutput->get_emit, [['ok'], ['ok']],
+is_deeply +MockOutput->get_emit, [[__ 'ok'], [__ 'ok']],
     'Emitted Output should reflect the verification of the changes';
 
 is_deeply +MockOutput->get_comment, [], 'Should have no comments';
@@ -2837,7 +2839,7 @@ is_deeply +MockOutput->get_emit_literal, [
     ['  * users @alpha ..', '', ' '],
 ], 'Delcared output should list deployed changes';
 is_deeply +MockOutput->get_emit, [
-    ['ok'], ['ok'],
+    [__ 'ok'], [__ 'ok'],
     [__n 'Undeployed change:', 'Undeployed changes:', 2],
     map { [ '  * ', $_->format_name_with_tags] } @plan_changes[2..$#plan_changes]
 ], 'Emitted output should include list of pending changes';
@@ -2856,7 +2858,7 @@ is $engine->_verify_changes(1, 0, 0, $change), 1,
 is_deeply +MockOutput->get_emit_literal, [[
     '  * nonexistent ..', '', ' '
 ]], 'Declared Output should reflect the verification of the change';
-is_deeply +MockOutput->get_emit, [['not ok']],
+is_deeply +MockOutput->get_emit, [[__ 'not ok']],
     'Emitted Output should reflect the failure of the verify';
 is_deeply +MockOutput->get_comment, [[__ 'Not present in the plan' ]],
     'Should have a comment about the change missing from the plan';
@@ -2870,7 +2872,7 @@ is $engine->_verify_changes(1, 0, 0, $changes[1]), 1,
 is_deeply +MockOutput->get_emit_literal, [
     ['  * users @alpha ..', '', ' '],
 ], 'Declared output should reflect the verification of the change';
-is_deeply +MockOutput->get_emit, [['not ok']],
+is_deeply +MockOutput->get_emit, [[__ 'not ok']],
     'Emitted Output should reflect the failure of the verify';
 is_deeply +MockOutput->get_comment, [[__ 'Out of order' ]],
     'Should have a comment about the out-of-order change';
@@ -2885,7 +2887,7 @@ is $engine->_verify_changes(1, 0, 0, $changes[1]), 2,
 is_deeply +MockOutput->get_emit_literal, [
     ['  * users @alpha ..', '', ' '],
 ], 'Declared output should reflect the verification of the change';
-is_deeply +MockOutput->get_emit, [['not ok']],
+is_deeply +MockOutput->get_emit, [[__ 'not ok']],
     'Emitted Output should reflect the failure of the verify';
 is_deeply +MockOutput->get_comment, [
     [__ 'Out of order' ],
@@ -2901,7 +2903,7 @@ is_deeply +MockOutput->get_emit_literal, [
     ['  * roles ..', '.......', ' '],
     ['  * users @alpha ..', '', ' '],
 ], 'Declraed output should reflect the verification of both changes';
-is_deeply +MockOutput->get_emit, [['not ok'], ['not ok']],
+is_deeply +MockOutput->get_emit, [[__ 'not ok'], [__ 'not ok']],
     'Emitted Output should reflect the failure of both verifies';
 is_deeply +MockOutput->get_comment, [
     [__ 'Out of order' ],
@@ -2920,10 +2922,10 @@ is $engine->_verify_changes($#changes, $plan->count - 1, 0, $changes[-1]), 2,
     '_verify_changes with two undeployed changes should returne 2';
 is_deeply +MockOutput->get_emit_literal, [
     ['  * dr_evil ..', '', ' '],
-    ['  * foo ..', '....', ' ' , 'not ok', ' '],
-    ['  * blah ..', '...', ' ' , 'not ok', ' '],
+    ['  * foo ..', '....', ' ' , __ 'not ok', ' '],
+    ['  * blah ..', '...', ' ' , __ 'not ok', ' '],
 ], 'Listed changes should be both deployed and undeployed';
-is_deeply +MockOutput->get_emit, [['ok']],
+is_deeply +MockOutput->get_emit, [[__ 'ok']],
     'Emitted Output should reflect 1 pass';
 is_deeply +MockOutput->get_comment, [
     [__ 'Not deployed' ],
@@ -2980,7 +2982,7 @@ is_deeply +MockOutput->get_emit_literal, [
     ['  * ' . $changes[1]->format_name_with_tags . ' ..', '', ' ' ],
 ], 'The one change name should be declared';
 is_deeply +MockOutput->get_emit, [
-    ['ok'],
+    [__ 'ok'],
     [__ 'Verify successful'],
 ], 'Success should be emitted';
 is_deeply +MockOutput->get_comment, [], 'Should have no comments';
@@ -2998,7 +3000,7 @@ is_deeply +MockOutput->get_emit_literal, [
     ['  * users @alpha ..', '', ' ' ],
 ], 'The two change names should be declared';
 is_deeply +MockOutput->get_emit, [
-    ['ok'], ['ok'],
+    [__ 'ok'], [__ 'ok'],
     [__ 'Verify successful'],
 ], 'Both successes should be emitted';
 is_deeply +MockOutput->get_comment, [], 'Should have no comments';
@@ -3022,7 +3024,7 @@ is_deeply +MockOutput->get_emit_literal, [
     ['  * users @alpha ..', '', ' ' ],
 ], 'The two change names should be emitted';
 is_deeply +MockOutput->get_emit, [
-    ['ok'], ['ok'],
+    [__ 'ok'], [__ 'ok'],
     [__ 'Verify successful'],
 ], 'Both successes should be emitted';
 is_deeply +MockOutput->get_comment, [], 'Should have no comments';
@@ -3042,7 +3044,7 @@ is_deeply +MockOutput->get_emit_literal, [
     ['  * widgets @beta ..', '', ' ' ],
 ], 'The two change names should be emitted';
 is_deeply +MockOutput->get_emit, [
-    ['ok'], ['ok'],
+    [__ 'ok'], [__ 'ok'],
     [__ 'Verify successful'],
 ], 'Both successes should be emitted';
 is_deeply +MockOutput->get_comment, [], 'Should have no comments';
@@ -3071,7 +3073,7 @@ is_deeply +MockOutput->get_emit_literal, [
     ['  * widgets @beta ..', '', ' ' ],
 ], 'Both change names should be declared';
 is_deeply +MockOutput->get_emit, [
-    ['not ok'], ['not ok'],
+    [__ 'not ok'], [__ 'not ok'],
     [ "\n", $msg ],
     [ '-' x length $msg ],
     [__x 'Changes: {number}', number => 2 ],
@@ -3082,6 +3084,137 @@ is_deeply +MockOutput->get_comment, [
     ['WTF!'],
 ], 'Should have the errors in comments';
 is_deeply +MockOutput->get_vent, [], 'Nothing should have been vented';
+
+##############################################################################
+# Test check().
+can_ok $engine, 'check';
+my @check_changes;
+$mock_engine->mock( _load_changes => sub { @check_changes });
+
+# First, test with no changes.
+ok $engine->check,
+    'Should return success for no deployed changes';
+is_deeply +MockOutput->get_info, [
+    [__x 'Checking {destination}', destination => $engine->destination],
+    [__ 'No changes deployed'],
+], 'Notification of the check should be emitted';
+
+# Try no changes *and* nothing in the plan.
+$count = 0;
+$mock_plan->mock(count => sub { $count });
+ok $engine->check,
+    'Should return success for no changes';
+is_deeply +MockOutput->get_info, [
+    [__x 'Checking {destination}', destination => $engine->destination],
+    [__ 'Nothing to check (no planned or deployed changes)'],
+], 'Notification of the verify should be emitted';
+
+# Now return some changes but have nothing in the plan.
+@check_changes = @changes;
+throws_ok { $engine->check } 'App::Sqitch::X',
+    'Should get error for no planned changes';
+is $@->ident, 'check', 'Failed check ident should be "check"';
+is $@->exitval, 1, 'No planned changes exitval should be 1';
+is $@->message, __ 'Failed one check',
+    'Failed check message should be correct';
+is_deeply +MockOutput->get_info, [
+    [__x 'Checking {destination}', destination => $engine->destination],
+], 'Notification of the check should be emitted';
+is_deeply +MockOutput->get_emit, [
+    [__x 'Script signatures diverge at change {change}',
+        change => $check_changes[0]->format_name_with_tags],
+], 'Divergent change info should be emitted';
+
+# Let's do one change and have it pass.
+$mock_plan->mock(index_of => 0);
+$count = 1;
+@check_changes = ($changes[0]);
+ok $engine->check, 'Check one change';
+is_deeply +MockOutput->get_info, [
+    [__x 'Checking {destination}', destination => $engine->destination],
+], 'Notification of the check should be emitted';
+is_deeply +MockOutput->get_emit, [
+    [__ 'Check successful'],
+], 'Success should be emitted';
+is_deeply +MockOutput->get_comment, [], 'Should have no comments';
+
+# Let's change a script hash and have it fail.
+@check_changes = (clone($changes[0]));
+$mock_change = Test::MockObject::Extends->new($plan->change_at(0));
+$mock_change->mock('script_hash', sub { '42' });
+$count = 1;
+throws_ok { $engine->check } 'App::Sqitch::X',
+    'Should get error for one divergent script hash';
+is $@->ident, 'check', 'Failed check ident should be "check"';
+is $@->exitval, 1, 'No planned changes exitval should be 1';
+is $@->message, __ 'Failed one check',
+    'Failed check message should be correct';
+is_deeply +MockOutput->get_info, [
+    [__x 'Checking {destination}', destination => $engine->destination],
+], 'Notification of the check should be emitted';
+is_deeply +MockOutput->get_emit, [
+    [__x 'Script signatures diverge at change {change}',
+        change => $check_changes[0]->format_name_with_tags],
+], 'Divergent change info should be emitted';
+
+$mock_plan->unmock('index_of');
+$mock_change->unmock('script_hash');
+
+# Let's change the second script hash and have it fail there.
+@check_changes = ($changes[0], clone($changes[1]));
+$mock_change = Test::MockObject::Extends->new($check_changes[1]);
+$mock_change->mock('script_hash', sub { '42' });
+$count = 1;
+throws_ok { $engine->check } 'App::Sqitch::X',
+    'Should get error for one divergent script hash';
+is $@->ident, 'check', 'Failed check ident should be "check"';
+is $@->exitval, 1, 'No planned changes exitval should be 1';
+is $@->message, __ 'Failed one check',
+    'Failed check message should be correct';
+is_deeply +MockOutput->get_info, [
+    [__x 'Checking {destination}', destination => $engine->destination],
+], 'Notification of the check should be emitted';
+is_deeply +MockOutput->get_emit, [
+    [__x 'Script signatures diverge at change {change}',
+        change => $check_changes[1]->format_name_with_tags],
+], 'Divergent change info should be emitted';
+
+# The check should be fine if we stop at the first change
+# (check should honor the `to` argument)
+push @resolved => $changes[0]->id;
+ok $engine->check(
+        undef,
+        $changes[0]->format_name_with_tags,
+    ),
+    'Check one change with to arg';
+is_deeply +MockOutput->get_info, [
+    [__x 'Checking {destination}', destination => $engine->destination],
+], 'Notification of the check should be emitted';
+is_deeply +MockOutput->get_emit, [
+    [__ 'Check successful'],
+], 'Success should be emitted';
+is_deeply +MockOutput->get_comment, [], 'Should have no comments';
+
+# The check should be fine if we start at the second change
+# (check should honor the `from` argument)
+push @resolved => $changes[1]->id;
+throws_ok { $engine->check(
+        $changes[1]->format_name_with_tags,
+        undef,
+    ) } 'App::Sqitch::X',
+    'Should get error for one divergent script hash with from arg';
+is $@->ident, 'check', 'Failed check ident should be "check"';
+is $@->exitval, 1, 'No planned changes exitval should be 1';
+is $@->message, __ 'Failed one check',
+    'Failed check message should be correct';
+is_deeply +MockOutput->get_info, [
+    [__x 'Checking {destination}', destination => $engine->destination],
+], 'Notification of the check should be emitted';
+is_deeply +MockOutput->get_emit, [
+    [__x 'Script signatures diverge at change {change}',
+        change => $check_changes[1]->format_name_with_tags],
+], 'Divergent change info should be emitted';
+
 
 __END__
 diag $_->format_name_with_tags for @changes;

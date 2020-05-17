@@ -15,7 +15,7 @@ use lib 't/lib';
 use MockOutput;
 use TestConfig;
 
-my $CLASS = 'App::Sqitch::Command::verify';
+my $CLASS = 'App::Sqitch::Command::check';
 require_ok $CLASS or die;
 
 isa_ok $CLASS, 'App::Sqitch::Command';
@@ -83,7 +83,7 @@ is_deeply $CLASS->configure($config, {
 
 CONFIG: {
     my $config = TestConfig->new(
-        'verify.variables' => { foo => 'bar', hi => 21 },
+        'check.variables' => { foo => 'bar', hi => 21 },
     );
     is_deeply $CLASS->configure($config, {}), { _params => [], _cx => [] },
         'Should have no config if no options';
@@ -91,26 +91,26 @@ CONFIG: {
 
 ##############################################################################
 # Test construction.
-isa_ok my $verify = $CLASS->new(
+isa_ok my $check = $CLASS->new(
     sqitch   => $sqitch,
     target => 'foo',
 ), $CLASS, 'new status with target';
-is $verify->target, 'foo', 'Should have target "foo"';
+is $check->target, 'foo', 'Should have target "foo"';
 
-isa_ok $verify = $CLASS->new(sqitch => $sqitch), $CLASS;
-is $verify->target, undef, 'Default target should be undef';
-is $verify->from_change, undef, 'from_change should be undef';
-is $verify->to_change, undef, 'to_change should be undef';
+isa_ok $check = $CLASS->new(sqitch => $sqitch), $CLASS;
+is $check->target, undef, 'Default target should be undef';
+is $check->from_change, undef, 'from_change should be undef';
+is $check->to_change, undef, 'to_change should be undef';
 
 ##############################################################################
 # Test _collect_vars.
 my $target = App::Sqitch::Target->new(sqitch => $sqitch);
-is_deeply { $verify->_collect_vars($target) }, {}, 'Should collect no variables';
+is_deeply { $check->_collect_vars($target) }, {}, 'Should collect no variables';
 
 # Add core variables.
 $config->update('core.variables' => { prefix => 'widget', priv => 'SELECT' });
 $target = App::Sqitch::Target->new(sqitch => $sqitch);
-is_deeply { $verify->_collect_vars($target) }, {
+is_deeply { $check->_collect_vars($target) }, {
     prefix => 'widget',
     priv   => 'SELECT',
 }, 'Should collect core vars';
@@ -118,38 +118,38 @@ is_deeply { $verify->_collect_vars($target) }, {
 # Add deploy variables.
 $config->update('deploy.variables' => { dance => 'salsa', priv => 'UPDATE' });
 $target = App::Sqitch::Target->new(sqitch => $sqitch);
-is_deeply { $verify->_collect_vars($target) }, {
+is_deeply { $check->_collect_vars($target) }, {
     prefix => 'widget',
     priv   => 'UPDATE',
     dance  => 'salsa',
 }, 'Should override core vars with deploy vars';
 
-# Add verify variables.
-$config->update('verify.variables' => { dance => 'disco', lunch => 'pizza' });
+# Add check variables.
+$config->update('check.variables' => { dance => 'disco', lunch => 'pizza' });
 $target = App::Sqitch::Target->new(sqitch => $sqitch);
-is_deeply { $verify->_collect_vars($target) }, {
+is_deeply { $check->_collect_vars($target) }, {
     prefix => 'widget',
     priv   => 'UPDATE',
     dance  => 'disco',
     lunch  => 'pizza',
-}, 'Should override deploy vars with verify vars';
+}, 'Should override deploy vars with check vars';
 
 # Add engine variables.
 $config->update('engine.pg.variables' => { lunch => 'burrito', drink => 'whiskey' });
 my $uri = URI::db->new('db:pg:');
 $target = App::Sqitch::Target->new(sqitch => $sqitch, uri => $uri);
-is_deeply { $verify->_collect_vars($target) }, {
+is_deeply { $check->_collect_vars($target) }, {
     prefix => 'widget',
     priv   => 'UPDATE',
     dance  => 'disco',
     lunch  => 'burrito',
     drink  => 'whiskey',
-}, 'Should override verify vars with engine vars';
+}, 'Should override check vars with engine vars';
 
 # Add target variables.
 $config->update('target.foo.variables' => { drink => 'scotch', status => 'winning' });
 $target = App::Sqitch::Target->new(sqitch => $sqitch, name => 'foo', uri => $uri);
-is_deeply { $verify->_collect_vars($target) }, {
+is_deeply { $check->_collect_vars($target) }, {
     prefix => 'widget',
     priv   => 'UPDATE',
     dance  => 'disco',
@@ -159,12 +159,12 @@ is_deeply { $verify->_collect_vars($target) }, {
 }, 'Should override engine vars with target vars';
 
 # Add --set variables.
-$verify = $CLASS->new(
+$check = $CLASS->new(
     sqitch => $sqitch,
     variables => { status => 'tired', herb => 'oregano' },
 );
 $target = App::Sqitch::Target->new(sqitch => $sqitch, name => 'foo', uri => $uri);
-is_deeply { $verify->_collect_vars($target) }, {
+is_deeply { $check->_collect_vars($target) }, {
     prefix => 'widget',
     priv   => 'UPDATE',
     dance  => 'disco',
@@ -179,40 +179,40 @@ $config->replace(
     'core.plan_file' => file(qw(t sql sqitch.plan))->stringify,
     'core.top_dir'   => dir(qw(t sql))->stringify,
 );
-$verify = $CLASS->new( sqitch => $sqitch, no_prompt => 1);
+$check = $CLASS->new( sqitch => $sqitch, no_prompt => 1);
 
 ##############################################################################
 # Test execution.
 # Mock the engine interface.
 my $mock_engine = Test::MockModule->new('App::Sqitch::Engine::sqlite');
 my @args;
-$mock_engine->mock(verify => sub { shift; @args = @_ });
+$mock_engine->mock(check => sub { shift; @args = @_ });
 my @vars;
 $mock_engine->mock(set_variables => sub { shift; @vars = @_ });
 
-ok $verify->execute, 'Execute with nothing.';
+ok $check->execute, 'Execute with nothing.';
 is_deeply \@args, [undef, undef],
     'Two undefs should be passed to the engine';
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
-ok $verify->execute('@alpha'), 'Execute from "@alpha"';
+ok $check->execute('@alpha'), 'Execute from "@alpha"';
 is_deeply \@args, ['@alpha', undef],
     '"@alpha" and undef should be passed to the engine';
 is_deeply +MockOutput->get_warn, [], 'Should again have no warnings';
 
-ok $verify->execute('@alpha', '@beta'), 'Execute from "@alpha" to "@beta"';
+ok $check->execute('@alpha', '@beta'), 'Execute from "@alpha" to "@beta"';
 is_deeply \@args, ['@alpha', '@beta'],
     '"@alpha" and "@beat" should be passed to the engine';
 is_deeply +MockOutput->get_warn, [], 'Should still have no warnings';
 
-isa_ok $verify = $CLASS->new(
+isa_ok $check = $CLASS->new(
     sqitch      => $sqitch,
     from_change => 'foo',
     to_change   => 'bar',
     variables => { foo => 'bar', one => 1 },
 ), $CLASS, 'Object with from, to, and variables';
 
-ok $verify->execute, 'Execute again';
+ok $check->execute, 'Execute again';
 is_deeply \@args, ['foo', 'bar'],
     '"foo" and "bar" should be passed to the engine';
 is_deeply {@vars}, { foo => 'bar', one => 1 },
@@ -220,20 +220,20 @@ is_deeply {@vars}, { foo => 'bar', one => 1 },
 is_deeply +MockOutput->get_warn, [], 'Still should have no warnings';
 
 # Pass and specify changes.
-ok $verify->execute('roles', 'widgets'), 'Execute with command-line args';
+ok $check->execute('roles', 'widgets'), 'Execute with command-line args';
 is_deeply \@args, ['foo', 'bar'],
     '"foo" and "bar" should be passed to the engine';
 is_deeply {@vars}, { foo => 'bar', one => 1 },
     'Vars should have been passed through to the engine';
 is_deeply +MockOutput->get_warn, [[__x(
-    'Too many changes specified; verifying from "{from}" to "{to}"',
+    'Too many changes specified; checking from "{from}" to "{to}"',
     from => 'foo',
     to   => 'bar',
 )]], 'Should have warning about which roles are used';
 
 # Pass a target.
 $target = 'db:pg:';
-my $mock_cmd = Test::MockModule->new(ref $verify);
+my $mock_cmd = Test::MockModule->new(ref $check);
 my ($target_name_arg, $orig_meth);
 $mock_cmd->mock(parse_args => sub {
     my $self = shift;
@@ -245,7 +245,7 @@ $mock_cmd->mock(parse_args => sub {
 });
 $orig_meth = $mock_cmd->original('parse_args');
 
-ok $verify->execute($target), 'Execute with target arg';
+ok $check->execute($target), 'Execute with target arg';
 is $target_name_arg, $target, 'The target should have been passed to the engine';
 is_deeply \@args, ['foo', 'bar'],
     '"foo" and "bar" should be passed to the engine';
@@ -254,20 +254,20 @@ is_deeply {@vars}, { foo => 'bar', one => 1 },
 is_deeply +MockOutput->get_warn, [], 'Should once again have no warnings';
 
 # Pass a --target option.
-isa_ok $verify = $CLASS->new(
+isa_ok $check = $CLASS->new(
     sqitch => $sqitch,
     target => $target,
 ), $CLASS, 'Object with target';
 $target_name_arg = undef;
 @vars = ();
-ok $verify->execute, 'Execute with no args';
+ok $check->execute, 'Execute with no args';
 is $target_name_arg, $target, 'The target option should have been passed to the engine';
 is_deeply \@args, [undef, undef], 'Undefs should be passed to the engine';
 is_deeply {@vars}, {}, 'No vars should have been passed through to the engine';
 is_deeply +MockOutput->get_warn, [], 'Should once again have no warnings';
 
 # Pass a target, get a warning.
-ok $verify->execute('db:sqlite:', 'roles', 'widgets'),
+ok $check->execute('db:sqlite:', 'roles', 'widgets'),
     'Execute with two targegs and two changes';
 is $target_name_arg, $target, 'The target option should have been passed to the engine';
 is_deeply \@args, ['roles', 'widgets'],
@@ -275,13 +275,13 @@ is_deeply \@args, ['roles', 'widgets'],
 is_deeply {@vars}, {}, 'No vars should have been passed through to the engine';
 is_deeply +MockOutput->get_warn, [[__x(
     'Too many targets specified; connecting to {target}',
-    target => $verify->default_target->name,
+    target => $check->default_target->name,
 )]], 'Should have warning about too many targets';
 
 # Make sure we get an exception for unknown args.
-throws_ok { $verify->execute(qw(greg)) } 'App::Sqitch::X',
+throws_ok { $check->execute(qw(greg)) } 'App::Sqitch::X',
     'Should get an exception for unknown arg';
-is $@->ident, 'verify', 'Unknow arg ident should be "verify"';
+is $@->ident, 'check', 'Unknow arg ident should be "check"';
 is $@->message, __nx(
     'Unknown argument "{arg}"',
     'Unknown arguments: {arg}',
@@ -289,9 +289,9 @@ is $@->message, __nx(
     arg => 'greg',
 ), 'Should get an exeption for two unknown arg';
 
-throws_ok { $verify->execute(qw(greg jon)) } 'App::Sqitch::X',
+throws_ok { $check->execute(qw(greg jon)) } 'App::Sqitch::X',
     'Should get an exception for unknown args';
-is $@->ident, 'verify', 'Unknow args ident should be "verify"';
+is $@->ident, 'check', 'Unknow args ident should be "check"';
 is $@->message, __nx(
     'Unknown argument "{arg}"',
     'Unknown arguments: {arg}',

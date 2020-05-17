@@ -550,8 +550,10 @@ file_contents_is $engine[0],
 throws_ok { $bundle->execute('nonesuch') } 'App::Sqitch::X',
     'Should get an exception for unknown argument';
 is $@->ident, 'bundle', 'Unknown argument error ident shoud be "bundle"';
-is $@->message, __x(
+is $@->message, __nx(
     'Unknown argument "{arg}"',
+    'Unknown arguments: {arg}',
+    1,
     arg => 'nonesuch',
 ), 'Unknown argument error message should be correct';
 
@@ -559,7 +561,9 @@ is $@->message, __x(
 throws_ok { $bundle->execute(qw(ba da dum)) } 'App::Sqitch::X',
     'Should get an exception for unknown arguments';
 is $@->ident, 'bundle', 'Unknown arguments error ident shoud be "bundle"';
-is $@->message, __x(
+is $@->message, __nx(
+    'Unknown argument "{arg}"',
     'Unknown arguments: {arg}',
+    3,
     arg => join ', ', qw(ba da dum)
 ), 'Unknown arguments error message should be correct';

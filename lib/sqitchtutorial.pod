@@ -84,7 +84,10 @@ edited as appropriate.
 By default, Sqitch will read F<sqitch.conf> in the current directory for
 settings. But it will also read F<~/.sqitch/sqitch.conf> for user-specific
 settings. Since PostgreSQL's C<psql> client is not in the path on my system,
-let's go ahead and tell it where to find the client on our computer:
+let's go ahead and tell it where to find the client on our computer (don't
+ bother if you're using the
+L<Docker image|https://hub.docker.com/r/sqitch/sqitch/> because it uses the
+client inside the container, not on your host machine):
 
   > sqitch config --user engine.pg.client /opt/local/pgsql/bin/psql
 
@@ -1663,7 +1666,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2018 iovation Inc.
+Copyright (c) 2012-2020 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

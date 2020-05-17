@@ -186,7 +186,7 @@ The Sqitch command-line client.
 
 =head1 License
 
-Copyright (c) 2012-2018 iovation Inc.
+Copyright (c) 2012-2020 iovation Inc.
 
 Copyright (c) 2012-2013 Ronan Dunklau
 

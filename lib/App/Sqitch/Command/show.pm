@@ -44,6 +44,7 @@ sub execute {
     my ( $self, $type, $key ) = @_;
     $self->usage unless $type && $key;
 
+    require App::Sqitch::Target;
     my $target = $self->target ? App::Sqitch::Target->new(
         $self->target_params,
         name   => $self->target,
@@ -180,7 +181,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2018 iovation Inc.
+Copyright (c) 2012-2020 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

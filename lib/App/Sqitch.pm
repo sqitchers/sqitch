@@ -94,8 +94,9 @@ has user_name => (
             }
             require User::pwent;
             my $name = User::pwent::getpwnam($sysname) || return $sysname;
+            $name = ($name->gecos)[0] || return $sysname;
             require Encode::Locale;
-            return Encode::decode( locale => ($name->gecos)[0] );
+            return Encode::decode( locale => $name );
         };
     }
 );
@@ -331,7 +332,7 @@ sub run {
         ( my $msg = shift ) =~ s/\s+at\s+.+/\n/ms;
         die $msg;
     };
-    if (ISWIN && IPC::System::Simple->VERSION <= 1.25) {
+    if (ISWIN && IPC::System::Simple->VERSION < 1.28) {
         runx ( shift, $self->quote_shell(@_) );
         return $self;
     }
@@ -904,7 +905,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2018 iovation Inc.
+Copyright (c) 2012-2020 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

@@ -6,4 +6,5 @@ docker run --rm -d -e ISC_PASSWORD=nix -e FIREBIRD_DATABASE=sqitchtest.db -p 305
 sudo add-apt-repository -y ppa:mapopa/firebird3.0
 sudo apt-get update -qq
 sudo apt-get install -qq firebird-dev firebird3.0-utils
+export FIREBIRD_HOME=/usr
 export FIREBIRD_URI=db:firebird://sysdba:nix@localhost//firebird/data/sqitchtest.db

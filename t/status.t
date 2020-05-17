@@ -550,8 +550,8 @@ ok $status->execute('db:pg:'), 'Execute with target attribute and arg';
 $check_output->();
 is $target_name_arg, 'db:pg:', 'Name "db:sqlite:" should have been passed to Target';
 is_deeply +MockOutput->get_warn, [[__x(
-    'Too many targets specified; connecting to {option}',
-    option => $status->target_name,
+    'Too many targets specified; connecting to {target}',
+    target => $status->target_name,
 )]], 'Should have got warning for two targets';
 
 # Test with a plan file param and no option.

@@ -1,5 +1,37 @@
 Revision history for Perl extension App::Sqitch
 
+1.1.0  2020-05-17T16:20:07Z
+     - Fixed Perl Pod errors, thanks to a pull request from Mohammad S Anwar
+       (#470).
+     - Fixed test failures when running with the localization set to German
+       or Italian. Thanks to Slaven Rezić for the report (#472).
+     - Fixed an issue when the full name of the current user is not set, so
+       that it properly falls back on the username. Thanks to Slaven Rezić and
+       Matthieu Foucault for the report and testing various fixes (#473).
+     - Eliminated an error when using the `-t` option to specify a target, due
+       to a missing dependency declaration in the Target class. Thanks to
+       Clinton Adams for the fix (#509)!
+     - Updated the IPC::System::Simple Win32 workaround added in 0.9999 to
+       properly support released versions of IPC::System::Simple. This fixes
+       errors running the database command-line clients on Windows (#503).
+     - Sqitch now only passes the `--password` option to the MySQL client if
+       it was not read from the `.my.cnf` file, as it's more secure to let
+       the client use `.my.cnf`, and it eliminates a warning from recent
+       versions of the client. Thanks to Kiel R Stirling for the fix (#484)!
+     - Added a note to the tutorials to skip setting the `engine.$engine.client`
+       config when using the Docker image.
+     - Added the new `check` command, which compares the SHA1 hashes of the
+       deploy scripts to the database, and reports if any have been modified
+       since they were deployed. Thanks to Matthieu Foucault for the pull
+       request and diligent work on this feature (#477)!
+     - Added the `--modified` option to the `rebase` and `revert` commands, to
+       revert to the earliest change with a modified deploy script. Handy for
+       rapid rebasing during iterative development cycles. Thanks to Matthieu
+       Foucault for this feature (#477)!
+     - Fixed an issue where the Snowflake engine would complain about not
+       finding the account name even for commands that don't need them, such
+       as `init`. Thanks to Stack Overflow user vbp13 for the report (#502).
+
 1.0.0  2019-06-04T12:56:22Z
      - Fixed test failure due to a hard-coded system error that may be
        localized on non-en-US hosts. Thanks to Slaven Rezić for the catch

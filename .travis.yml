@@ -1,6 +1,7 @@
 language: perl
 stage: 🐪 Perl
 perl:
+  - "5.30"
   - "5.28"
   - "5.26"
   - "5.24"
@@ -27,6 +28,8 @@ jobs:
         - cinst -y strawberryperl
         - export "PATH=/c/Strawberry/perl/site/bin:/c/Strawberry/perl/bin:/c/Strawberry/c/bin:$PATH"
       install:
+        # Last release doesn't depend on Test::MockObject::Extends
+        - cpanm --no-interactive --no-man-pages --notest Test::MockObject::Extends
         # Can't use dzil to make a dist on windows, so depend on the previous
         # release for dependencies.
         - cpanm --no-interactive --no-man-pages --notest --installdeps App::Sqitch
@@ -35,7 +38,7 @@ jobs:
         - ./dev/prove -lr t
 
     - stage: 📈 Coverage
-      if: branch = develop
+      if: branch = master OR branch =~ /(?i:cover)/
       services: docker
       env: COVERAGE=1
       before_install:
@@ -61,7 +64,7 @@ jobs:
 
     - &postgres
       stage: 🐘 Postgres
-      if: branch = develop
+      if: branch = master OR branch =~ /(?i:pgsql|postgre(?i:sql)?)/
       env: POSTGRES=11
       before_install:
         - source dev/linux-postgres
@@ -90,7 +93,7 @@ jobs:
     # https://sqlite.org/chronology.html
     - &sqlite
       stage: 💡 SQLite
-      if: branch = develop
+      if: branch = master OR branch =~ /(?i:sqlite)/
       env: SQLITE=3.26.0
       before_install:
         - source dev/linux-sqlite
@@ -140,7 +143,7 @@ jobs:
     # https://hub.docker.com/_/mariadb
     - &mysql
       stage: 🐬 MySQL
-      if: branch = develop
+      if: branch = master OR branch =~ /(?i:mysql)/
       services: docker
       env: MYSQL=mysql:8.0
       before_install:
@@ -170,7 +173,7 @@ jobs:
     # https://hub.docker.com/r/cjonesy/docker-vertica/tags
     - &vertica
       stage: 🔺 Vertica
-      if: branch = develop
+      if: branch = master OR branch =~ /(?i:vertica)/
       env: VERTICA=9.1.1-0
       before_install:
         - source dev/linux-vertica
@@ -189,7 +192,7 @@ jobs:
     # https://hub.docker.com/r/exasol/docker-db/tags
     - &exasol
       stage: ☀️ Exasol
-      if: branch = develop
+      if: branch = master OR branch =~ /(?i:exasol)/
       env: EXASOL=6.1.1-d1
       before_install:
         - source dev/linux-exasol
@@ -202,7 +205,7 @@ jobs:
     # https://hub.docker.com/r/jacobalberty/firebird/tags
     - &firebird
       stage: 🔥 Firebird
-      if: branch = develop
+      if: branch = master OR branch =~ /(?i:firebird)/
       env: FIREBIRD=3.0
       before_install:
         - source dev/linux-firebird
@@ -240,6 +243,5 @@ jobs:
 
   fast_finish: true
   allow_failures:
-    - env: FIREBIRD=2.5-ss # https://github.com/jacobalberty/firebird-docker/issues/33
     - stage: ❄️ Snowflake
     - stage: 🔮 Oracle
