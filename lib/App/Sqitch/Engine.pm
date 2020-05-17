@@ -1687,6 +1687,23 @@ Changes without verify scripts will emit a warning, but not constitute a
 failure. If there are any failures, an exception will be thrown once all
 verifications have completed.
 
+=head3 C<check>
+
+  $engine->check;
+  $engine->check( $from );
+  $engine->check( $from, $to );
+  $engine->check( undef, $to );
+
+Compares the state of the working directory and the database by comparing the
+SHA1 hashes of the deploy scripts. Fails and reports divergence for all
+changes with non-matching hashes, indicating that the project deploy scripts
+differ from the scripts that were used to deploy to the database.
+
+Pass in change identifiers, as described in L<sqitchchanges>, to limit the
+changes to check. For each change, information will be emitted if the SHA1
+digest of the current deploy script does not match its SHA1 digest at the
+time of deployment.
+
 =head3 C<check_deploy_dependencies>
 
   $engine->check_deploy_dependencies;
@@ -2502,6 +2519,15 @@ number of changes before or after the change, as appropriate.
 
 Like C<change_offset_from_id()> but returns the change ID rather than the
 change object.
+
+=head3 C<planned_deployed_common_ancestor_id>
+
+  my $change_id = $engine->planned_deployed_common_ancestor_id;
+
+Compares the SHA1 hashes of the deploy scripts to their values at the time of
+deployment to the database and returns the latest change ID prior to any
+changes for which the values diverge. Used for the C<--modified> option to
+the C<revert> and C<rebase> commands.
 
 =head3 C<registry_version>
 
