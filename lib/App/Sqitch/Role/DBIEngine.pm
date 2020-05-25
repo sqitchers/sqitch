@@ -112,7 +112,7 @@ sub _select_state {
     my $cdtcol = sprintf $self->_ts2char_format, 'c.committed_at';
     my $pdtcol = sprintf $self->_ts2char_format, 'c.planned_at';
     my $tagcol = sprintf $self->_listagg_format, 't.tag';
-    my $hshcol = $with_hash ? "c.script_hash\n                 , " : '';
+    my $hshcol = $with_hash ? "c.script_hash\n             , " : '';
     my $dbh    = $self->dbh;
     $dbh->selectrow_hashref(qq{
         SELECT c.change_id
