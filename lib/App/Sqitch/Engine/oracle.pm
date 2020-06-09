@@ -429,7 +429,7 @@ sub are_deployed_changes {
         push @qs => 'change_id IN (' . join(', ' => ('?') x 250) . ')';
         $i -= 250;
     }
-    push @qs => 'change_id IN (' . join(', ' => ('?') x @_) . ')';
+    push @qs => 'change_id IN (' . join(', ' => ('?') x $i) . ')' if $i > 0;
     my $expr = join ' OR ', @qs;
     @{ $self->dbh->selectcol_arrayref(
         "SELECT change_id FROM changes WHERE $expr",
