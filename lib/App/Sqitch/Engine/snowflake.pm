@@ -78,7 +78,7 @@ has _snowcfg => (
             # Apparently snowsql config supports single quotes, while
             # Config::GitLike does not.
             # https://support.snowflake.net/s/case/5000Z000010xUYJQA2
-            # https://docs.snowflake.net/manuals/user-guide/snowsql-config.html#snowsql-config-file
+            # https://docs.snowflake.com/en/user-guide/snowsql-config.html#snowsql-config-file
             if ($val =~ s/\A'//) {
                 $val = $data->{$k} unless $val =~ s/'\z//;
             }
@@ -351,7 +351,7 @@ sub changes_requiring_change {
     # NOTE: Query from DBIEngine doesn't work in Snowflake:
     #   SQL compilation error: Unsupported subquery type cannot be evaluated (SQL-42601)
     # Looks like it doesn't yet support correlated subqueries.
-    # https://docs.snowflake.net/manuals/sql-reference/operators-subquery.html
+    # https://docs.snowflake.com/en/sql-reference/operators-subquery.html
     # The CTE-based query borrowed from Exasol seems to be fine, however.
     return @{ $self->dbh->selectall_arrayref(q{
         WITH tag AS (
@@ -373,7 +373,7 @@ sub name_for_change_id {
     # NOTE: Query from DBIEngine doesn't work in Snowflake:
     #   SQL compilation error: Unsupported subquery type cannot be evaluated (SQL-42601)
     # Looks like it doesn't yet support correlated subqueries.
-    # https://docs.snowflake.net/manuals/sql-reference/operators-subquery.html
+    # https://docs.snowflake.com/en/sql-reference/operators-subquery.html
     # The CTE-based query borrowed from Exasol seems to be fine, however.
     return $self->dbh->selectcol_arrayref(q{
         WITH tag AS (
@@ -511,9 +511,9 @@ In the C<$SNOWSQL_HOST> environment variable.
 By concatenating the account name and region, if available, from the
 C<$SNOWSQL_ACCOUNT> environment variable or C<connections.accountname> setting
 in the
-L<SnowSQL configuration file|https://docs.snowflake.net/manuals/user-guide/snowsql-start.html#configuring-default-connection-settings>,
+L<SnowSQL configuration file|https://docs.snowflake.com/en/user-guide/snowsql-start.html#configuring-default-connection-settings>,
 the C<$SNOWSQL_REGION> or C<connections.region> setting in the
-L<SnowSQL configuration file|https://docs.snowflake.net/manuals/user-guide/snowsql-start.html#configuring-default-connection-settings>,
+L<SnowSQL configuration file|https://docs.snowflake.com/en/user-guide/snowsql-start.html#configuring-default-connection-settings>,
 and C<snowflakecomputing.com>.
 
 =back
@@ -534,7 +534,7 @@ The C<$SNOWSQL_DATABASE> environment variable.
 =item 3.
 
 In the C<connections.dbname> setting in the
-L<SnowSQL configuration file|https://docs.snowflake.net/manuals/user-guide/snowsql-start.html#configuring-default-connection-settings>.
+L<SnowSQL configuration file|https://docs.snowflake.com/en/user-guide/snowsql-start.html#configuring-default-connection-settings>.
 
 =item 4.
 
@@ -564,7 +564,7 @@ In the C<$SNOWSQL_ACCOUNT> environment variable.
 =item 3
 
 In the C<connections.accountname> setting in the
-L<SnowSQL configuration file|https://docs.snowflake.net/manuals/user-guide/snowsql-start.html#configuring-default-connection-settings>.
+L<SnowSQL configuration file|https://docs.snowflake.com/en/user-guide/snowsql-start.html#configuring-default-connection-settings>.
 
 =back
 
@@ -589,7 +589,7 @@ In the C<$SNOWSQL_USER> environment variable.
 =item 4
 
 In the C<connections.username> variable from the
-L<SnowSQL config file|https://docs.snowflake.net/manuals/user-guide/snowsql-config.html#snowsql-config-file>.
+L<SnowSQL config file|https://docs.snowflake.com/en/user-guide/snowsql-config.html#snowsql-config-file>.
 
 =item 5
 
@@ -618,7 +618,7 @@ In the C<$SNOWSQL_PWD> environment variable.
 =item 4
 
 In the C<connections.password> variable from the
-L<SnowSQL config file|https://docs.snowflake.net/manuals/user-guide/snowsql-config.html#snowsql-config-file>.
+L<SnowSQL config file|https://docs.snowflake.com/en/user-guide/snowsql-config.html#snowsql-config-file>.
 
 =back
 
@@ -641,7 +641,7 @@ In the C<$SNOWSQL_WAREHOUSE> environment variable.
 =item 3
 
 In the C<connections.warehousename> variable from the
-L<SnowSQL config file|https://docs.snowflake.net/manuals/user-guide/snowsql-config.html#snowsql-config-file>.
+L<SnowSQL config file|https://docs.snowflake.com/en/user-guide/snowsql-config.html#snowsql-config-file>.
 
 =item 4
 
@@ -668,7 +668,7 @@ In the C<$SNOWSQL_ROLE> environment variable.
 =item 3
 
 In the C<connections.rolename> variable from the
-L<SnowSQL config file|https://docs.snowflake.net/manuals/user-guide/snowsql-config.html#snowsql-config-file>.
+L<SnowSQL config file|https://docs.snowflake.com/en/user-guide/snowsql-config.html#snowsql-config-file>.
 
 =item 4
 

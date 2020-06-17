@@ -38,7 +38,7 @@ If you'd like to manage an Exasol database, see L<sqitchtutorial-exasol>.
 
 Sqitch requires ODBC to connect to the Snowflake database. As such, you'll
 need to make sure that the
-L<Snowflake ODBC driver|https://docs.snowflake.net/manuals/user-guide/odbc.html>
+L<Snowflake ODBC driver|https://docs.snowflake.com/en/user-guide/odbc.html>
 is installed and properly configured. At its simplest, on Unix-like systems,
 name the driver "Snowflake" by adding this entry to C<odbcinst.ini> (usually
 found in C</etc>, C</usr/etc>, or C</usr/local/etc>):
@@ -50,7 +50,7 @@ found in C</etc>, C</usr/etc>, or C</usr/local/etc>):
 Note that you'll need to adjust the path depending on the version of the ODBC
 driver, and where you installed it.
 
-See the L<Snowflake ODBC documentation|https://docs.snowflake.net/manuals/user-guide/odbc.html>
+See the L<Snowflake ODBC documentation|https://docs.snowflake.com/en/user-guide/odbc.html>
 for details on downloading, installing, and configuring ODBC for your
 platform.
 
@@ -189,7 +189,7 @@ from the URI if that's the warehouse you want Sqitch to use (we'll omit it for
 the remainder of this tutorial). Otherwise, specify it in the URI. Snowflake
 also requires a password, which could also be included in the URI, but it's
 best to put it in the C<connections> section of the
-L<F<.snowsql/config> file|https://docs.snowflake.net/manuals/user-guide/snowsql-start.html#configuring-default-connection-settings>.
+L<F<.snowsql/config> file|https://docs.snowflake.com/en/user-guide/snowsql-start.html#configuring-default-connection-settings>.
 See L<sqitch-authentication> for details.
 
 We just tell Sqitch to use that URI to deploy the change:
@@ -248,7 +248,7 @@ not exist, you could do something like this:
 Note the C<USE WAREHOUSE> statement which is provided in the default Snowflake
 change script templates. For scripts that execute queries requiring compute
 resources (typically DML and C<SELECT> statements), we'll need to use a
-L<virtual warehouse|https://docs.snowflake.net/manuals/user-guide/warehouses.html>.
+L<virtual warehouse|https://docs.snowflake.com/en/user-guide/warehouses.html>.
 This statement lets the script use the warehouse that Sqitch itself uses for
 its registry, which should be a reasonable default, since Sqitch is 
 already using this warehouse. You can always change it to a different

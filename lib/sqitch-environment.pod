@@ -272,7 +272,7 @@ executing SQL scripts unexpectedly.
 =head3 Snowflake
 
 Sqitch provides explicit support for the following
-L<Snowflake environment variables|https://docs.snowflake.net/manuals/user-guide/snowsql-start.html#connection-syntax>:
+L<Snowflake environment variables|https://docs.snowflake.com/en/user-guide/snowsql-start.html#connection-syntax>:
 
 =over
 

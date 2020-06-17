@@ -201,7 +201,7 @@ variables|https://dev.mysql.com/doc/refman/5.6/en/user-variables.html>,
 SQL*Plus's L<C<DEFINE>
 variables|https://docs.oracle.com/cd/B19306_01/server.102/b14357/ch12017.htm>,
 and Snowflake's L<SnowSQL
-variables|https://docs.snowflake.net/manuals/user-guide/snowsql-use.html#using-variables>.
+variables|https://docs.snowflake.com/en/user-guide/snowsql-use.html#using-variables>.
 
 May be overridden by C<--set>, C<--set-deploy>, C<--set-revert>, or target and
 engine configuration. Variables are merged in the following priority order:

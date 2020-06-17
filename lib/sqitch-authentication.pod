@@ -70,7 +70,7 @@ Exasol provides no default to search for a username.
 
 The Snowflake engine uses the C<SNOWSQL_USER> environment variable, if set.
 Next, it looks in the
-L<F<~/.snowsql/config> file|https://docs.snowflake.net/manuals/user-guide/snowsql-start.html#snowsql-config-file>
+L<F<~/.snowsql/config> file|https://docs.snowflake.com/en/user-guide/snowsql-start.html#snowsql-config-file>
 and use the default C<connections.username> value. Otherwise, it uses the
 system username.
 
@@ -156,7 +156,7 @@ other options, see the L<documentation|https://www.exasol.com/portal/display/DOC
 
 Snowflake does not support password-less authentication, but does support
 key-pair authentication. Follow
-L<the instructions|https://docs.snowflake.net/manuals/user-guide/snowsql-start.html#using-key-pair-authentication>
+L<the instructions|https://docs.snowflake.com/en/user-guide/snowsql-start.html#using-key-pair-authentication>
 to create a key pair, then set the following variables in the F<~/.snowsql/config>
 file:
 
@@ -278,7 +278,7 @@ stored somewhat safely in F<~/.exasol/profiles.xml> and F<~/.odbc.ini>:
 =item Snowflake
 
 For Snowflake, Sqitch will read the
-L<F<~/.snowsql/config> file|https://docs.snowflake.net/manuals/user-guide/snowsql-start.html#snowsql-config-file>
+L<F<~/.snowsql/config> file|https://docs.snowflake.com/en/user-guide/snowsql-start.html#snowsql-config-file>
 and use the default connections settings; named connections are not supported.
 An example:
 
