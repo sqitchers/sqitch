@@ -7,6 +7,8 @@ Revision history for Perl extension App::Sqitch
      - DBI connections to the registry will now be set to trace level one
        when a verbosity level of three or higher is passed to Sqitch
        (i.e., `sqtich -vvv`). Thanks to @wkoszek for the suggestion (#155).
+     - Renamed the "master" branch to "main" and updated all relevant
+       references.
 
 1.1.0  2020-05-17T16:20:07Z
      - Fixed Perl Pod errors, thanks to a pull request from Mohammad S Anwar

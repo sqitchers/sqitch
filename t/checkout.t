@@ -507,13 +507,13 @@ foo 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
 bar 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
 };
 
-throws_ok { $checkout->execute('master') } 'App::Sqitch::X',
+throws_ok { $checkout->execute('main') } 'App::Sqitch::X',
     'Should get an error for plans without a common change';
 is $@->ident, 'checkout',
     'The no common change error ident should be "checkout"';
 is $@->message, __x(
     'Branch {branch} has no changes in common with current branch {current}',
-    branch  => 'master',
+    branch  => 'main',
     current => $probed,
 ), 'The no common change error message should be correct';
 
@@ -550,13 +550,13 @@ isa_ok $checkout = $CLASS->new(
     revert_variables => { hey => 'there' },
 ), $CLASS, 'Object with to and variables';
 
-ok $checkout->execute('master'), 'Checkout master';
+ok $checkout->execute('main'), 'Checkout main';
 is_deeply \@probe_args, [$client, qw(rev-parse --abbrev-ref HEAD)],
     'The proper args should again have been passed to rev-parse';
-is_deeply \@capture_args, [$client, 'show', 'master:' . $checkout->default_target->plan_file ],
+is_deeply \@capture_args, [$client, 'show', 'main:' . $checkout->default_target->plan_file ],
 
-    'Should have requested the plan file contents as of master';
-is_deeply \@run_args, [$client, qw(checkout master)], 'Should have checked out other branch';
+    'Should have requested the plan file contents as of main';
+is_deeply \@run_args, [$client, qw(checkout main)], 'Should have checked out other branch';
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
 is_deeply +MockOutput->get_info, [[__x(
@@ -586,7 +586,7 @@ is_deeply { @{ $vars[1] } }, { foo => 'bar', one => 1 },
 
 # Try passing a target.
 @vars = ();
-ok $checkout->execute('master', 'db:sqlite:foo'), 'Checkout master with target';
+ok $checkout->execute('main', 'db:sqlite:foo'), 'Checkout main with target';
 is $target->name, 'db:sqlite:foo', 'Target should be passed to engine';
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
@@ -604,7 +604,7 @@ isa_ok $checkout = $CLASS->new(
 
 $mock_engine->mock(revert => sub { hurl { ident => 'revert', message => 'foo', exitval => 1 } });
 @dep_args = @rev_args = @vars = ();
-ok $checkout->execute('master'), 'Checkout master again';
+ok $checkout->execute('main'), 'Checkout main again';
 is $target->name, 'db:sqlite:hello', 'Target should be passed to engine';
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
@@ -622,7 +622,7 @@ is_deeply { @{ $vars[1] } }, { foo => 'bar', one => 1 },
     'The deploy vars should again have been next';
 
 # Should get a warning for two targets.
-ok $checkout->execute('master', 'db:sqlite:'), 'Checkout master again with target';
+ok $checkout->execute('main', 'db:sqlite:'), 'Checkout main again with target';
 is $target->name, 'db:sqlite:hello', 'Target should be passed to engine';
 is_deeply +MockOutput->get_warn, [[__x(
     'Too many targets specified; connecting to {target}',
@@ -630,7 +630,7 @@ is_deeply +MockOutput->get_warn, [[__x(
 )]], 'Should have warning about two targets';
 
 # Make sure we get an exception for unknown args.
-throws_ok { $checkout->execute(qw(master greg)) } 'App::Sqitch::X',
+throws_ok { $checkout->execute(qw(main greg)) } 'App::Sqitch::X',
     'Should get an exception for unknown arg';
 is $@->ident, 'checkout', 'Unknow arg ident should be "checkout"';
 is $@->message, __nx(
@@ -640,7 +640,7 @@ is $@->message, __nx(
     arg => 'greg',
 ), 'Should get an exeption for two unknown arg';
 
-throws_ok { $checkout->execute(qw(master greg widgets)) } 'App::Sqitch::X',
+throws_ok { $checkout->execute(qw(main greg widgets)) } 'App::Sqitch::X',
     'Should get an exception for unknown args';
 is $@->ident, 'checkout', 'Unknow args ident should be "checkout"';
 is $@->message, __nx(
@@ -657,7 +657,7 @@ for my $spec (
     [ unknown => bless { } => __PACKAGE__ ],
 ) {
     $mock_engine->mock(revert => sub { die $spec->[1] });
-    throws_ok { $checkout->execute('master') } ref $spec->[1],
+    throws_ok { $checkout->execute('main') } ref $spec->[1],
         "Should rethrow $spec->[0] exception";
 }
 
