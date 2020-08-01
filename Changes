@@ -2,8 +2,11 @@ Revision history for Perl extension App::Sqitch
 
 1.1.1
      - Fixed partitioned search for deployed changes on Oracle and Exasol to
-       correctly support plans with more than 250 changes. Thanks to @Nicqu for
-       the report (#521).
+       correctly support plans with more than 250 changes. Thanks to @Nicqu
+       for the report (#521).
+     - A verbosity level of 3 or above (`-vvv`) now sets trace level one
+       force all registry connections via the DBI (which currently means all
+       engines). Thanks to @wkoszek for the suggestion (#155).
 
 1.1.0  2020-05-17T16:20:07Z
      - Fixed Perl Pod errors, thanks to a pull request from Mohammad S Anwar

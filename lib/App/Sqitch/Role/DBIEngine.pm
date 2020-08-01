@@ -23,6 +23,10 @@ requires '_listagg_format';
 requires '_no_table_error';
 requires '_handle_lookup_index';
 
+after use_driver => sub {
+    DBI->trace(1) if $_[0]->sqitch->verbosity > 2;
+};
+
 sub _dt($) {
     require App::Sqitch::DateTime;
     return App::Sqitch::DateTime->new(split /:/ => shift);
