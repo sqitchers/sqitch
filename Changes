@@ -10,6 +10,12 @@ Revision history for Perl extension App::Sqitch
      - Renamed the "master" branch to "main" and updated all relevant
        references.
 
+     - Fixed the parsing of the Snowflake account name from the target URL
+       to that it no longer strips out the region and cloud platform parts.
+       Also deprecated the use of the region, host, and port config and
+       environment variables. This is to comply with the new account name
+       format. Thanks to @ldsingh00 for the report (#544).
+
 1.1.0  2020-05-17T16:20:07Z
      - Fixed Perl Pod errors, thanks to a pull request from Mohammad S Anwar
        (#470).

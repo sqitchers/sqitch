@@ -98,6 +98,7 @@ has uri => (
 
         # Set defaults in the URI.
         $uri->host($self->_host($uri));
+        # XXX SNOWSQL_PORT deprecated; remove once Snowflake removes it.
         $uri->port($ENV{SNOWSQL_PORT}) if !$uri->_port && $ENV{SNOWSQL_PORT};
         $uri->dbname(
             $ENV{SNOWSQL_DATABASE}
@@ -114,8 +115,15 @@ sub _def_user {
 
 sub _def_pass { $ENV{SNOWSQL_PWD} || shift->_snowcfg->{password} }
 sub _def_acct {
-    return $ENV{SNOWSQL_ACCOUNT} || shift->_snowcfg->{accountname}
+    my $acct = $ENV{SNOWSQL_ACCOUNT} || $_[0]->_snowcfg->{accountname}
         || hurl engine => __('Cannot determine Snowflake account name');
+
+    # XXX Region is deprecated as a separate value, because the acount name may now be
+    # <account_name>.<region_id>.<cloud_platform>
+    # https://docs.snowflake.com/en/user-guide/snowsql-start.html#a-accountname
+    # Remove from here down and just return on the line above once Snowflake removes it.
+    my $region = $ENV{SNOWSQL_REGION} || $_[0]->_snowcfg->{region} or return $acct;
+    return "$acct.$region";
 }
 
 has account => (
@@ -125,8 +133,8 @@ has account => (
     default => sub {
         my $self = shift;
         if (my $host = $self->uri->host) {
-            # <account_name>.<region_id>.snowflakecomputing.com
-            $host =~ s/[.].+//;
+            # <account_name>.<region_id>.<cloud_platform>.snowflakecomputing.com
+            $host =~ s/[.]snowflakecomputing[.]com$//;
             return $host;
         }
         return $self->_def_acct;
@@ -136,16 +144,12 @@ has account => (
 sub _host {
     my ($self, $uri) = @_;
     if (my $host = $uri->host) {
-        # Allow host to just be account name or account + region.
         return $host if $host =~ /\.snowflakecomputing\.com$/;
         return $host . ".snowflakecomputing.com";
     }
+    # XXX SNOWSQL_HOST is deprecated; remove it once Snowflake removes it.
     return $ENV{SNOWSQL_HOST} if $ENV{SNOWSQL_HOST};
-    return join '.', (
-        $self->_def_acct,
-        (grep { $_ } $ENV{SNOWSQL_REGION} || $self->_snowcfg->{region} || ()),
-        'snowflakecomputing.com',
-    );
+    return $self->_def_acct . '.snowflakecomputing.com';
 }
 
 has warehouse => (
@@ -504,7 +508,7 @@ reference the Snowflake account name or the account name and region in URLs.
 
 =item 2
 
-In the C<$SNOWSQL_HOST> environment variable.
+In the C<$SNOWSQL_HOST> environment variable (Deprecated by Snowflake).
 
 =item 3
 
@@ -514,12 +518,14 @@ in the
 L<SnowSQL configuration file|https://docs.snowflake.com/en/user-guide/snowsql-start.html#configuring-default-connection-settings>,
 the C<$SNOWSQL_REGION> or C<connections.region> setting in the
 L<SnowSQL configuration file|https://docs.snowflake.com/en/user-guide/snowsql-start.html#configuring-default-connection-settings>,
-and C<snowflakecomputing.com>.
+and C<snowflakecomputing.com>. Note that Snowflake has deprecated
+C<$SNOWSQL_REGION> and C<connections.region>, and will be removed in a future
+version. Append the region name and cloud platform name to the account name,
+instead.
 
 =back
 
-The port defaults to 443, but uses to the C<$SNOWSQL_PORT> environment
-variable if it's set. The database name is determined by the following methods:
+The database name is determined by the following methods:
 
 =over
 

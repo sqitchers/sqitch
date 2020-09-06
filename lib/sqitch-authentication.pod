@@ -283,8 +283,7 @@ and use the default connections settings; named connections are not supported.
 An example:
 
   [connections]
-  accountname = myaccount
-  region = us-east-1
+  accountname = myaccount.us-east-1
   warehousename = compute
   username = frank
   password = fistula postmark bag
@@ -303,7 +302,7 @@ The variables that Sqitch currently reads are:
 
 =item C<connections.rolename>
 
-=item C<connections.region>
+=item C<connections.region> (Deprecated by Snowflake)
 
 =item C<connections.warehousename>
 
