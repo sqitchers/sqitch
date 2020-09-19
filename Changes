@@ -9,7 +9,6 @@ Revision history for Perl extension App::Sqitch
        (i.e., `sqtich -vvv`). Thanks to @wkoszek for the suggestion (#155).
      - Renamed the "master" branch to "main" and updated all relevant
        references.
-
      - Fixed the parsing of the Snowflake account name from the target URL
        to that it no longer strips out the region and cloud platform parts.
        Also deprecated the use of the region, host, and port config and
@@ -33,7 +32,7 @@ Revision history for Perl extension App::Sqitch
      - Sqitch now only passes the `--password` option to the MySQL client if
        it was not read from the `.my.cnf` file, as it's more secure to let
        the client use `.my.cnf`, and it eliminates a warning from recent
-       versions of the client. Thanks to Kiel R Stirling for the fix (#484)!
+       versions of the client. Thanks to Kiel R Stirling for the fix (#485)!
      - Added a note to the tutorials to skip setting the `engine.$engine.client`
        config when using the Docker image.
      - Added the new `check` command, which compares the SHA1 hashes of the
