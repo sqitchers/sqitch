@@ -134,6 +134,7 @@ has account => (
         my $self = shift;
         if (my $host = $self->uri->host) {
             # <account_name>.<region_id>.<cloud_platform>.snowflakecomputing.com
+            # <account_name>.<region_id>.privatelink.snowflakecomputing.com (<cloud_platform> is not included, even if the non-privatelink address contains that var)
             $host =~ s/[.]snowflakecomputing[.]com$//;
             return $host;
         }
