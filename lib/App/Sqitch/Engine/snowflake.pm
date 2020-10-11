@@ -119,7 +119,7 @@ sub _def_acct {
         || hurl engine => __('Cannot determine Snowflake account name');
 
     # XXX Region is deprecated as a separate value, because the acount name may now be
-    # <account_name>.<region_id>.<cloud_platform>
+    # <account_name>.<region_id>.<cloud_platform_or_private_link>
     # https://docs.snowflake.com/en/user-guide/snowsql-start.html#a-accountname
     # Remove from here down and just return on the line above once Snowflake removes it.
     my $region = $ENV{SNOWSQL_REGION} || $_[0]->_snowcfg->{region} or return $acct;
@@ -133,7 +133,7 @@ has account => (
     default => sub {
         my $self = shift;
         if (my $host = $self->uri->host) {
-            # <account_name>.<region_id>.<cloud_platform>.snowflakecomputing.com
+            # <account_name>.<region_id>.<cloud_platform_or_privatelink>.snowflakecomputing.com
             $host =~ s/[.]snowflakecomputing[.]com$//;
             return $host;
         }
