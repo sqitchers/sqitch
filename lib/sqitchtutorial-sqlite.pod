@@ -1153,7 +1153,7 @@ Here's the diff:
      FROM userflips
     WHERE 0;
  
-And finally, modify F<revert/userflips@v1.0.0-dev2.sql> to drop the view
+And finally, modify F<revert/userflips.sql> to drop the view
 before creating it:
 
   @@ -4,6 +4,7 @@
