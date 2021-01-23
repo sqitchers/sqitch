@@ -17,6 +17,9 @@ Revision history for Perl extension App::Sqitch
      - The checkout command will now show a usage statement when no branch
        name is passed to it, rather than a series of warnings and a Git error.
        Thanks to François Beausoleil for the report (#561).
+     - The checkout command now works when operating on a Sqitch project in
+       a subdirectory of a Git project. Thanks to François Beausoleil for the
+       report and suggested fix (#560).
 
 1.1.0  2020-05-17T16:20:07Z
      - Fixed Perl Pod errors, thanks to a pull request from Mohammad S Anwar

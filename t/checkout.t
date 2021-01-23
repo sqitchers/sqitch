@@ -566,9 +566,9 @@ isa_ok $checkout = $CLASS->new(
 ok $checkout->execute('main'), 'Checkout main';
 is_deeply \@probe_args, [$client, qw(rev-parse --abbrev-ref HEAD)],
     'The proper args should again have been passed to rev-parse';
-is_deeply \@capture_args, [$client, 'show', 'main:' . $checkout->default_target->plan_file ],
-
-    'Should have requested the plan file contents as of main';
+is_deeply \@capture_args, [$client, 'show', 'main:'
+    . File::Spec->catfile(File::Spec->curdir, $checkout->default_target->plan_file)
+], 'Should have requested the plan file contents as of main';
 is_deeply \@run_args, [$client, qw(checkout main)], 'Should have checked out other branch';
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 

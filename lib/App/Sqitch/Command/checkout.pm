@@ -78,8 +78,17 @@ sub execute {
         sqitch => $sqitch,
         target => $target,
       )->parse(
+        # Git assumes a relative file name is relative to the repo root, even
+        # when you're in a subdirectory. So we have to prepend the currrent
+        # directory path ./ to convince it to read the file relative to the
+        # current directory. See #560 and
+        # https://git-scm.com/docs/gitrevisions#Documentation/gitrevisions.txt-emltrevgtltpathgtemegemHEADREADMEememmasterREADMEem
+        # for details.
         # XXX Handle missing file/no contents.
-        scalar $sqitch->capture( $git, 'show', "$branch:" . $target->plan_file)
+        scalar $sqitch->capture(
+            $git, 'show', "$branch:"
+            . File::Spec->catfile(File::Spec->curdir, $target->plan_file)
+        )
     );
 
     # Find the last change the plans have in common.
