@@ -14,6 +14,9 @@ Revision history for Perl extension App::Sqitch
        Also deprecated the use of the region, host, and port config and
        environment variables. This is to comply with the new account name
        format. Thanks to @ldsingh00 for the report (#544).
+     - The checkout command will now show a usage statement when no branch
+       name is passed to it, rather than a series of warnings and a Git error.
+       Thanks to François Beausoleil for the report (#561).
 
 1.1.0  2020-05-17T16:20:07Z
      - Fixed Perl Pod errors, thanks to a pull request from Mohammad S Anwar

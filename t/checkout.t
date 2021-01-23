@@ -517,6 +517,19 @@ is $@->message, __x(
     current => $probed,
 ), 'The no common change error message should be correct';
 
+# Show usage when no branch name specified.
+my @args;
+$mock_cmd->mock(usage => sub { @args = @_; die 'USAGE' });
+throws_ok { $checkout->execute } qr/USAGE/,
+    'No branch arg should yield usage';
+is_deeply \@args, [$checkout], 'No args should be passed to usage';
+
+@args = ();
+throws_ok { $checkout->execute('') } qr/USAGE/,
+    'Empty branch arg should yield usage';
+is_deeply \@args, [$checkout], 'No args should be passed to usage';
+$mock_cmd->unmock('usage');
+
 # Mock the engine interface.
 my $mock_engine = Test::MockModule->new('App::Sqitch::Engine::sqlite');
 my (@dep_args, @dep_changes);

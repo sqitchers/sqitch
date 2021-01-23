@@ -40,6 +40,9 @@ sub execute {
         no_changes => 1,
     );
 
+    # Branch required.
+    $self->usage unless length $branch;
+
     # Warn on multiple targets.
     my $target = shift @{ $targets };
     $self->warn(__x(
