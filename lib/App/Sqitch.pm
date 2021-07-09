@@ -87,7 +87,8 @@ has user_name => (
             );
             if (ISWIN) {
                 try { require Win32API::Net } || return $sysname;
-                Win32API::Net::UserGetInfo( "", $sysname, 10, my $info = {} );
+                # https://stackoverflow.com/q/12081246/79202
+                Win32API::Net::UserGetInfo( $ENV{LOGONSERVER}, $sysname, 10, my $info = {} );
                 return $sysname unless $info->{fullName};
                 require Encode::Locale;
                 return Encode::decode( locale => $info->{fullName} );
