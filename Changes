@@ -20,6 +20,9 @@ Revision history for Perl extension App::Sqitch
      - The checkout command now works when operating on a Sqitch project in
        a subdirectory of a Git project. Thanks to François Beausoleil for the
        report and suggested fix (#560).
+     - Fixed a failing bundle test when a top directory was configured in the
+       user or system configuration. Thanks to @CodingMinds for the spot
+       (#587).
 
 1.1.0  2020-05-17T16:20:07Z
      - Fixed Perl Pod errors, thanks to a pull request from Mohammad S Anwar

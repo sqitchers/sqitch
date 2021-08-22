@@ -21,6 +21,9 @@ use TestConfig;
 
 my $CLASS = 'App::Sqitch::Command::bundle';
 
+# Ignore user and system configs.
+$ENV{SQITCH_USER_CONFIG} = $ENV{SQITCH_SYSTEM_CONFIG} = File::Spec->devnull;
+
 ok my $sqitch = App::Sqitch->new, 'Load a sqitch object';
 my $config = $sqitch->config;
 isa_ok my $bundle = App::Sqitch::Command->load({
