@@ -263,6 +263,18 @@ sub begin_work {
     return $self;
 }
 
+sub lock_session {
+    my $self = shift;
+    # Try to create a session lock and raise an error if we can't.
+    $self->dbh->selectcol_arrayref(
+        'SELECT pg_try_advisory_lock(75474063)'
+    )->[0] or hurl engine => __x(
+        'Cannot lock registry; another instance of Sqitch is working on {destination}',
+        destination => $self->destination,
+    );
+    return $self;
+}
+
 sub run_file {
     my ($self, $file) = @_;
     $self->_run('--file' => $file);

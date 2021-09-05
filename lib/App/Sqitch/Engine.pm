@@ -173,6 +173,7 @@ sub use_driver {
 
 sub deploy {
     my ( $self, $to, $mode ) = @_;
+    $self->lock_session;
     my $sqitch   = $self->sqitch;
     my $plan     = $self->_sync_plan;
     my $to_index = $plan->count - 1;
@@ -254,6 +255,7 @@ sub deploy {
 
 sub revert {
     my ( $self, $to ) = @_;
+    $self->lock_session;
     $self->_check_registry;
     my $sqitch = $self->sqitch;
     my $plan   = $self->plan;
@@ -1008,6 +1010,7 @@ sub revert_change {
     };
 }
 
+sub lock_session { shift }
 sub begin_work  { shift }
 sub finish_work { shift }
 sub rollback_work { shift }
@@ -1918,13 +1921,30 @@ L<C<upgrade>|App::Sqitch::Command::upgrade> command.
 
 These methods must be overridden in subclasses.
 
+=head3 C<lock_session>
+
+  $engine->lock_session;
+
+This method is called before deploying or reverting changes. It should create
+a lock to prevent any other process from making changes to the registry for
+the duration of the deployment or reversion. It should also be idempotent,
+since commands such as C<rebase> and C<checkout> will both deploy and revert,
+causing this method to be called multiple times. The lock should not be freed
+until the application exits.
+
+In the event the lock cannot be acquired, an exception must be thrown to tell
+the user that multiple instances of Sqitch may be attempting to work at the
+same time.
+
 =head3 C<begin_work>
 
   $engine->begin_work($change);
 
 This method is called just before a change is deployed or reverted. It should
 create a lock to prevent any other processes from making changes to the
-database, to be freed in C<finish_work> or C<rollback_work>.
+database, to be freed in C<finish_work> or C<rollback_work>. Unlike C<lock_session>,
+this method generally starts a transaction for the duration of the deployment
+or reversion of a single change.
 
 =head3 C<finish_work>
 

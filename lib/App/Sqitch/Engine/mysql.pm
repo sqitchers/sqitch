@@ -303,6 +303,18 @@ sub begin_work {
     return $self;
 }
 
+sub lock_session {
+    my $self = shift;
+    # Try to create a lock and raise an error if we can't.
+    $self->dbh->selectcol_arrayref(
+        q{SELECT get_lock('sqitch working', 0)}
+    )->[0] or hurl engine => __x(
+        'Cannot lock registry; another instance of Sqitch is working on {destination}',
+        destination => $self->destination,
+    );
+    return $self;
+}
+
 # Override to unlock the tables, otherwise future transactions on this
 # connection can fail.
 sub finish_work {
