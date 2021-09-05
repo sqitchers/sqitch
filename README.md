@@ -139,7 +139,7 @@ Linux distributions and Windows, see the
 Licence
 -------
 
-Copyright © 2012-2020 iovation Inc.
+Copyright © 2012-2021 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
