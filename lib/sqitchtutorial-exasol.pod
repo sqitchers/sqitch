@@ -217,6 +217,10 @@ L</Connection Configuration> for details):
   Deploying changes to db:exasol://sys:@localhost:8563/?Driver=Exasol
     + appschema .. ok
 
+(If you see an error resolving the TLS certificate, you can disable
+certificate verification by adding C<&SSLCERTIFICATE=SSL_VERIFY_NONE> to the
+end of the URL. Only do this for testing!)
+
 First Sqitch created registry tables used to track database changes. The
 structure and name of the registry varies between databases (Exasol uses a
 schema to namespace its registry, while SQLite and MySQL use separate

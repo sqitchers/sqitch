@@ -67,7 +67,6 @@ Exasol provides no default to search for a username.
 
 =item Snowflake
 
-
 The Snowflake engine uses the C<SNOWSQL_USER> environment variable, if set.
 Next, it looks in the
 L<F<~/.snowsql/config> file|https://docs.snowflake.com/en/user-guide/snowsql-start.html#snowsql-config-file>
@@ -149,8 +148,13 @@ for local connections.
 
 =item Exasol
 
-Exasol doesn't seem to support password-less authentication at this time; for
-other options, see the L<documentation|https://www.exasol.com/portal/display/DOC/Database+User+Manual>.
+Exasol doesn't seem to support password-less authentication at this time,
+though there is support for
+L<Authentication using OpenID|https://docs.exasol.com/sql/create_user.htm#Authenti4>.
+To use it with Sqitch, include C<AUTHMETHOD=refreshtoken> in the target URI
+query string, e.g.,
+
+  db:exasol://sys:exasol@localhost:8563/?Driver=Exasol&AUTHMETHOD=refreshtoken
 
 =item Snowflake
 
@@ -259,6 +263,7 @@ For ODBC connections from Sqitch, we can use connection settings in F<~/.odbc.in
   EXAHOST = localhost:8563
   EXAUID = sys
   EXAPWD = exasol
+  AUTHMETHOD = refreshtoken
 
 When combining the above, Sqitch doesn't need to know any credentials; they are
 stored somewhat safely in F<~/.exasol/profiles.xml> and F<~/.odbc.ini>:

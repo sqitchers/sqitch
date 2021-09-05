@@ -59,11 +59,32 @@ has _exaplus => (
         my $uri  = $self->uri;
         my @ret  = ( $self->client );
 
+        # Collect the cquery params and convert keys to uppercase.
+        require URI::QueryParam;
+        my $qry  = $uri->query_form_hash;
+        for my $key (keys %{ $qry }) {
+            my $ukey = uc $key;
+            next if $key eq $ukey;
+
+            # Move value to uppercase key.
+            my $val = delete $qry->{$key};
+            if (!exists $qry->{$ukey}) {
+                # Store under uppercase key.
+                $qry->{$ukey} = $val;
+            } else {
+                # Push the value(s) onto upercase key array value.
+                $qry->{$ukey} = [$qry->{$ukey}] if ref $qry->{$ukey} ne 'ARRAY';
+                push @{ $qry->{$ukey} } => ref $val eq 'ARRAY' ? @{ $val } : $val;
+            }
+        }
+
         for my $spec (
             [ u => $self->username ],
             [ p => $self->password ],
             [ c => $uri->host && $uri->_port ? $uri->host . ':' . $uri->_port : undef ],
-            [ profile => $uri->host ? undef : $uri->dbname ]
+            [ profile => $uri->host ? undef : $uri->dbname ],
+            [ jdbcparam => ($qry->{SSLCERTIFICATE} || '') eq 'SSL_VERIFY_NONE' ? 'validateservercertificate=0' : undef ],
+            [ jdbcparam => $qry->{AUTHMETHOD}  ? "authmethod=$qry->{AUTHMETHOD}" : undef ],
         ) {
             push @ret, "-$spec->[0]" => $spec->[1] if $spec->[1];
         }

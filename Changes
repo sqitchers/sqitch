@@ -6,7 +6,7 @@ Revision history for Perl extension App::Sqitch
        for the report (#521).
      - DBI connections to the registry will now be set to trace level one
        when a verbosity level of three or higher is passed to Sqitch
-       (i.e., `sqtich -vvv`). Thanks to @wkoszek for the suggestion (#155).
+       (i.e., `sqitch -vvv`). Thanks to @wkoszek for the suggestion (#155).
      - Renamed the "master" branch to "main" and updated all relevant
        references.
      - Fixed the parsing of the Snowflake account name from the target URL
@@ -23,6 +23,10 @@ Revision history for Perl extension App::Sqitch
      - Fixed a failing bundle test when a top directory was configured in the
        user or system configuration. Thanks to @CodingMinds for the spot
        (#587).
+     - Added support to the Exasol engine for the `AUTHMETHOD` query parameter
+       (to allow Open ID authentication) and the `SSLCERTIFICATE=SSL_VERIFY_NONE`
+       query parameter to disable SSL verification. Thanks to Torsten Glunde
+       for the report (#588).
 
 1.1.0  2020-05-17T16:20:07Z
      - Fixed Perl Pod errors, thanks to a pull request from Mohammad S Anwar

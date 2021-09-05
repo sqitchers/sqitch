@@ -100,6 +100,52 @@ is $exa->_script, join( "\n" => (
 ) ), '_script should assemble variables';
 
 ##############################################################################
+# Make sure the URI query properly affect the client options.
+for my $spec (
+    {
+        qry => 'SSLCertificate=SSL_VERIFY_NONE',
+        opt => [qw(-jdbcparam validateservercertificate=0)],
+    },
+    {
+        qry => 'SSLCERTIFICATE=SSL_VERIFY_NONE',
+        opt => [qw(-jdbcparam validateservercertificate=0)],
+    },
+    {
+        qry => 'SSLCERTIFICATE=xxx',
+        opt => [],
+    },
+    {
+        qry => 'SSLCERTIFICATE=SSL_VERIFY_NONE&SSLCERTIFICATE=xyz',
+        opt => [],
+    },
+    {
+        qry => 'AuthMethod=refreshtoken',
+        opt => [qw(-jdbcparam authmethod=refreshtoken)],
+    },
+    {
+        qry => 'AUTHMETHOD=xyz',
+        opt => [qw(-jdbcparam authmethod=xyz)],
+    },
+    {
+        qry => 'SSLCertificate=SSL_VERIFY_NONE&AUTHMETHOD=xyz',
+        opt => [qw(-jdbcparam validateservercertificate=0 -jdbcparam authmethod=xyz)],
+    },
+) {
+    $uri->query($spec->{qry});
+    my $target = App::Sqitch::Target->new(
+        sqitch => $sqitch,
+        uri    => $uri,
+    );
+    my $exa = $CLASS->new(
+        sqitch => $sqitch,
+        target => $target,
+    );
+    is_deeply [$exa->exaplus], [$client, @{ $spec->{opt} }, @std_opts],
+        "Should handle query $spec->{qry}";
+}
+$uri->query('');
+
+##############################################################################
 # Test other configs for the target.
 ENV: {
     my $mocker = Test::MockModule->new('App::Sqitch');
