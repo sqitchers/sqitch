@@ -611,7 +611,7 @@ sub check_deploy_dependencies {
             'Change "{changes}" has already been deployed',
             'Changes have already been deployed: {changes}',
             scalar @ids,
-            changes => join ' ', map { $seen{$_} } @ids
+            changes => join ', ', map { $seen{$_}->format_name_with_tags . " ($_)" } @ids
         );
     }
 

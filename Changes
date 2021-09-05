@@ -33,6 +33,9 @@ Revision history for Perl extension App::Sqitch
      - Improved the error message when attempting to update a plan file and no
        project pragma is present. Thanks to Laurentiu Diaconu for the report
        (#577).
+     - Fixed the error message when attempting to deploy a change that has
+       already been deployed to display the name of the change, rather than a
+       memory address. Thanks to Neil Mayhew for the report (#579).
 
 1.1.0  2020-05-17T16:20:07Z
      - Fixed Perl Pod errors, thanks to a pull request from Mohammad S Anwar
