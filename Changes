@@ -27,6 +27,12 @@ Revision history for Perl extension App::Sqitch
        (to allow Open ID authentication) and the `SSLCERTIFICATE=SSL_VERIFY_NONE`
        query parameter to disable SSL verification. Thanks to Torsten Glunde
        for the report (#588).
+     - Fixed "Use of uninitialized value $engine in concatenation" error when
+       Sqitch is unable to determine the engine when writing a plan file. Only
+       happens in the rare case that the core.engine value is not set.
+     - Improved the error message when attempting to update a plan file and no
+       project pragma is present. Thanks to Laurentiu Diaconu for the report
+       (#577).
 
 1.1.0  2020-05-17T16:20:07Z
      - Fixed Perl Pod errors, thanks to a pull request from Mohammad S Anwar

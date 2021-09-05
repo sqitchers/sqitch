@@ -1435,10 +1435,6 @@ msgstr ""
 msgid "Unknown engine \"{engine}\" in URI \"{uri}\""
 msgstr ""
 
-#: lib/App/Sqitch/Role/TargetConfigCommand.pm:283
-msgid "Cannot write a plan file without a project name"
-msgstr ""
-
 #: lib/App/Sqitch/Role/TargetConfigCommand.pm:290
 #, perl-brace-format
 msgid "Cannot initialize because {file} already exists and is not a file"

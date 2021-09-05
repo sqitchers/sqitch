@@ -1535,10 +1535,6 @@ msgstr "Nessun motore di database nell'URI \"{uri}\""
 msgid "Unknown engine \"{engine}\" in URI \"{uri}\""
 msgstr "Motore \"{engine}\" sconosciuto nell'URI \"{uri}\""
 
-#: lib/App/Sqitch/Role/TargetConfigCommand.pm:283
-msgid "Cannot write a plan file without a project name"
-msgstr "Non posso scrivere un file di piano senza un nome di progetto"
-
 #: lib/App/Sqitch/Role/TargetConfigCommand.pm:290
 #, perl-brace-format
 msgid "Cannot initialize because {file} already exists and is not a file"
