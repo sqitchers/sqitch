@@ -303,16 +303,19 @@ sub begin_work {
     return $self;
 }
 
-sub lock_session {
-    my $self = shift;
-    # Try to create a lock and raise an error if we can't.
-    $self->dbh->selectcol_arrayref(
+# Override to try to acquire a lock on the string "sqitch working" without
+# waiting.
+sub try_lock {
+    shift->dbh->selectcol_arrayref(
         q{SELECT get_lock('sqitch working', 0)}
-    )->[0] or hurl engine => __x(
-        'Cannot lock registry; another instance of Sqitch is working on {destination}',
-        destination => $self->destination,
-    );
-    return $self;
+    )->[0]
+}
+
+# Override to try to acquire a lock on the string "sqitch working", waiting
+# indefinitely for the lock.
+sub wait_lock {
+    # Wait indefinitely for the lock.
+    shift->dbh->do(q{SELECT get_lock('sqitch working', -1)});
 }
 
 # Override to unlock the tables, otherwise future transactions on this

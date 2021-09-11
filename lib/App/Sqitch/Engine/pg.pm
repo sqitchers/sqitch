@@ -263,16 +263,16 @@ sub begin_work {
     return $self;
 }
 
-sub lock_session {
-    my $self = shift;
-    # Try to create a session lock and raise an error if we can't.
-    $self->dbh->selectcol_arrayref(
+sub _try_lock {
+    # Try to get a lock but don't wait.
+    shift->dbh->selectcol_arrayref(
         'SELECT pg_try_advisory_lock(75474063)'
-    )->[0] or hurl engine => __x(
-        'Cannot lock registry; another instance of Sqitch is working on {destination}',
-        destination => $self->destination,
-    );
-    return $self;
+    )->[0]
+}
+
+sub _wait_lock {
+    # Wait indefinitely for the lock.
+    shift->dbh->do('SELECT pg_advisory_lock(75474063)');
 }
 
 sub run_file {
