@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 # To test against a live MySQL database, you must set the MYSQL_URI environment variable.
-# this is a stanard URI::db URI, and should look something like this:
+# this is a standard URI::db URI, and should look something like this:
 #
 #     export MYSQL_URI=db:mysql://root:password@localhost:3306/information_schema
 #
@@ -492,14 +492,14 @@ DBIEngineTest->run(
         my $dbh = shift;
         # Check the session configuration.
         for my $spec (
-            [character_set_client   => 'utf8'],
-            [character_set_server   => 'utf8'],
-            ($dbh->{mysql_serverversion} < 50500 ? () : ([default_storage_engine => 'InnoDB'])),
-            [time_zone              => '+00:00'],
-            [group_concat_max_len   => 32768],
+            [character_set_client   => qr/^utf8/],
+            [character_set_server   => qr/^utf8/],
+            ($dbh->{mysql_serverversion} < 50500 ? () : ([default_storage_engine => qr/^InnoDB$/])),
+            [time_zone              => qr/^\+00:00$/],
+            [group_concat_max_len   => qr/^32768$/],
         ) {
-            is $dbh->selectcol_arrayref('SELECT @@SESSION.' . $spec->[0])->[0],
-                $spec->[1], "Setting $spec->[0] should be set to $spec->[1]";
+            like $dbh->selectcol_arrayref('SELECT @@SESSION.' . $spec->[0])->[0],
+                $spec->[1], "Setting $spec->[0] should match $spec->[1]";
         }
 
         # Special-case sql_mode.
@@ -515,6 +515,11 @@ DBIEngineTest->run(
         )) {
             like $sql_mode, qr/\b\Q$mode\E\b/i, "sql_mode should include $mode";
         }
+    },
+    lock_sql => {
+        is_locked => q{SELECT is_used_lock('sqitch working')},
+        try_lock  => q{SELECT get_lock('sqitch working', 0)},
+        free_lock => 'SELECT release_all_locks()',
     },
 );
 

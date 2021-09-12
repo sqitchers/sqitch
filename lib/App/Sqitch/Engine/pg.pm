@@ -263,14 +263,14 @@ sub begin_work {
     return $self;
 }
 
-sub _try_lock {
+sub try_lock {
     # Try to get a lock but don't wait.
     shift->dbh->selectcol_arrayref(
         'SELECT pg_try_advisory_lock(75474063)'
     )->[0]
 }
 
-sub _wait_lock {
+sub wait_lock {
     # Wait indefinitely for the lock.
     shift->dbh->do('SELECT pg_advisory_lock(75474063)');
 }
