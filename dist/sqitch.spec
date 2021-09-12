@@ -126,6 +126,7 @@ Requires:       perl(String::ShellQuote)
 Requires:       perl(Sub::Exporter)
 Requires:       perl(Sub::Exporter::Util)
 Requires:       perl(Sys::Hostname)
+Requires:       perl(Sys::SigAction)
 Requires:       perl(Template::Tiny) >= 0.11
 Requires:       perl(Term::ANSIColor) >= 2.02
 Requires:       perl(Throwable) >= 0.200009

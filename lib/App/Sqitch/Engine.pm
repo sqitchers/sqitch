@@ -10,7 +10,7 @@ use Path::Class qw(file);
 use App::Sqitch::X qw(hurl);
 use List::Util qw(first max);
 use URI::db 0.19;
-use App::Sqitch::Types qw(Str Int Sqitch Plan Bool HashRef URI Maybe Target);
+use App::Sqitch::Types qw(Str Int Num Sqitch Plan Bool HashRef URI Maybe Target);
 use namespace::autoclean;
 use constant registry_release => '1.1';
 
@@ -118,8 +118,8 @@ has _variables => (
 
 has lock_timeout => (
     is      => 'rw',
-    isa     => Int,
-    default => 600,
+    isa     => Num,
+    default => 60,
 );
 
 has _locked => (
@@ -1575,6 +1575,11 @@ list.
 The username to use to connect to the database, for engines that require
 authentication. The username is looked up in the following places, returning
 the first to have a value:
+
+=head3 C<lock_timeout>
+
+Numeber of seconds to C<lock_destination()> to wait to acquire a lock before
+timint out. Defaults to 60.
 
 =over
 
