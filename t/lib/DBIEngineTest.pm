@@ -56,6 +56,9 @@ sub run {
         change_offset_from_id
         change_id_offset_from_id
         load_change
+        lock_destination
+        try_lock
+        wait_lock
     );
 
     subtest 'live database' => sub {

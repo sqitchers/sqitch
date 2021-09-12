@@ -86,6 +86,7 @@ ENGINE: {
     sub deployed_changes_since { push @SEEN => [ deployed_changes_since => $_[1] ]; @deployed_changes }
     sub mock_check_deploy  { shift; push @SEEN => [ check_deploy_dependencies => [@_] ] }
     sub mock_check_revert  { shift; push @SEEN => [ check_revert_dependencies => [@_] ] }
+    sub mock_lock          { shift; push @SEEN => [ lock_destination => [@_] ] }
     sub begin_work         { push @SEEN => ['begin_work']  if $record_work }
     sub finish_work        { push @SEEN => ['finish_work'] if $record_work }
     sub log_new_tags       { push @SEEN => [ log_new_tags => $_[1] ]; $_[0] }
@@ -947,17 +948,21 @@ for my $meth (qw(_deploy_all _deploy_by_tag _deploy_by_change)) {
     });
 }
 
-# Mock dependency checking to add its call to the seen stuff.
+# Mock locking and dependency checking to add their calls to the seen stuff.
 $mock_engine->mock( check_deploy_dependencies => sub {
     shift->mock_check_deploy(@_);
 });
 $mock_engine->mock( check_revert_dependencies => sub {
     shift->mock_check_revert(@_);
 });
+$mock_engine->mock(lock_destination => sub {
+    shift->mock_lock(@_);
+});
 
 ok $engine->deploy('@alpha'), 'Deploy to @alpha';
 is $plan->position, 1, 'Plan should be at position 1';
 is_deeply $engine->seen, [
+    [lock_destination => []],
     [current_state => undef],
     'initialized',
     'initialize',
@@ -992,6 +997,7 @@ for my $mode (qw(change tag all)) {
     ok $engine->deploy('@alpha', $mode, 1), 'Log-only deploy in $mode mode to @alpha';
     is $plan->position, 1, 'Plan should be at position 1';
     is_deeply $engine->seen, [
+    [lock_destination => []],
         [current_state => undef],
         'initialized',
         'initialize',
@@ -1029,6 +1035,7 @@ $engine->log_only(0);
 ok $engine->deploy('@alpha', 'tag'), 'Deploy to @alpha with tag mode';
 is $plan->position, 1, 'Plan should again be at position 1';
 is_deeply $engine->seen, [
+    [lock_destination => []],
     [current_state => undef],
     'initialized',
     'register_project',
@@ -1061,6 +1068,7 @@ is $@->message, __x(
     change => 'nonexistent',
 ), 'The exception should report the unknown change';
 is_deeply $engine->seen, [
+    [lock_destination => []],
     [current_state => undef],
 ], 'Only latest_item() should have been called';
 
@@ -1068,6 +1076,7 @@ is_deeply $engine->seen, [
 $latest_change_id = ($changes[1]->tags)[0]->id;
 ok $engine->deploy('@alpha'), 'Deploy to alpha thrice';
 is_deeply $engine->seen, [
+    [lock_destination => []],
     [current_state => undef],
     ['log_new_tags' => $changes[1]],
 ], 'Only latest_item() should have been called';
@@ -1083,6 +1092,7 @@ is $@->ident, 'deploy', 'Should be a "deploy" error';
 is $@->message,  __ 'Cannot deploy to an earlier change; use "revert" instead',
     'It should suggest using "revert"';
 is_deeply $engine->seen, [
+    [lock_destination => []],
     [current_state => undef],
     ['log_new_tags' => $changes[2]],
 ], 'Should have called latest_item() and latest_tag()';
@@ -1095,6 +1105,7 @@ $plan->add( name => 'lolz', note => 'ha ha' );
 ok $engine->deploy(undef, 'change'), 'Deploy everything by change';
 is $plan->position, 3, 'Plan should be at position 3';
 is_deeply $engine->seen, [
+    [lock_destination => []],
     [current_state => undef],
     'initialized',
     'register_project',
@@ -1132,6 +1143,7 @@ is_deeply +MockOutput->get_info, [
     [__ 'Nothing to deploy (up-to-date)' ],
 ], 'Should have emitted deploy announcement and successes';
 is_deeply $engine->seen, [
+    [lock_destination => []],
     [current_state => undef],
 ], 'It should have just fetched the latest change ID';
 
@@ -1144,6 +1156,7 @@ is $@->ident, 'deploy', 'Should be a "deploy" error';
 is $@->message, __x('Unknown deployment mode: "{mode}"', mode => 'evil_mode'),
     'And the message should reflect the unknown mode';
 is_deeply $engine->seen, [
+    [lock_destination => []],
     [current_state => undef],
     'initialized',
     'register_project',
@@ -1172,6 +1185,7 @@ NOSTEPS: {
     is $@->message, __"Nothing to deploy (empty plan)",
         'Should have the localized message';
     is_deeply $engine->seen, [
+    [lock_destination => []],
         [current_state => undef],
     ], 'It should have checked for the latest item';
 }
@@ -1749,6 +1763,7 @@ is_deeply +MockOutput->get_info, [
     [__ 'Nothing to revert (nothing deployed)']
 ], 'Should have notified that there is nothing to revert';
 is_deeply $engine->seen, [
+    [lock_destination => []],
     [deployed_changes => undef],
 ], 'It should only have called deployed_changes()';
 is_deeply +MockOutput->get_info, [], 'Nothing should have been output';
@@ -1761,7 +1776,7 @@ is $@->message, __x(
     'Unknown change: "{change}"',
     change => 'nonexistent',
 ), 'The message should mention it is an unknown change';
-is_deeply $engine->seen, [['change_id_for', {
+is_deeply $engine->seen, [ [lock_destination => []], ['change_id_for', {
     change_id => undef,
     change  => 'nonexistent',
     tag     => undef,
@@ -1777,7 +1792,7 @@ is $@->message, __x(
     'Unknown change: "{change}"',
     change => '8d77c5f588b60bc0f2efcda6369df5cb0177521d',
 ), 'The message should mention it is an unknown change';
-is_deeply $engine->seen, [['change_id_for', {
+is_deeply $engine->seen, [ [lock_destination => []], ['change_id_for', {
     change_id => '8d77c5f588b60bc0f2efcda6369df5cb0177521d',
     change  => undef,
     tag     => undef,
@@ -1793,7 +1808,7 @@ is $@->message, __x(
     'Change not deployed: "{change}"',
     change => '@alpha',
 ), 'The message should mention that the change is not deployed';
-is_deeply $engine->seen,  [['change_id_for', {
+is_deeply $engine->seen,  [ [lock_destination => []], ['change_id_for', {
     change => '',
     change_id => undef,
     tag => 'alpha',
@@ -1815,6 +1830,7 @@ is_deeply +MockOutput->get_info, [
 
 delete $changes[0]->{_rework_tags}; # For deep comparison.
 is_deeply $engine->seen, [
+    [lock_destination => []],
     [change_id_for => {
         change_id => $changes[0]->id,
         change => undef,
@@ -1833,6 +1849,7 @@ is_deeply +MockOutput->get_info, [
 ], 'No changes message should be correct';
 
 is_deeply $engine->seen, [
+    [lock_destination => []],
     [deployed_changes => undef],
 ], 'Should have called deployed_changes';
 
@@ -1864,6 +1881,7 @@ my @dbchanges;
 MockOutput->ask_yes_no_returns(1);
 ok $engine->revert, 'Revert all changes';
 is_deeply $engine->seen, [
+    [lock_destination => []],
     [deployed_changes => undef],
     [check_revert_dependencies => [reverse @dbchanges[0..3]] ],
     [run_file => $dbchanges[3]->revert_file ],
@@ -1899,6 +1917,7 @@ ok $engine->log_only(1), 'Enable log_only';
 ok $engine->revert(undef, 1), 'Revert all changes log-only';
 delete @{ $_ }{qw(_path_segments _rework_tags)} for @dbchanges; # These need to be invisible.
 is_deeply $engine->seen, [
+    [lock_destination => []],
     [deployed_changes => undef],
     [check_revert_dependencies => [reverse @dbchanges[0..3]] ],
     [log_revert_change => $dbchanges[3] ],
@@ -1932,6 +1951,7 @@ is $@->ident, 'revert', 'Declined revert ident should be "revert"';
 is $@->exitval, 1, 'Should have exited with value 1';
 is $@->message, __ 'Nothing reverted', 'Should have exited with proper message';
 is_deeply $engine->seen, [
+    [lock_destination => []],
     [deployed_changes => undef],
 ], 'Should have called deployed_changes only';
 is_deeply +MockOutput->get_ask_yes_no, [
@@ -1949,6 +1969,7 @@ $engine->log_only(0);
 $engine->no_prompt(1);
 ok $engine->revert, 'Revert all changes with no prompt';
 is_deeply $engine->seen, [
+    [lock_destination => []],
     [deployed_changes => undef],
     [check_revert_dependencies => [reverse @dbchanges[0..3]] ],
     [run_file => $dbchanges[3]->revert_file ],
@@ -1988,6 +2009,7 @@ ok $engine->revert('@alpha'), 'Revert to @alpha';
 
 delete $dbchanges[1]->{_rework_tags}; # These need to be invisible.
 is_deeply $engine->seen, [
+    [lock_destination => []],
     [change_id_for => { change_id => undef, change => '', tag => 'alpha', project => 'sql' }],
     [ change_offset_from_id => [$dbchanges[1]->id, 0] ],
     [deployed_changes_since => $dbchanges[1]],
@@ -2022,6 +2044,7 @@ is $@->ident, 'revert:confirm', 'Declined revert ident should be "revert:confirm
 is $@->exitval, 1, 'Should have exited with value 1';
 is $@->message, __ 'Nothing reverted', 'Should have exited with proper message';
 is_deeply $engine->seen, [
+    [lock_destination => []],
     [change_id_for => { change_id => undef, change => '', tag => 'alpha', project => 'sql' }],
     [change_offset_from_id => [$dbchanges[1]->id, 0] ],
     [deployed_changes_since => $dbchanges[1]],
@@ -2046,6 +2069,7 @@ push @resolved => $offset_change->id;
 @deployed_changes = $deployed_changes[-1];
 ok $engine->revert('@HEAD^'), 'Revert to @HEAD^';
 is_deeply $engine->seen, [
+    [lock_destination => []],
     [change_id_for => { change_id => undef, change => '', tag => 'HEAD', project => 'sql' }],
     [change_offset_from_id => [$dbchanges[-1]->id, -1] ],
     [deployed_changes_since => $dbchanges[-1]],

@@ -1039,9 +1039,9 @@ sub lock_destination {
 
     # Try waiting for the lock.
     require Sys::SigAction;
-    return $self->_locked(1) unless Sys::SigAction::timeout_call(
-        $wait, sub { $self->wait_lock }
-    );
+    return $self->_locked(1) unless Sys::SigAction::timeout_call($wait, sub {
+        $self->wait_lock
+    });
 
     # Timed out, so bail.
     hurl engine => __x(
