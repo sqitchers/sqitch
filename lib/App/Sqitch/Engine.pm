@@ -1578,8 +1578,8 @@ the first to have a value:
 
 =head3 C<lock_timeout>
 
-Numeber of seconds to C<lock_destination()> to wait to acquire a lock before
-timint out. Defaults to 60.
+Number of seconds to C<lock_destination()> to wait to acquire a lock before
+timing out. Defaults to 60.
 
 =over
 
