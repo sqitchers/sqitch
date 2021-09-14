@@ -58,7 +58,6 @@ sub execute {
     $engine->no_prompt( $self->no_prompt );
     $engine->prompt_accept( $self->prompt_accept );
     $engine->log_only( $self->log_only );
-    $engine->lock_timeout( $self->lock_timeout );
 
     # What branch are we on?
     my $current_branch = $sqitch->probe($git, qw(rev-parse --abbrev-ref HEAD));
