@@ -13,6 +13,7 @@ use URI::db 0.19;
 use App::Sqitch::Types qw(Str Int Num Sqitch Plan Bool HashRef URI Maybe Target);
 use namespace::autoclean;
 use constant registry_release => '1.1';
+use constant default_lock_timeout => 60;
 
 # VERSION
 
@@ -116,10 +117,12 @@ has _variables => (
     default => sub { {} },
 );
 
+# Usually expressed as an integer, but made a number for the purposes of
+# shorter test run times.
 has lock_timeout => (
     is      => 'rw',
     isa     => Num,
-    default => 60,
+    default => default_lock_timeout,
 );
 
 has _locked => (
@@ -1491,6 +1494,10 @@ Returns the version of the registry understood by this release of Sqitch. The
 C<needs_upgrade()> method compares this value to that returned by
 C<registry_version()> to determine whether the target's registry needs
 upgrading.
+
+=head3 C<default_lock_timeout>
+
+Returns C<60>, the default value for the C<lock_timeout> attribute.
 
 =head2 Constructors
 
