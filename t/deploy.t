@@ -5,7 +5,6 @@ use warnings;
 use 5.010;
 use Test::More;
 use App::Sqitch;
-use App::Sqitch::Engine;
 use App::Sqitch::Target;
 use Path::Class qw(dir file);
 use Test::MockModule;
@@ -210,8 +209,8 @@ is_deeply \@args, ['@alpha', 'all'],
     '"@alpha" "all", and 0 should be passed to the engine';
 ok $target, 'Should have a target';
 ok !$target->engine->log_only, 'The engine should not be set log_only';
-is $target->engine->lock_timeout, App::Sqitch::Engine::default_lock_timeout,
-    'The engine should have the default lock_timeou';
+is $target->engine->lock_timeout, App::Sqitch::Engine::default_lock_timeout(),
+    'The engine should have the default lock_timeout';
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
 @args = ();

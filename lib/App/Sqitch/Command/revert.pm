@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use utf8;
 use Moo;
-use Types::Standard qw(Str Bool HashRef);
+use Types::Standard qw(Int Str Bool HashRef);
 use List::Util qw(first);
 use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
@@ -49,6 +49,13 @@ has log_only => (
     default  => 0,
 );
 
+has lock_timeout => (
+    is      => 'ro',
+    isa     => Int,
+    lazy    => 1,
+    default => sub { App::Sqitch::Engine::default_lock_timeout() },
+);
+
 has variables => (
     is       => 'ro',
     isa      => HashRef,
@@ -62,6 +69,7 @@ sub options {
         to-change|to|change=s
         set|s=s%
         log-only
+        lock-timeout=i
         modified|m
         y
     );
@@ -73,6 +81,7 @@ sub configure {
     my %params = map { $_ => $opt->{$_} } grep { exists $opt->{$_} } qw(
         to_change
         log_only
+        lock_timeout
         target
         modified
     );
@@ -134,6 +143,7 @@ sub execute {
     $engine->no_prompt( $self->no_prompt );
     $engine->prompt_accept( $self->prompt_accept );
     $engine->log_only( $self->log_only );
+    $engine->lock_timeout( $self->lock_timeout );
     $engine->set_variables( $self->_collect_vars($target) );
     $engine->revert( $change );
     return $self;
@@ -174,6 +184,16 @@ options for the C<revert> command.
 =head3 C<log_only>
 
 Boolean indicating whether to log the deploy without running the scripts.
+
+=head3 C<lock_timeout>
+
+The number of seconds to wait for an exclusive advisory lock on the target,
+for engines that support the feature.
+
+=head3 C<modified>
+
+Boolean to revert to the change prior to earliest change with a revised
+deploy script.
 
 =head3 C<no_prompt>
 

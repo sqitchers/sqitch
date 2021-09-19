@@ -48,7 +48,7 @@ has lock_timeout => (
     is      => 'ro',
     isa     => Int,
     lazy    => 1,
-    default => sub { App::Sqitch::Engine::default_lock_timeout },
+    default => sub { App::Sqitch::Engine::default_lock_timeout() },
 );
 
 has verify => (
