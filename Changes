@@ -44,6 +44,9 @@ Revision history for Perl extension App::Sqitch
        reverted, as that pattern led to failures when multiple instances of
        Sqitch were working at once. Thanks to Neil Mayhew for the report
        (#579).
+     - Fixed the behavior of the plan command's `--max-count` option when used
+       with `--reverse` to show the proper items. Thanks to Adrian Klaver for
+       the report (#517).
 
 1.1.0  2020-05-17T16:20:07Z
      - Fixed Perl Pod errors, thanks to a pull request from Mohammad S Anwar

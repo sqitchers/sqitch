@@ -648,7 +648,7 @@ sub search_changes {
     if ($reverse) {
         # Go backwards.
         my $index  = $changes->count - ($offset + 1);
-        my $end_at = $limit - 1;
+        my $end_at = $limit ? $index - $limit : -1;
         return sub {
             while ($index > $end_at) {
                 my $change = $changes->change_at($index--) or return;
