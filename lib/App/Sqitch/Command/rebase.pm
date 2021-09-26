@@ -81,6 +81,7 @@ sub execute {
     $engine->no_prompt( $self->no_prompt );
     $engine->prompt_accept( $self->prompt_accept );
     $engine->log_only( $self->log_only );
+    $engine->lock_timeout( $self->lock_timeout );
 
     # Revert.
     $engine->set_variables( $self->_collect_revert_vars($target) );
@@ -140,6 +141,11 @@ Change onto which to rebase the target.
 =head3 C<upto_change>
 
 Change up to which to rebase the target.
+
+=head3 C<modified>
+
+Boolean to revert to the change prior to earliest change with a revised
+deploy script.
 
 =head2 Instance Methods
 

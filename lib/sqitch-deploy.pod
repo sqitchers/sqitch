@@ -105,7 +105,7 @@ deployed by other means in the past.
 
 Set the number of seconds for Sqitch to wait to get an exclusive advisory
 lock on the target database, for engines that support such a lock. This
-lock prevents other instances of Sqitch from deploying to the target at the
+lock prevents other instances of Sqitch from working on the target at the
 same time, but prevents no other database activity. Defaults to 60.
 
 =item C<--registry>

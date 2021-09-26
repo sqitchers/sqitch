@@ -138,6 +138,14 @@ The name or URI of the database target as specified by the C<--target> option.
 An L<App::Sqitch::Target> object from which to perform the checks. Must be
 instantiated by C<execute()>.
 
+=head3 C<from_change>
+
+Change from which to check changes.
+
+=head3 C<to_change>
+
+Change up to which to check changes.
+
 =head2 Instance Methods
 
 =head3 C<execute>

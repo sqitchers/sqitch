@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use utf8;
 use Moo::Role;
-use App::Sqitch::Types qw(Str Bool HashRef);
+use App::Sqitch::Types qw(Str Int Bool HashRef);
 use Type::Utils qw(enum);
 use namespace::autoclean;
 
@@ -34,6 +34,13 @@ has log_only => (
     is       => 'ro',
     isa      => Bool,
     default  => 0,
+);
+
+has lock_timeout => (
+    is      => 'ro',
+    isa     => Int,
+    lazy    => 1,
+    default => sub { App::Sqitch::Engine::default_lock_timeout() },
 );
 
 has no_prompt => (
@@ -103,6 +110,7 @@ around options => sub {
         set-deploy|e=s%
         set-revert|r=s%
         log-only
+        lock-timeout=i
         y
     );
 };
@@ -112,8 +120,9 @@ around configure => sub {
     my $cmd = $class->command;
 
     my $params = $class->$orig($config, $opt);
-    $params->{log_only} = $opt->{log_only} if $opt->{log_only};
-    $params->{target}   = $opt->{target}   if $opt->{target};
+    for my $key (qw(log_only target lock_timeout)) {
+        $params->{$key} = $opt->{$key} if exists $opt->{$key};
+    }
 
     # Verify?
     $params->{verify} = $opt->{verify}
@@ -203,6 +212,11 @@ Configures the options common to commands that revert and deploy.
 =head3 C<log_only>
 
 Boolean indicating whether to log the deploy without running the scripts.
+
+=head3 C<lock_timeout>
+
+The number of seconds to wait for an exclusive advisory lock on the target,
+for engines that support the feature.
 
 =head3 C<no_prompt>
 

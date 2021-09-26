@@ -29,6 +29,7 @@ can_ok $CLASS, qw(
     upto_change
     modified
     log_only
+    lock_timeout
     execute
     deploy_variables
     revert_variables
@@ -59,6 +60,7 @@ is_deeply [$CLASS->options], [qw(
     set-deploy|e=s%
     set-revert|r=s%
     log-only
+    lock-timeout=i
     y
 )], 'Options should be correct';
 
@@ -102,11 +104,12 @@ is_deeply $CLASS->configure($config, {
 }, 'Should have set option';
 
 is_deeply $CLASS->configure($config, {
-    y           => 1,
-    set_deploy  => { foo => 'bar' },
-    log_only    => 1,
-    verify      => 1,
-    mode        => 'tag',
+    y            => 1,
+    set_deploy   => { foo => 'bar' },
+    log_only     => 1,
+    lock_timeout => 30,
+    verify       => 1,
+    mode         => 'tag',
 }), {
     mode             => 'tag',
     no_prompt        => 1,
@@ -114,9 +117,10 @@ is_deeply $CLASS->configure($config, {
     deploy_variables => { foo => 'bar' },
     verify           => 1,
     log_only         => 1,
+    lock_timeout     => 30,
     _params          => [],
     _cx              => [],
-}, 'Should have mode, deploy_variables, verify, no_prompt, and log_only';
+}, 'Should have mode, deploy_variables, verify, no_prompt, log_only, & lock_timeout';
 
 is_deeply $CLASS->configure($config, {
     y           => 0,
@@ -522,6 +526,8 @@ is_deeply \@rev_args, ['@alpha'],
     '"@alpha" should be passed to the engine revert';
 ok !$target->engine->no_prompt, 'Engine should prompt';
 ok !$target->engine->log_only, 'Engine should no be log only';
+is $target->engine->lock_timeout, App::Sqitch::Engine::default_lock_timeout(),
+    'The lock timeout should be set to the default';
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
 # Pass a target.
@@ -535,6 +541,8 @@ is_deeply \@vars, [[], []],
     'No vars should have been passed through to the engine';
 ok !$target->engine->no_prompt, 'Engine should prompt';
 ok !$target->engine->log_only, 'Engine should no be log only';
+is $target->engine->lock_timeout, App::Sqitch::Engine::default_lock_timeout(),
+    'The lock timeout should be set to the default';
 is $target->name, 'db:sqlite:yow', 'The target name should be as passed';
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
@@ -549,6 +557,8 @@ is_deeply \@vars, [[], []],
     'No vars should have been passed through to the engine';
 ok !$target->engine->no_prompt, 'Engine should prompt';
 ok !$target->engine->log_only, 'Engine should no be log only';
+is $target->engine->lock_timeout, App::Sqitch::Engine::default_lock_timeout(),
+    'The lock timeout should be set to the default';
 is $target->name, 'db:sqlite:yow', 'The target name should be as passed';
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
@@ -564,6 +574,8 @@ is_deeply \@vars, [[], []],
     'No vars should have been passed through to the engine';
 ok !$target->engine->no_prompt, 'Engine should prompt';
 ok !$target->engine->log_only, 'Engine should no be log only';
+is $target->engine->lock_timeout, App::Sqitch::Engine::default_lock_timeout(),
+    'The lock timeout should be set to the default';
 is $target->name, 'db:sqlite:yow', 'The target name should be as passed';
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
@@ -584,6 +596,7 @@ isa_ok $rebase = $CLASS->new(
     target           => 'db:sqlite:lolwut',
     no_prompt        => 1,
     log_only         => 1,
+    lock_timeout     => 30,
     verify           => 1,
     sqitch           => $sqitch,
     modified         => 1,
@@ -594,6 +607,7 @@ ok $rebase->execute, 'Execute again';
 is $target->name, 'db:sqlite:lolwut', 'Target name should be from option';
 ok $target->engine->no_prompt, 'Engine should be no_prompt';
 ok $target->engine->log_only, 'Engine should be log_only';
+is $target->engine->lock_timeout, 30, 'The lock timeout should be set to 30';
 ok $target->engine->with_verify, 'Engine should verify';
 is_deeply \@rev_args, [$common_ancestor_id], 'the common ancestor id should be passed to the engine revert';
 
@@ -602,6 +616,7 @@ isa_ok $rebase = $CLASS->new(
     target           => 'db:sqlite:lolwut',
     no_prompt        => 1,
     log_only         => 1,
+    lock_timeout     => 30,
     verify           => 1,
     sqitch           => $sqitch,
     mode             => 'tag',
@@ -616,6 +631,7 @@ ok $rebase->execute, 'Execute again';
 is $target->name, 'db:sqlite:lolwut', 'Target name should be from option';
 ok $target->engine->no_prompt, 'Engine should be no_prompt';
 ok $target->engine->log_only, 'Engine should be log_only';
+is $target->engine->lock_timeout, 30, 'The lock timeout should be set to 30';
 ok $target->engine->with_verify, 'Engine should verify';
 is_deeply \@dep_args, ['bar', 'tag'],
     '"bar", "tag", and 1 should be passed to the engine deploy';
@@ -634,6 +650,7 @@ ok $rebase->execute('db:sqlite:yow', 'roles', 'widgets'),
 is $target->name, 'db:sqlite:lolwut', 'Target name should be from option';
 ok $target->engine->no_prompt, 'Engine should be no_prompt';
 ok $target->engine->log_only, 'Engine should be log_only';
+is $target->engine->lock_timeout, 30, 'The lock timeout should be set to 30';
 ok $target->engine->with_verify, 'Engine should verify';
 is_deeply \@dep_args, ['bar', 'tag'],
     '"bar", "tag", and 1 should be passed to the engine deploy';

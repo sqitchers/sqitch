@@ -141,6 +141,15 @@ loaded from L</configuration Variables>.
 Log the changes as if they were deployed and reverted, but without actually
 running the deploy and revert scripts.
 
+=item C<--lock-timeout>
+
+  sqitch rebase --lock-timeout 600
+
+Set the number of seconds for Sqitch to wait to get an exclusive advisory
+lock on the target database, for engines that support such a lock. This
+lock prevents other instances of Sqitch from working on the target at the
+same time, but prevents no other database activity. Defaults to 60.
+
 =item C<-y>
 
 Disable the prompt that normally asks whether or not to execute the revert.

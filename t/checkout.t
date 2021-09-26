@@ -26,6 +26,7 @@ can_ok $CLASS, qw(
     options
     configure
     log_only
+    lock_timeout
     execute
     deploy_variables
     revert_variables
@@ -53,6 +54,7 @@ is_deeply [$CLASS->options], [qw(
     set-deploy|e=s%
     set-revert|r=s%
     log-only
+    lock-timeout=i
     y
 )], 'Options should be correct';
 
@@ -98,11 +100,12 @@ is_deeply $CLASS->configure($config, {
 }, 'Should have set option';
 
 is_deeply $CLASS->configure($config, {
-    y           => 1,
-    set_deploy  => { foo => 'bar' },
-    log_only    => 1,
-    verify      => 1,
-    mode        => 'tag',
+    y            => 1,
+    set_deploy   => { foo => 'bar' },
+    log_only     => 1,
+    lock_timeout => 30,
+    verify       => 1,
+    mode         => 'tag',
 }), {
     mode             => 'tag',
     no_prompt        => 1,
@@ -110,9 +113,10 @@ is_deeply $CLASS->configure($config, {
     deploy_variables => { foo => 'bar' },
     verify           => 1,
     log_only         => 1,
+    lock_timeout     => 30,
     _params          => [],
     _cx              => [],
-}, 'Should have mode, deploy_variables, verify, no_prompt, and log_only';
+}, 'Should have mode, deploy_variables, verify, no_prompt, log_only, & lock_timeout';
 
 is_deeply $CLASS->configure($config, {
     y           => 0,
@@ -556,6 +560,7 @@ $captured = file(qw(t sql sqitch.plan))->slurp;
 # Checkout with options.
 isa_ok $checkout = $CLASS->new(
     log_only         => 1,
+    lock_timeout     => 30,
     verify           => 1,
     sqitch           => $sqitch,
     mode             => 'tag',
@@ -591,6 +596,7 @@ is_deeply \@dep_changes, [qw(roles users thingíes)],
 
 ok $target->engine->with_verify, 'Engine should verify';
 ok $target->engine->log_only, 'The engine should be set to log_only';
+is $target->engine->lock_timeout, 30, 'The lock timeout should be set to 30';
 is @vars, 2, 'Variables should have been passed to the engine twice';
 is_deeply { @{ $vars[0] } }, { hey => 'there' },
     'The revert vars should have been passed first';
@@ -623,6 +629,8 @@ is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
 # Did it deploy?
 ok !$target->engine->log_only, 'The engine should not be set to log_only';
+is $target->engine->lock_timeout, App::Sqitch::Engine::default_lock_timeout(),
+    'The lock timeout should be set to the default';
 ok !$target->engine->with_verify, 'The engine should not be set with_verfy';
 is_deeply \@dep_args, [undef, 'tag'],
     'undef, "tag", and 1 should be passed to the engine deploy again';

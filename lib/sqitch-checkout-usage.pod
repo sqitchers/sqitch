@@ -16,6 +16,7 @@ sqitch-checkout-usage - Sqitch checkout usage statement
     -r --set-revert <key=value>  set a database client revert variable
     -e --set-deploy <key=value>  set a database client deploy variable
        --log-only                log changes without running them
+       --lock-timeout <timeout>  seconds to wait for target lock
     -y                           disable the prompt before reverting
        --registry   <registry>   registry schema or database
        --db-client  <path>       path to the engine command-line client
