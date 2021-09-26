@@ -10,6 +10,7 @@ use Time::HiRes qw(sleep);
 use Path::Class 0.33 qw(file dir);
 use Digest::SHA qw(sha1_hex);
 use Locale::TextDomain qw(App-Sqitch);
+use Sys::SigAction qw(timeout_call);
 use File::Temp 'tempdir';
 
 # Just die on warnings.
@@ -56,6 +57,9 @@ sub run {
         change_offset_from_id
         change_id_offset_from_id
         load_change
+        lock_destination
+        try_lock
+        wait_lock
     );
 
     subtest 'live database' => sub {
@@ -1711,6 +1715,51 @@ sub run {
         while (my $row = $sth->fetch) {
             is $row->[1], $row->[0],
                 'Change ID and script hash should be ' . substr $row->[0], 0, 6;
+        }
+
+        ######################################################################
+        # Test try_lock() and wait_lock().
+        if (my $sql = $p{lock_sql}) {
+            ok !$engine->dbh->selectcol_arrayref($sql->{is_locked})->[0],
+                'Should not be locked';
+            ok $engine->try_lock, 'Try lock';
+            ok $engine->dbh->selectcol_arrayref($sql->{is_locked})->[0],
+                'Should be locked';
+            ok $engine->wait_lock, 'Should not have to wait for lock';
+
+            # Make a second connection to the database.
+            my $dbh = DBI->connect($engine->uri->dbi_dsn, $engine->username, $engine->password, {
+                PrintError        => 0,
+                RaiseError        => 1,
+                AutoCommit        => 1,
+            });
+            ok !$dbh->selectcol_arrayref($sql->{try_lock})->[0],
+                'Should fail to get same lock in second connection';
+
+            lives_ok { $engine->dbh->do($sql->{free_lock}) } 'Free the lock';
+            ok !$engine->dbh->selectcol_arrayref($sql->{is_locked})->[0],
+                'Should not be locked';
+            ok $dbh->selectcol_arrayref($sql->{try_lock})->[0],
+                'Should now get the lock in second connection';
+            ok $engine->dbh->selectcol_arrayref($sql->{is_locked})->[0],
+                'Should be locked';
+            ok !$engine->try_lock, 'Try lock should now return false';
+
+            # Make sure that wait_lock waits.
+            ok timeout_call(0.1, sub { $engine->wait_lock }),
+                'Should have to wait for lock';
+            lives_ok { $dbh->do($sql->{free_lock}) } 'Free the second lock';
+            # Work to free all the locks in case previous waits actually finished.
+            my $wait = 1;
+            while ($wait) {
+                $wait = $engine->dbh->selectcol_arrayref($sql->{free_lock})->[0];
+            }
+
+            # Now wait lock should acquire the lock.
+            ok $engine->wait_lock, 'Should no longer wait for lock';
+            ok $engine->dbh->selectcol_arrayref($sql->{is_locked})->[0],
+                'Should be locked';
+            lives_ok { $dbh->do($sql->{free_lock}) } 'Free the lock one last time';
         }
 
         ######################################################################

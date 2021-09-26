@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 670;
-#use Test::More 'no_plan';
+use Test::More tests => 705;
+# use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
 use App::Sqitch::Target;
@@ -47,6 +47,8 @@ my $record_work = 1;
 my ( $earliest_change_id, $latest_change_id, $initialized );
 my $registry_version = $CLASS->registry_release;
 my $script_hash;
+my $try_lock_ret = 1;
+my $wait_lock_sleep = 0.0;
 ENGINE: {
     # Stub out an engine.
     package App::Sqitch::Engine::whu;
@@ -86,6 +88,7 @@ ENGINE: {
     sub deployed_changes_since { push @SEEN => [ deployed_changes_since => $_[1] ]; @deployed_changes }
     sub mock_check_deploy  { shift; push @SEEN => [ check_deploy_dependencies => [@_] ] }
     sub mock_check_revert  { shift; push @SEEN => [ check_revert_dependencies => [@_] ] }
+    sub mock_lock          { shift; push @SEEN => [ lock_destination => [@_] ] }
     sub begin_work         { push @SEEN => ['begin_work']  if $record_work }
     sub finish_work        { push @SEEN => ['finish_work'] if $record_work }
     sub log_new_tags       { push @SEEN => [ log_new_tags => $_[1] ]; $_[0] }
@@ -96,6 +99,8 @@ ENGINE: {
 
     sub name_for_change_id { return 'bugaboo' }
     sub registry_version { $registry_version }
+    sub wait_lock { push @SEEN => 'wait_lock'; Time::HiRes::sleep $wait_lock_sleep }
+    sub try_lock { $try_lock_ret }
 }
 
 my $config = TestConfig->new(
@@ -176,7 +181,6 @@ is $@->message, 'Unable to load App::Sqitch::Engine::bad',
     'Should get another load error message';
 like $@->previous_exception, qr/^LOL BADZ/,
     'Should have relevant previoius exception from the bad module';
-
 
 ##############################################################################
 # Test name.
@@ -947,17 +951,21 @@ for my $meth (qw(_deploy_all _deploy_by_tag _deploy_by_change)) {
     });
 }
 
-# Mock dependency checking to add its call to the seen stuff.
+# Mock locking and dependency checking to add their calls to the seen stuff.
 $mock_engine->mock( check_deploy_dependencies => sub {
     shift->mock_check_deploy(@_);
 });
 $mock_engine->mock( check_revert_dependencies => sub {
     shift->mock_check_revert(@_);
 });
+$mock_engine->mock(lock_destination => sub {
+    shift->mock_lock(@_);
+});
 
 ok $engine->deploy('@alpha'), 'Deploy to @alpha';
 is $plan->position, 1, 'Plan should be at position 1';
 is_deeply $engine->seen, [
+    [lock_destination => []],
     [current_state => undef],
     'initialized',
     'initialize',
@@ -992,6 +1000,7 @@ for my $mode (qw(change tag all)) {
     ok $engine->deploy('@alpha', $mode, 1), 'Log-only deploy in $mode mode to @alpha';
     is $plan->position, 1, 'Plan should be at position 1';
     is_deeply $engine->seen, [
+    [lock_destination => []],
         [current_state => undef],
         'initialized',
         'initialize',
@@ -1029,6 +1038,7 @@ $engine->log_only(0);
 ok $engine->deploy('@alpha', 'tag'), 'Deploy to @alpha with tag mode';
 is $plan->position, 1, 'Plan should again be at position 1';
 is_deeply $engine->seen, [
+    [lock_destination => []],
     [current_state => undef],
     'initialized',
     'register_project',
@@ -1061,6 +1071,7 @@ is $@->message, __x(
     change => 'nonexistent',
 ), 'The exception should report the unknown change';
 is_deeply $engine->seen, [
+    [lock_destination => []],
     [current_state => undef],
 ], 'Only latest_item() should have been called';
 
@@ -1068,6 +1079,7 @@ is_deeply $engine->seen, [
 $latest_change_id = ($changes[1]->tags)[0]->id;
 ok $engine->deploy('@alpha'), 'Deploy to alpha thrice';
 is_deeply $engine->seen, [
+    [lock_destination => []],
     [current_state => undef],
     ['log_new_tags' => $changes[1]],
 ], 'Only latest_item() should have been called';
@@ -1083,6 +1095,7 @@ is $@->ident, 'deploy', 'Should be a "deploy" error';
 is $@->message,  __ 'Cannot deploy to an earlier change; use "revert" instead',
     'It should suggest using "revert"';
 is_deeply $engine->seen, [
+    [lock_destination => []],
     [current_state => undef],
     ['log_new_tags' => $changes[2]],
 ], 'Should have called latest_item() and latest_tag()';
@@ -1095,6 +1108,7 @@ $plan->add( name => 'lolz', note => 'ha ha' );
 ok $engine->deploy(undef, 'change'), 'Deploy everything by change';
 is $plan->position, 3, 'Plan should be at position 3';
 is_deeply $engine->seen, [
+    [lock_destination => []],
     [current_state => undef],
     'initialized',
     'register_project',
@@ -1132,6 +1146,7 @@ is_deeply +MockOutput->get_info, [
     [__ 'Nothing to deploy (up-to-date)' ],
 ], 'Should have emitted deploy announcement and successes';
 is_deeply $engine->seen, [
+    [lock_destination => []],
     [current_state => undef],
 ], 'It should have just fetched the latest change ID';
 
@@ -1144,6 +1159,7 @@ is $@->ident, 'deploy', 'Should be a "deploy" error';
 is $@->message, __x('Unknown deployment mode: "{mode}"', mode => 'evil_mode'),
     'And the message should reflect the unknown mode';
 is_deeply $engine->seen, [
+    [lock_destination => []],
     [current_state => undef],
     'initialized',
     'register_project',
@@ -1172,6 +1188,7 @@ NOSTEPS: {
     is $@->message, __"Nothing to deploy (empty plan)",
         'Should have the localized message';
     is_deeply $engine->seen, [
+    [lock_destination => []],
         [current_state => undef],
     ], 'It should have checked for the latest item';
 }
@@ -1749,6 +1766,7 @@ is_deeply +MockOutput->get_info, [
     [__ 'Nothing to revert (nothing deployed)']
 ], 'Should have notified that there is nothing to revert';
 is_deeply $engine->seen, [
+    [lock_destination => []],
     [deployed_changes => undef],
 ], 'It should only have called deployed_changes()';
 is_deeply +MockOutput->get_info, [], 'Nothing should have been output';
@@ -1761,7 +1779,7 @@ is $@->message, __x(
     'Unknown change: "{change}"',
     change => 'nonexistent',
 ), 'The message should mention it is an unknown change';
-is_deeply $engine->seen, [['change_id_for', {
+is_deeply $engine->seen, [ [lock_destination => []], ['change_id_for', {
     change_id => undef,
     change  => 'nonexistent',
     tag     => undef,
@@ -1777,7 +1795,7 @@ is $@->message, __x(
     'Unknown change: "{change}"',
     change => '8d77c5f588b60bc0f2efcda6369df5cb0177521d',
 ), 'The message should mention it is an unknown change';
-is_deeply $engine->seen, [['change_id_for', {
+is_deeply $engine->seen, [ [lock_destination => []], ['change_id_for', {
     change_id => '8d77c5f588b60bc0f2efcda6369df5cb0177521d',
     change  => undef,
     tag     => undef,
@@ -1793,7 +1811,7 @@ is $@->message, __x(
     'Change not deployed: "{change}"',
     change => '@alpha',
 ), 'The message should mention that the change is not deployed';
-is_deeply $engine->seen,  [['change_id_for', {
+is_deeply $engine->seen,  [ [lock_destination => []], ['change_id_for', {
     change => '',
     change_id => undef,
     tag => 'alpha',
@@ -1815,6 +1833,7 @@ is_deeply +MockOutput->get_info, [
 
 delete $changes[0]->{_rework_tags}; # For deep comparison.
 is_deeply $engine->seen, [
+    [lock_destination => []],
     [change_id_for => {
         change_id => $changes[0]->id,
         change => undef,
@@ -1833,6 +1852,7 @@ is_deeply +MockOutput->get_info, [
 ], 'No changes message should be correct';
 
 is_deeply $engine->seen, [
+    [lock_destination => []],
     [deployed_changes => undef],
 ], 'Should have called deployed_changes';
 
@@ -1864,6 +1884,7 @@ my @dbchanges;
 MockOutput->ask_yes_no_returns(1);
 ok $engine->revert, 'Revert all changes';
 is_deeply $engine->seen, [
+    [lock_destination => []],
     [deployed_changes => undef],
     [check_revert_dependencies => [reverse @dbchanges[0..3]] ],
     [run_file => $dbchanges[3]->revert_file ],
@@ -1899,6 +1920,7 @@ ok $engine->log_only(1), 'Enable log_only';
 ok $engine->revert(undef, 1), 'Revert all changes log-only';
 delete @{ $_ }{qw(_path_segments _rework_tags)} for @dbchanges; # These need to be invisible.
 is_deeply $engine->seen, [
+    [lock_destination => []],
     [deployed_changes => undef],
     [check_revert_dependencies => [reverse @dbchanges[0..3]] ],
     [log_revert_change => $dbchanges[3] ],
@@ -1932,6 +1954,7 @@ is $@->ident, 'revert', 'Declined revert ident should be "revert"';
 is $@->exitval, 1, 'Should have exited with value 1';
 is $@->message, __ 'Nothing reverted', 'Should have exited with proper message';
 is_deeply $engine->seen, [
+    [lock_destination => []],
     [deployed_changes => undef],
 ], 'Should have called deployed_changes only';
 is_deeply +MockOutput->get_ask_yes_no, [
@@ -1949,6 +1972,7 @@ $engine->log_only(0);
 $engine->no_prompt(1);
 ok $engine->revert, 'Revert all changes with no prompt';
 is_deeply $engine->seen, [
+    [lock_destination => []],
     [deployed_changes => undef],
     [check_revert_dependencies => [reverse @dbchanges[0..3]] ],
     [run_file => $dbchanges[3]->revert_file ],
@@ -1988,6 +2012,7 @@ ok $engine->revert('@alpha'), 'Revert to @alpha';
 
 delete $dbchanges[1]->{_rework_tags}; # These need to be invisible.
 is_deeply $engine->seen, [
+    [lock_destination => []],
     [change_id_for => { change_id => undef, change => '', tag => 'alpha', project => 'sql' }],
     [ change_offset_from_id => [$dbchanges[1]->id, 0] ],
     [deployed_changes_since => $dbchanges[1]],
@@ -2022,6 +2047,7 @@ is $@->ident, 'revert:confirm', 'Declined revert ident should be "revert:confirm
 is $@->exitval, 1, 'Should have exited with value 1';
 is $@->message, __ 'Nothing reverted', 'Should have exited with proper message';
 is_deeply $engine->seen, [
+    [lock_destination => []],
     [change_id_for => { change_id => undef, change => '', tag => 'alpha', project => 'sql' }],
     [change_offset_from_id => [$dbchanges[1]->id, 0] ],
     [deployed_changes_since => $dbchanges[1]],
@@ -2046,6 +2072,7 @@ push @resolved => $offset_change->id;
 @deployed_changes = $deployed_changes[-1];
 ok $engine->revert('@HEAD^'), 'Revert to @HEAD^';
 is_deeply $engine->seen, [
+    [lock_destination => []],
     [change_id_for => { change_id => undef, change => '', tag => 'HEAD', project => 'sql' }],
     [change_offset_from_id => [$dbchanges[-1]->id, -1] ],
     [deployed_changes_since => $dbchanges[-1]],
@@ -2946,6 +2973,8 @@ is_deeply +MockOutput->get_info, [
     [__x 'Verifying {destination}', destination => $engine->destination],
     [__ 'No changes deployed'],
 ], 'Notification of the verify should be emitted';
+is_deeply $engine->seen, [["deployed_changes", undef]],
+    'Should have called deployed_changes';
 
 # Try no changes *and* nothing in the plan.
 my $count = 0;
@@ -2956,6 +2985,8 @@ is_deeply +MockOutput->get_info, [
     [__x 'Verifying {destination}', destination => $engine->destination],
     [__ 'Nothing to verify (no planned or deployed changes)'],
 ], 'Notification of the verify should be emitted';
+is_deeply $engine->seen, [["deployed_changes", undef]],
+    'Should have called deployed_changes';
 
 # Now return some changes but have nothing in the plan.
 @verify_changes = @changes;
@@ -2968,6 +2999,8 @@ is $@->message, __ 'There are deployed changes, but none planned!',
 is_deeply +MockOutput->get_info, [
     [__x 'Verifying {destination}', destination => $engine->destination],
 ], 'Notification of the verify should be emitted';
+is_deeply $engine->seen, [["deployed_changes", undef]],
+    'Should have called deployed_changes';
 
 # Let's do one change and have it pass.
 $mock_plan->mock(index_of => 0);
@@ -2986,6 +3019,11 @@ is_deeply +MockOutput->get_emit, [
     [__ 'Verify successful'],
 ], 'Success should be emitted';
 is_deeply +MockOutput->get_comment, [], 'Should have no comments';
+is_deeply $engine->seen, [
+    ["deployed_changes", undef],
+    ["latest_change_id", undef],
+    [run_file => $changes[1]->verify_file ],
+], 'Should have run the verify file';
 
 # Verify two changes.
 MockOutput->get_vent;
@@ -3010,6 +3048,11 @@ is_deeply +MockOutput->get_vent, [
         file => $changes[0]->verify_file,
     )]
 ], 'Should have warning about missing verify script';
+is_deeply $engine->seen, [
+    ["deployed_changes", undef],
+    ["latest_change_id", undef],
+    [run_file => $changes[1]->verify_file ],
+], 'Should have run the verify file again';
 
 # Make sure a reworked change (that is, one with a suffix) is ignored.
 my $mock_change = Test::MockModule->new(ref $change);
@@ -3029,6 +3072,10 @@ is_deeply +MockOutput->get_emit, [
 ], 'Both successes should be emitted';
 is_deeply +MockOutput->get_comment, [], 'Should have no comments';
 is_deeply +MockOutput->get_vent, [], 'Should have no warnings';
+is_deeply $engine->seen, [
+    ["deployed_changes", undef],
+    ["latest_change_id", undef],
+], 'Should not have run the verify file';
 
 $mock_change->unmock('is_reworked');
 
@@ -3054,6 +3101,24 @@ is_deeply +MockOutput->get_vent, [
         file => $changes[2]->verify_file,
     )]
 ], 'Should have warning about missing verify script';
+is_deeply $engine->seen, [
+    ["deployed_changes", undef],
+    ["change_id_for", {
+        change_id => undef,
+        change => 'users',
+        tag => undef,
+        project => 'sql',
+    }],
+    ["change_id_offset_from_id", ['25cfff05d28c898f5c37263e2559fe75e239003c', 0]],
+    ["change_id_for", {
+        change_id => undef,
+        change => 'widgets',
+        tag => undef,
+        project => 'sql',
+    }],
+    ["change_id_offset_from_id", ['2f77ad8585862a3926df4b0447d2bafd199de791', 0]],
+    [run_file => $changes[1]->verify_file ],
+], 'Should have searched offsets and run the verify file';
 
 # Now fail!
 $mock_engine->mock( verify_change => sub { hurl 'WTF!' });
@@ -3084,6 +3149,23 @@ is_deeply +MockOutput->get_comment, [
     ['WTF!'],
 ], 'Should have the errors in comments';
 is_deeply +MockOutput->get_vent, [], 'Nothing should have been vented';
+is_deeply $engine->seen, [
+    ["deployed_changes", undef],
+    ["change_id_for", {
+        change_id => undef,
+        change => 'users',
+        tag => undef,
+        project => 'sql',
+    }],
+    ["change_id_offset_from_id", ['25cfff05d28c898f5c37263e2559fe75e239003c', 0]],
+    ["change_id_for", {
+        change_id => undef,
+        change => 'widgets',
+        tag => undef,
+        project => 'sql',
+    }],
+    ["change_id_offset_from_id", ['2f77ad8585862a3926df4b0447d2bafd199de791', 0]],
+], 'Should have searched offsets but not run the verify file';
 
 ##############################################################################
 # Test check().
@@ -3098,6 +3180,8 @@ is_deeply +MockOutput->get_info, [
     [__x 'Checking {destination}', destination => $engine->destination],
     [__ 'No changes deployed'],
 ], 'Notification of the check should be emitted';
+is_deeply $engine->seen, [["deployed_changes", undef]],
+    'Should have called deployed_changes';
 
 # Try no changes *and* nothing in the plan.
 $count = 0;
@@ -3108,6 +3192,8 @@ is_deeply +MockOutput->get_info, [
     [__x 'Checking {destination}', destination => $engine->destination],
     [__ 'Nothing to check (no planned or deployed changes)'],
 ], 'Notification of the verify should be emitted';
+is_deeply $engine->seen, [["deployed_changes", undef]],
+    'Should have called deployed_changes';
 
 # Now return some changes but have nothing in the plan.
 @check_changes = @changes;
@@ -3124,6 +3210,10 @@ is_deeply +MockOutput->get_emit, [
     [__x 'Script signatures diverge at change {change}',
         change => $check_changes[0]->format_name_with_tags],
 ], 'Divergent change info should be emitted';
+is_deeply $engine->seen, [
+    ["deployed_changes", undef],
+    ["latest_change_id", undef]
+], 'Should have called deployed_changes and latest_change_id';
 
 # Let's do one change and have it pass.
 $mock_plan->mock(index_of => 0);
@@ -3137,6 +3227,10 @@ is_deeply +MockOutput->get_emit, [
     [__ 'Check successful'],
 ], 'Success should be emitted';
 is_deeply +MockOutput->get_comment, [], 'Should have no comments';
+is_deeply $engine->seen, [
+    ["deployed_changes", undef],
+    ["latest_change_id", undef]
+], 'Should have called deployed_changes and latest_change_id';
 
 # Let's change a script hash and have it fail.
 @check_changes = (clone($changes[0]));
@@ -3156,6 +3250,10 @@ is_deeply +MockOutput->get_emit, [
     [__x 'Script signatures diverge at change {change}',
         change => $check_changes[0]->format_name_with_tags],
 ], 'Divergent change info should be emitted';
+is_deeply $engine->seen, [
+    ["deployed_changes", undef],
+    ["latest_change_id", undef]
+], 'Should have called deployed_changes and latest_change_id';
 
 $mock_plan->unmock('index_of');
 $mock_change->unmock('script_hash');
@@ -3178,6 +3276,10 @@ is_deeply +MockOutput->get_emit, [
     [__x 'Script signatures diverge at change {change}',
         change => $check_changes[1]->format_name_with_tags],
 ], 'Divergent change info should be emitted';
+is_deeply $engine->seen, [
+    ["deployed_changes", undef],
+    ["latest_change_id", undef]
+], 'Should have called deployed_changes and latest_change_id';
 
 # The check should be fine if we stop at the first change
 # (check should honor the `to` argument)
@@ -3194,15 +3296,26 @@ is_deeply +MockOutput->get_emit, [
     [__ 'Check successful'],
 ], 'Success should be emitted';
 is_deeply +MockOutput->get_comment, [], 'Should have no comments';
+is_deeply $engine->seen, [
+    ["deployed_changes", undef],
+    ["change_id_for", {
+        change_id => undef,
+        change => 'roles',
+        tag => undef,
+        project => 'sql',
+    }],
+    ["change_id_offset_from_id", ['0539182819c1f0cb50dc4558f4f80b1a538a01b2', 0]],
+], 'Should have searched offsets';
 
 # The check should be fine if we start at the second change
 # (check should honor the `from` argument)
 push @resolved => $changes[1]->id;
-throws_ok { $engine->check(
+throws_ok {
+    $engine->check(
         $changes[1]->format_name_with_tags,
         undef,
-    ) } 'App::Sqitch::X',
-    'Should get error for one divergent script hash with from arg';
+    )
+} 'App::Sqitch::X', 'Should get error for one divergent script hash with from arg';
 is $@->ident, 'check', 'Failed check ident should be "check"';
 is $@->exitval, 1, 'No planned changes exitval should be 1';
 is $@->message, __ 'Failed one check',
@@ -3214,7 +3327,70 @@ is_deeply +MockOutput->get_emit, [
     [__x 'Script signatures diverge at change {change}',
         change => $check_changes[1]->format_name_with_tags],
 ], 'Divergent change info should be emitted';
+is_deeply $engine->seen, [
+    ["deployed_changes", undef],
+    ["change_id_for", {
+        change_id => undef,
+        change => 'users ',
+        tag => 'alpha',
+        project => 'sql',
+    }],
+    ["change_id_offset_from_id", ['25cfff05d28c898f5c37263e2559fe75e239003c', 0]],
+    ["latest_change_id", undef],
+], 'Should have searched offsets and the latest change ID';
 
+##############################################################################
+# Test lock_destination().
+# Test check().
+$mock_engine->unmock('lock_destination');
+can_ok $engine, 'lock_destination';
+is $engine->lock_timeout, 60, 'Lock timeout should be 60 seconds';
+
+# First let the try lock succeed.
+$try_lock_ret = 1;
+$engine->_locked(0);
+ok $engine->lock_destination, 'Lock destination';
+is $engine->_locked, 1, 'Should be locked';
+is_deeply $engine->seen, [], 'wait_lock should not have been called';
+is_deeply +MockOutput->get_info, [], 'Should have emitted no info';
+
+# Now let the lock fail and fall back on waiting for the lock.
+$try_lock_ret = 0;
+$engine->_locked(0);
+ok $engine->lock_destination, 'Lock destination';
+is $engine->_locked, 1, 'Should be locked again';
+is_deeply $engine->seen, ['wait_lock'], 'wait_lock should have been called';
+is_deeply +MockOutput->get_info, [[__x(
+    'Blocked by another instance of Sqitch working on {dest}; waiting {secs} seconds...',
+    dest => $engine->destination,
+    secs => $engine->lock_timeout,
+)]], 'Should have notified user of waiting for lock';
+
+# Another attempt to lock should be a no-op.
+ok $engine->lock_destination, 'Lock destination again';
+is_deeply $engine->seen, [], 'wait_lock should not have been called';
+is_deeply +MockOutput->get_info, [], 'Should again have emitted no info';
+
+# Now have it time out.
+$try_lock_ret = 0;
+$wait_lock_sleep = 2;
+$engine->_locked(0);
+$engine->lock_timeout(0.1);
+throws_ok { $engine->lock_destination } 'App::Sqitch::X',
+    'Should get error for lock timeout';
+is $@->ident, 'engine', 'Lock timeout error ident should be "engine"';
+is $@->exitval, 2, 'Lock timeout error exitval should be 2';
+is $@->message, __x(
+    'Timed out waiting {secs} seconds for another instance of Sqitch to finish work on {dest}',
+    dest => $engine->destination,
+    secs => $engine->lock_timeout,
+), 'Lock timeout error message should be correct';
+is_deeply +MockOutput->get_info, [[__x(
+    'Blocked by another instance of Sqitch working on {dest}; waiting {secs} seconds...',
+    dest => $engine->destination,
+    secs => $engine->lock_timeout,
+)]], 'Should have notified user of waiting for lock';
+is_deeply $engine->seen, ['wait_lock'], 'wait_lock should have been called';
 
 __END__
 diag $_->format_name_with_tags for @changes;

@@ -263,6 +263,18 @@ sub begin_work {
     return $self;
 }
 
+sub try_lock {
+    # Try to get a lock but don't wait.
+    shift->dbh->selectcol_arrayref(
+        'SELECT pg_try_advisory_lock(75474063)'
+    )->[0]
+}
+
+sub wait_lock {
+    # Wait indefinitely for the lock.
+    shift->dbh->do('SELECT pg_advisory_lock(75474063)');
+}
+
 sub run_file {
     my ($self, $file) = @_;
     $self->_run('--file' => $file);

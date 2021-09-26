@@ -36,6 +36,14 @@ Revision history for Perl extension App::Sqitch
      - Fixed the error message when attempting to deploy a change that has
        already been deployed to display the name of the change, rather than a
        memory address. Thanks to Neil Mayhew for the report (#579).
+     - Added destination locking, currently implemented for PostgresQL and
+       MySQL. On starting a deploy or revert, Sqitch attempts to "lock the
+       destination" using advisory locks, to ensure that only one instance of
+       Sqitch makes changes to the database at any one time. This complements
+       the existing locking, which applies as each change is deployed or
+       reverted, as that pattern led to failures when multiple instances of
+       Sqitch were working at once. Thanks to Neil Mayhew for the report
+       (#579).
 
 1.1.0  2020-05-17T16:20:07Z
      - Fixed Perl Pod errors, thanks to a pull request from Mohammad S Anwar

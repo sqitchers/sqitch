@@ -10,7 +10,7 @@ use Path::Class qw(file);
 use App::Sqitch::X qw(hurl);
 use List::Util qw(first max);
 use URI::db 0.19;
-use App::Sqitch::Types qw(Str Int Sqitch Plan Bool HashRef URI Maybe Target);
+use App::Sqitch::Types qw(Str Int Num Sqitch Plan Bool HashRef URI Maybe Target);
 use namespace::autoclean;
 use constant registry_release => '1.1';
 
@@ -116,6 +116,18 @@ has _variables => (
     default => sub { {} },
 );
 
+has lock_timeout => (
+    is      => 'rw',
+    isa     => Num,
+    default => 60,
+);
+
+has _locked => (
+    is      => 'rw',
+    isa     => Bool,
+    default => 0,
+);
+
 sub variables       { %{ shift->_variables }       }
 sub set_variables   {    shift->_variables({ @_ }) }
 sub clear_variables { %{ shift->_variables } = ()  }
@@ -173,6 +185,7 @@ sub use_driver {
 
 sub deploy {
     my ( $self, $to, $mode ) = @_;
+    $self->lock_destination;
     my $sqitch   = $self->sqitch;
     my $plan     = $self->_sync_plan;
     my $to_index = $plan->count - 1;
@@ -254,6 +267,7 @@ sub deploy {
 
 sub revert {
     my ( $self, $to ) = @_;
+    $self->lock_destination;
     $self->_check_registry;
     my $sqitch = $self->sqitch;
     my $plan   = $self->plan;
@@ -1008,6 +1022,41 @@ sub revert_change {
     };
 }
 
+sub lock_destination {
+    my $self = shift;
+
+    # Try to acquire the lock without waiting.
+    return $self if $self->_locked;
+    return $self->_locked(1) if $self->try_lock;
+
+    # Lock not acquired. Tell the user what's happening.
+    my $wait = $self->lock_timeout;
+    $self->sqitch->info(__x(
+        'Blocked by another instance of Sqitch working on {dest}; waiting {secs} seconds...',
+        dest => $self->destination,
+        secs => $wait,
+    ));
+
+    # Try waiting for the lock.
+    require Sys::SigAction;
+    return $self->_locked(1) unless Sys::SigAction::timeout_call($wait, sub {
+        $self->wait_lock
+    });
+
+    # Timed out, so bail.
+    hurl engine => __x(
+        'Timed out waiting {secs} seconds for another instance of Sqitch to finish work on {dest}',
+        dest => $self->destination,
+        secs => $wait,
+    );
+}
+
+sub try_lock { 1 }
+sub wait_lock {
+    my $class = ref $_[0] || $_[0];
+    hurl "$class has not implemented wait_lock()";
+}
+
 sub begin_work  { shift }
 sub finish_work { shift }
 sub rollback_work { shift }
@@ -1527,6 +1576,11 @@ The username to use to connect to the database, for engines that require
 authentication. The username is looked up in the following places, returning
 the first to have a value:
 
+=head3 C<lock_timeout>
+
+Number of seconds to C<lock_destination()> to wait to acquire a lock before
+timing out. Defaults to 60.
+
 =over
 
 =item 1.
@@ -1914,9 +1968,44 @@ does.
 Upgrades the target's registry, if it needs upgrading. Used by the
 L<C<upgrade>|App::Sqitch::Command::upgrade> command.
 
+=head3 C<lock_destination>
+
+  $engine->lock_destination;
+
+This method is called before deploying or reverting changes. It attempts
+to acquire a lock in the destination database to ensure that no other
+instances of Sqitch can act on the database at the same time. If it fails
+to acquire the lock, it emits a message to that effect, then tries again
+and waits. If it acquires the lock, it continues its work. If the attempt
+times out after C<lock_timeout> seconds, it exits with an error.
+
+The default implementation is effectively a no-op; consult the documentation
+for specific engines to determine whether they have implemented support for
+destination locking (by overriding C<try_lock()> and C<wait_lock()>).
+
 =head2 Abstract Instance Methods
 
 These methods must be overridden in subclasses.
+
+=head3 C<try_lock>
+
+  $engine->try_lock;
+
+This method is called by C<lock_destination>, and this default implementation
+simply returns true. May be overridden in subclasses to acquire a database
+lock that would prevent any other instance of Sqitch from making changes at
+the same time. If it cannot acquire the lock, it should immediately return
+false without waiting.
+
+=head3 C<wait_lock>
+
+  $engine->wait_lock;
+
+This method is called by C<lock_destination> when C<try_lock> returns false.
+It must be implemented if C<try_lock> is overridden; otherwise it throws
+an error when C<try_lock> returns false. It should attempt to acquire the
+same lock as C<try_lock>, but wait indefinitely for it. No need for a timeout;
+C<lock_destination> will time out after C<lock_timeout> seconds.
 
 =head3 C<begin_work>
 
@@ -1924,7 +2013,9 @@ These methods must be overridden in subclasses.
 
 This method is called just before a change is deployed or reverted. It should
 create a lock to prevent any other processes from making changes to the
-database, to be freed in C<finish_work> or C<rollback_work>.
+database, to be freed in C<finish_work> or C<rollback_work>. Unlike
+C<lock_destination>, this method generally starts a transaction for the
+duration of the deployment or reversion of a single change.
 
 =head3 C<finish_work>
 

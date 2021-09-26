@@ -303,6 +303,21 @@ sub begin_work {
     return $self;
 }
 
+# Override to try to acquire a lock on the string "sqitch working" without
+# waiting.
+sub try_lock {
+    shift->dbh->selectcol_arrayref(
+        q{SELECT get_lock('sqitch working', 0)}
+    )->[0]
+}
+
+# Override to try to acquire a lock on the string "sqitch working", waiting
+# indefinitely for the lock.
+sub wait_lock {
+    # Wait indefinitely for the lock.
+    shift->dbh->do(q{SELECT get_lock('sqitch working', -1)});
+}
+
 # Override to unlock the tables, otherwise future transactions on this
 # connection can fail.
 sub finish_work {
