@@ -1,0 +1,25 @@
+name: CI
+on: [push]
+jobs:
+  Perl:
+    strategy:
+      matrix:
+        os: [ubuntu, macos] # , windows
+        perl: [ '5.34', '5.32', '5.30', '5.28', '5.26', '5.24', '5.22', '5.20', '5.18', '5.16', '5.14', '5.12' ]
+        exclude:
+          - { os: windows, perl: '5.12' } # cpm not working
+          - { os: windows, perl: '5.14' } # Error: Can't locate object method "new" via package "ExtUtils::ParseXS" at C:\hostedtoolcache\windows\perl\5.14.4-thr\x64\site\lib\ExtUtils/xsubpp line 51.
+    name: 🐪 Perl ${{ matrix.perl }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}-latest
+    steps:
+      - name: Setup perl
+        uses: shogo82148/actions-setup-perl@v1
+        with:
+          perl-version: ${{ matrix.perl }}
+          distribution: default
+      - run: perl -V
+      # Remove next step if https://github.com/gflohr/libintl-perl/issues/7 fixed and released.
+      - if: ${{ matrix.os == 'windows' }}
+        run: cpm install --global --verbose --show-build-log-on-failure --no-test Locale::TextDomain@1.31
+      - run: cpm install --global --verbose --show-build-log-on-failure --no-test Test::Spelling Test::Pod::Coverage App::Sqitch
+      - run: prove -lr --directives --comments
