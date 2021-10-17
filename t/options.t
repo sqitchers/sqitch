@@ -194,8 +194,7 @@ is_deeply $opts, {}, 'Should have preserved no opts';
 
 # Make sure it fails properly.
 CHDIE: {
-    local $! = 9;
-    $chdir_fail = 1;
+    $catch_chdir = 0;
     my $exp_err = do { chdir 'nonesuch'; $! };
     throws_ok { $CLASS->_parse_core_opts(['-C', 'nonesuch']) }
         'App::Sqitch::X', 'Should get error when chdir fails';
