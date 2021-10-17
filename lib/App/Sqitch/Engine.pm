@@ -1041,10 +1041,7 @@ sub lock_destination {
     ));
 
     # Try waiting for the lock.
-    require Sys::SigAction;
-    return $self->_locked(1) unless Sys::SigAction::timeout_call($wait, sub {
-        $self->wait_lock
-    });
+    return $self->_locked(1) if $self->wait_lock;
 
     # Timed out, so bail.
     hurl engine => __x(
@@ -1052,6 +1049,26 @@ sub lock_destination {
         dest => $self->destination,
         secs => $wait,
     );
+}
+
+sub _timeout {
+    my ($self, $code) = @_;
+    require Algorithm::Backoff::Exponential;
+    my $ab = Algorithm::Backoff::Exponential->new(
+        max_actual_duration => $self->lock_timeout,
+        initial_delay       => 0.01, # 10 ms
+        max_delay           => 10,   # 10 s
+    );
+
+    while (1) {
+        if (my $ret = $code->()) {
+            return 1;
+        }
+        my $secs = $ab->failure;
+        return 0 if $secs < 0;
+        sleep $secs;
+    }
+    return 0;
 }
 
 sub try_lock { 1 }
@@ -2011,8 +2028,8 @@ false without waiting.
 This method is called by C<lock_destination> when C<try_lock> returns false.
 It must be implemented if C<try_lock> is overridden; otherwise it throws
 an error when C<try_lock> returns false. It should attempt to acquire the
-same lock as C<try_lock>, but wait indefinitely for it. No need for a timeout;
-C<lock_destination> will time out after C<lock_timeout> seconds.
+same lock as C<try_lock>, but wait for it and time out after C<lock_timeout>
+seconds.
 
 =head3 C<begin_work>
 

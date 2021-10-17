@@ -263,16 +263,30 @@ sub begin_work {
     return $self;
 }
 
+# Override to try to acquire a lock on a constant number without waiting.
 sub try_lock {
-    # Try to get a lock but don't wait.
     shift->dbh->selectcol_arrayref(
         'SELECT pg_try_advisory_lock(75474063)'
     )->[0]
 }
 
+# Override to try to acquire a lock on a constant number, waiting for the lock
+# until timeout.
 sub wait_lock {
-    # Wait indefinitely for the lock.
-    shift->dbh->do('SELECT pg_advisory_lock(75474063)');
+    my $self = shift;
+    # Asyncronouslly request a lock with an indefinite wait.
+    my $dbh = $self->dbh;
+    $dbh->do(
+        'SELECT pg_advisory_lock(75474063)',
+        { pg_async => DBD::Pg::PG_ASYNC() },
+    );
+
+    # Use _timeout to periodically check for the result.
+    return 1 if $self->_timeout(sub { $dbh->pg_ready && $dbh->pg_result });
+
+    # Timed out, cancel the query and return false.
+    $dbh->pg_cancel;
+    return 0;
 }
 
 sub run_file {

@@ -6,11 +6,10 @@ use utf8;
 use Try::Tiny;
 use Test::More;
 use Test::Exception;
-use Time::HiRes qw(sleep);
+use Time::HiRes qw(sleep tv_interval gettimeofday);
 use Path::Class 0.33 qw(file dir);
 use Digest::SHA qw(sha1_hex);
 use Locale::TextDomain qw(App-Sqitch);
-use Sys::SigAction qw(timeout_call);
 use File::Temp 'tempdir';
 
 # Just die on warnings.
@@ -1746,8 +1745,10 @@ sub run {
             ok !$engine->try_lock, 'Try lock should now return false';
 
             # Make sure that wait_lock waits.
-            ok timeout_call(0.1, sub { $engine->wait_lock }),
-                'Should have to wait for lock';
+            $engine->lock_timeout(0.005);
+            my $time = [gettimeofday];
+            ok !$engine->wait_lock, 'Should wait and fail to get the lock';
+            cmp_ok tv_interval($time), '>=', 0.005, 'Should have waited for the lock';
             lives_ok { $dbh->do($sql->{free_lock}) } 'Free the second lock';
             # Work to free all the locks in case previous waits actually finished.
             my $wait = 1;

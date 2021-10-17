@@ -14,6 +14,7 @@ use Test::Exception;
 use Test::NoWarnings;
 use Test::MockModule;
 use Test::MockObject::Extends;
+use Time::HiRes qw(sleep);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use App::Sqitch::DateTime;
@@ -48,7 +49,7 @@ my ( $earliest_change_id, $latest_change_id, $initialized );
 my $registry_version = $CLASS->registry_release;
 my $script_hash;
 my $try_lock_ret = 1;
-my $wait_lock_sleep = 0.0;
+my $wait_lock_ret = 0;
 ENGINE: {
     # Stub out an engine.
     package App::Sqitch::Engine::whu;
@@ -99,7 +100,7 @@ ENGINE: {
 
     sub name_for_change_id { return 'bugaboo' }
     sub registry_version { $registry_version }
-    sub wait_lock { push @SEEN => 'wait_lock'; Time::HiRes::sleep $wait_lock_sleep }
+    sub wait_lock { push @SEEN => 'wait_lock'; $wait_lock_ret }
     sub try_lock { $try_lock_ret }
 }
 
@@ -3356,6 +3357,7 @@ is_deeply +MockOutput->get_info, [], 'Should have emitted no info';
 
 # Now let the lock fail and fall back on waiting for the lock.
 $try_lock_ret = 0;
+$wait_lock_ret = 1;
 $engine->_locked(0);
 ok $engine->lock_destination, 'Lock destination';
 is $engine->_locked, 1, 'Should be locked again';
@@ -3373,7 +3375,7 @@ is_deeply +MockOutput->get_info, [], 'Should again have emitted no info';
 
 # Now have it time out.
 $try_lock_ret = 0;
-$wait_lock_sleep = 2;
+$wait_lock_ret = 0;
 $engine->_locked(0);
 $engine->lock_timeout(0.1);
 throws_ok { $engine->lock_destination } 'App::Sqitch::X',

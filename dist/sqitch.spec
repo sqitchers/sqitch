@@ -9,6 +9,7 @@ Source0:        https://www.cpan.org/modules/by-module/App/App-Sqitch-%{version}
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch:      noarch
 BuildRequires:  perl >= 1:v5.10.0
+BuildRequires:  perl(Algorithm::Backoff::Exponential) >= 0.006
 BuildRequires:  perl(Capture::Tiny) >= 0.12
 BuildRequires:  perl(Carp)
 BuildRequires:  perl(Class::XSAccessor) >= 1.18
@@ -83,6 +84,7 @@ BuildRequires:  perl(URI::db) >= 0.19
 BuildRequires:  perl(User::pwent)
 BuildRequires:  perl(utf8)
 BuildRequires:  perl(warnings)
+Requires:       perl(Algorithm::Backoff::Exponential) >= 0.006
 Requires:       perl(Class::XSAccessor) >= 1.18
 Requires:       perl(Clone)
 Requires:       perl(Config)
@@ -126,7 +128,6 @@ Requires:       perl(String::ShellQuote)
 Requires:       perl(Sub::Exporter)
 Requires:       perl(Sub::Exporter::Util)
 Requires:       perl(Sys::Hostname)
-Requires:       perl(Sys::SigAction)
 Requires:       perl(Template::Tiny) >= 0.11
 Requires:       perl(Term::ANSIColor) >= 2.02
 Requires:       perl(Throwable) >= 0.200009

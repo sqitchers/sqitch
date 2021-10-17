@@ -312,10 +312,13 @@ sub try_lock {
 }
 
 # Override to try to acquire a lock on the string "sqitch working", waiting
-# indefinitely for the lock.
+# for the lock until timeout.
 sub wait_lock {
-    # Wait indefinitely for the lock.
-    shift->dbh->do(q{SELECT get_lock('sqitch working', -1)});
+    my $self = shift;
+    $self->dbh->selectcol_arrayref(
+        q{SELECT get_lock('sqitch working', ?)},
+        undef, $self->lock_timeout
+    )->[0]
 }
 
 # Override to unlock the tables, otherwise future transactions on this
