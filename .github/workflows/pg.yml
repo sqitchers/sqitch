@@ -1,5 +1,11 @@
 name: 🐘 Postgres
-on: [push]
+on:
+  push:
+    branches: [main, develop]
+    paths: ['**pg**', '!**upgrade**']
+  pull_request:
+    branches: [main, develop]
+    paths: ['**pg**', '!**upgrade**']
 jobs:
   Postgres:
     strategy:
