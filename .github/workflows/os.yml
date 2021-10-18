@@ -1,29 +1,22 @@
-# This workflow tests Sqitch's basic functionality (no database testing) on all
-# supported versions of Perl on Ubuntu, macOS, and Windows. It runs for pushes
-# and pull requests on the main and develop branches.
-name: 🐪 Perl
-on:
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main, develop]
+# This workflow is intended to be the default to check for compatability across
+# operating systems without much overhead. It uses the latest version of Perl on
+# the latest versions of Ubunti, macOS, and Windows. Think of it as a quick
+# check for working branches.
+name: 🅾️ OS
+on: [push, pull_request]
 jobs:
-  Perl:
+  OS:
     strategy:
       matrix:
         os: [ubuntu, macos, windows]
-        perl: [ '5.34', '5.32', '5.30', '5.28', '5.26', '5.24', '5.22', '5.20', '5.18', '5.16', '5.14', '5.12' ]
-        exclude:
-          - { os: windows, perl: '5.12' } # https://github.com/shogo82148/actions-setup-perl/issues/876
-          - { os: windows, perl: '5.14' } # https://github.com/shogo82148/actions-setup-perl/issues/881
-    name: 🐪 Perl ${{ matrix.perl }} on ${{ matrix.os }}
+    name: 🅾️ ${{ matrix.os }}
     runs-on: ${{ matrix.os }}-latest
     steps:
       - uses: actions/checkout@v2
       - name: Setup perl
         uses: shogo82148/actions-setup-perl@v1
         with:
-          perl-version: ${{ matrix.perl }}
+          perl-version: latest
       - run: perl -V
       - name: Download cpanfile
         uses: carlosperate/download-file-action@v1.0.3

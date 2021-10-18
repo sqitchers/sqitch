@@ -1,3 +1,6 @@
+# This workflow tests Sqitch's PostgreSQL engine on all supported versions of
+# Postgres. It runs for pushes and pull requests on the main and develop
+# branches, or any time a file matching "**pg**" changes.
 name: 🐘 Postgres
 on:
   push:
