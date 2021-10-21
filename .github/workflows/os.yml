@@ -14,6 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Setup perl
+        id: perl
         uses: shogo82148/actions-setup-perl@v1
         with: { perl-version: latest }
       - run: perl -V
@@ -21,7 +22,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: local/lib
-          key: ${{ runner.os }}-perl5lib-latest
+          key: perl-${{ steps.perl.outputs.perl-hash }}
       - name: Download cpanfile
         uses: carlosperate/download-file-action@v1.0.3
         with:
