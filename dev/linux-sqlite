@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -ex
 
 if [[ ${SQLITE:=system} = 'system' ]]; then
     return
@@ -14,9 +14,14 @@ SQLITE=$(perl -e 'my @v = split /[.]/, shift; printf "%d%02d%02d%02d\n", @v[0..3
 # Since 3.7.16.1, the URL includes the year in the path.
 # 3.18.2, 3.18.1, 3.9.3, and 3.7.11 missing.
 # https://sqlite.org/chronology.html
-# http://sqlite.1065341.n5.nabble.com/Reverse-Engineering-Project-Download-Old-Versions-tp97096p97154.html
-# http://www.linuxfromscratch.org/~thomasp/blfs-book-xsl/server/sqlite.html
-if   (( $SQLITE >= 3220000 )); then
+# https://stackoverflow.com/a/37712117/79202
+if   (( $SQLITE >= 3340100 )); then
+    YEAR=2021
+elif (( $SQLITE >= 3310000 )); then
+    YEAR=2020
+elif (( $SQLITE >= 3270000 )); then
+    YEAR=2019
+elif (( $SQLITE >= 3220000 )); then
     YEAR=2018
 elif (( $SQLITE >= 3160000 )); then
     YEAR=2017
@@ -34,6 +39,7 @@ else
     exit 64
 fi
 
+# Download, compile, and install SQLite.
 curl -o sqlite.zip https://sqlite.org/$YEAR/sqlite-amalgamation-$SQLITE.zip
 unzip -j sqlite.zip -d sqlite
 cd sqlite
@@ -42,17 +48,18 @@ gcc shell.c sqlite3.c -lpthread -ldl -o sqlite3
 # Build the shared library
 gcc -c -fPIC sqlite3.c
 gcc -shared -o libsqlite3.so -fPIC sqlite3.o -ldl -lpthread
-cd ..
 
-cpanm --notest DBI
-curl -o DBD-SQLite.tar.gz https://cpan.metacpan.org/authors/id/I/IS/ISHIGAKI/DBD-SQLite-1.62.tar.gz
-mkdir DBD-SQLite
-tar -zxf DBD-SQLite.tar.gz --strip-components 1 -C DBD-SQLite
-cd DBD-SQLite
+# Hand-build DBD::SQLite against the version of SQLite just installed.
+DIST=$(cpanm --info DBD::SQLite) # ISHIGAKI/DBD-SQLite-1.70.tar.gz
+URL=https://cpan.metacpan.org/authors/id/${DIST:0:1}/${DIST:0:2}/$DIST
+curl -O $URL
+tar zxf $(basename $DIST)
+cd  $(echo $(basename $DIST) | sed 's/\.tar\.gz$//')
 perl -i -pe 's/^if\s*\(\s*0\s*\)\s\{/if (1) {/' Makefile.PL
 perl Makefile.PL SQLITE_INC=$DIR/sqlite SQLITE_LIB=$DIR/sqlite
 make && make install
-cd ..
 
 export LD_LIBRARY_PATH=$DIR/sqlite:$LD_LIBRARY_PATH
 export PATH=$DIR/sqlite:$PATH
+
+set +ex
