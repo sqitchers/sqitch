@@ -59,6 +59,10 @@ perl -i -pe 's/^if\s*\(\s*0\s*\)\s\{/if (1) {/' Makefile.PL
 perl Makefile.PL SQLITE_INC=$DIR/sqlite SQLITE_LIB=$DIR/sqlite
 make && make install
 
+if [[ ! -z "$GITHUB_PATH" ]]; then
+    echo $DIR/sqlite >> $GITHUB_PATH
+fi
+
 export LD_LIBRARY_PATH=$DIR/sqlite:$LD_LIBRARY_PATH
 export PATH=$DIR/sqlite:$PATH
 
