@@ -5,10 +5,10 @@ name: 🐘 Postgres
 on:
   push:
     branches: [main, develop]
-    paths: ['**/pg.*']
+    # paths: ['**/pg.*']
   pull_request:
     branches: [main, develop]
-    paths: ['**/pg.*']
+    # paths: ['**/pg.*']
 jobs:
   Postgres:
     strategy:
@@ -40,7 +40,6 @@ jobs:
         # use cpm install --global to install DBD::Pg for a version-specific
         # build each time.
       - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends DBD::Pg Algorithm::Backoff::Exponential
-      - run: echo "$PATH"
       - name: prove
         env: { PERL5LIB: "${{ github.workspace }}/local/lib/perl5" }
         run: prove -lvr t/pg.t

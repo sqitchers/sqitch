@@ -5,10 +5,10 @@ name: 💡 SQLite
 on:
   push:
     branches: [main, develop]
-    paths: ['**/sqlite.*']
+    # paths: ['**/sqlite.*']
   pull_request:
     branches: [main, develop]
-    paths: ['**/sqlite.*']
+    # paths: ['**/sqlite.*']
 jobs:
   SQLite:
     strategy:
@@ -38,7 +38,8 @@ jobs:
         env:
           PERL5LIB: "${{ github.workspace }}/local/lib/perl5"
           SQLITE: ${{ matrix.sqlite }}
-        run: source dev/linux-sqlite
+        run: dev/linux-sqlite
+      - run: echo "$PATH"
       - name: prove
         env:
           PERL5LIB: "${{ github.workspace }}/local/lib/perl5"
