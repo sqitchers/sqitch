@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -ex
+
+if [[ -z "$PGVERSION" ]]; then
+    echo "Usage: PGVERSION=\$version $0"
+    exit 32
+fi
+
+[[ $PGVERSION =~ ^[0-9]$ ]] && PGVERSION+=.0
+
+curl -O https://salsa.debian.org/postgresql/postgresql-common/-/raw/master/pgdg/apt.postgresql.org.sh
+sudo sh apt.postgresql.org.sh -i -v $PGVERSION
+sudo pg_createcluster --start $PGVERSION test -p 5432 -- -A trust

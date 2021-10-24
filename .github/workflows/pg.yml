@@ -16,9 +16,7 @@ jobs:
         pg: [14, 13, 12, 11, 10, 9.6, 9.5, 9.4, 9.3] #, 9.2, 9.1, 9.0, 8.4] https://github.com/bucardo/dbdpg/issues/84
     name: 🐘 Postgres ${{ matrix.pg }}
     runs-on: ubuntu-latest
-    container: pgxn/pgxn-tools
     steps:
-      - run: pg-start ${{ matrix.pg }}
       - uses: actions/checkout@v2
       - name: Setup perl
         id: perl
@@ -40,6 +38,11 @@ jobs:
         # use cpm install --global to install DBD::Pg for a version-specific
         # build each time.
       - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends DBD::Pg Algorithm::Backoff::Exponential
+      - name: Install Postgres
+        env:
+          PERL5LIB: "${{ github.workspace }}/local/lib/perl5"
+          PGVERSION: ${{ matrix.pg }}
+        run: dev/linux-pg
       - name: prove
         env: { PERL5LIB: "${{ github.workspace }}/local/lib/perl5" }
         run: prove -lvr t/pg.t
