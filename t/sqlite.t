@@ -67,7 +67,7 @@ is_deeply [$sqlite->sqlite3], [$sqlite->client, @std_opts, $sqlite->uri->dbname]
 ##############################################################################
 # Make sure we get an error for no database name.
 my $tmp_dir = Path::Class::dir( tempdir CLEANUP => 1 );
-my $have_sqlite = $ENV{SQITCH_LIVE_SQLITE} || try { $sqlite->use_driver };
+my $have_sqlite = try { $sqlite->use_driver };
 if ($have_sqlite) {
     # We have DBD::SQLite.
     # Find out if it's built with SQLite >= 3.7.11.

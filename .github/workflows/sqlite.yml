@@ -1,16 +1,22 @@
-# This workflow tests SQLite's PostgreSQL engine on all supported versions of
+# This workflow tests Sqitch's SQLite engine on all supported versions of
 # SQLite. It runs for pushes and pull requests on the main and develop branches,
 # or any time a file matching "sqlite.*" changes.
 name: 💡 SQLite
-on:
-  push:
-    branches: [main, develop]
-    # paths: ['**/sqlite.*']
-  pull_request:
-    branches: [main, develop]
-    # paths: ['**/sqlite.*']
+on: [push, pull_request]
 jobs:
+  filter:
+    # No need to filter on develop or main.
+    if: github.ref != 'refs/heads/develop' && github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    name: 🔎 Detect SQLite Changes
+    steps:
+      - uses: actions/checkout@v2
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with: { filters: '{ sqlite: [ "**/sqlite.*" ] }' }
   SQLite:
+    # Run only on develop or main, or when a pg file has changed in the branch.
+    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main' || needs.filter.outputs.sqlite == 'true'
     strategy:
       matrix:
         # https://sqlite.org/chronology.html
@@ -35,13 +41,10 @@ jobs:
       - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends --cpanfile cpanfile
       - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends DBI
       - name: Install SQLite
-        env:
-          PERL5LIB: "${{ github.workspace }}/local/lib/perl5"
-          SQLITE: ${{ matrix.sqlite }}
-        run: dev/linux-sqlite
-      - run: echo "$PATH"
+        env: { PERL5LIB: "${{ github.workspace }}/local/lib/perl5" }
+        run: dev/linux-sqlite ${{ matrix.sqlite }}
       - name: prove
         env:
           PERL5LIB: "${{ github.workspace }}/local/lib/perl5"
-          SQITCH_LIVE_SQLITE: true
+          LIVE_SQLITE_REQUIRED: true
         run: prove -lvr t/sqlite.t

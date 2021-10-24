@@ -1,9 +1,10 @@
 #!/bin/bash
 
-set -ex
+set -e
 
+PGVERSION=${PGVERSION:=$1}
 if [[ -z "$PGVERSION" ]]; then
-    echo "Usage: PGVERSION=\$version $0"
+    echo "Usage: $0 \$version"
     exit 32
 fi
 
@@ -12,3 +13,7 @@ fi
 curl -O https://salsa.debian.org/postgresql/postgresql-common/-/raw/master/pgdg/apt.postgresql.org.sh
 sudo sh apt.postgresql.org.sh -i -v $PGVERSION
 sudo pg_createcluster --start $PGVERSION test -p 5432 -- -A trust
+
+if [[ ! -z "$GITHUB_PATH" ]]; then
+    echo "/usr/lib/postgresql/$POSTGRES/bin" >> $GITHUB_PATH
+fi

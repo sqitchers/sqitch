@@ -303,7 +303,8 @@ DBIEngineTest->run(
         my $self = shift;
         die $err if $err;
         # Make sure we have psql and can connect to the database.
-        $self->sqitch->probe( $self->client, '--version' );
+        my $version = $self->sqitch->capture( $self->client, '--version' );
+        say "# Detected psql CLI $version";
         $self->_capture('--command' => 'SELECT version()');
     },
     engine_err_regex  => qr/^ERROR:  /,

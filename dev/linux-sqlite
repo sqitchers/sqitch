@@ -4,8 +4,9 @@ set -e
 
 DIR=$(pwd)
 
+SQLITE=${SQLITE:=$1}
 if [[ -z "$SQLITE" ]]; then
-    echo "Usage: SQLITE=x.y.z $0"
+    echo "Usage: $0 \$version"
     exit 32
 fi
 
@@ -39,23 +40,20 @@ gcc shell.c sqlite3.c -lpthread -ldl -o sqlite3
 # Build the shared library
 gcc -c -fPIC sqlite3.c
 gcc -shared -o libsqlite3.so -fPIC sqlite3.o -ldl -lpthread
-cd ..
 
 # Hand-build DBD::SQLite against the version of SQLite just installed.
 DIST=$(cpanm --info DBD::SQLite) # ISHIGAKI/DBD-SQLite-1.70.tar.gz
 URL=https://cpan.metacpan.org/authors/id/${DIST:0:1}/${DIST:0:2}/$DIST
-curl -O $URL
-tar zxf $(basename $DIST)
-cd  $(echo $(basename $DIST) | sed 's/\.tar\.gz$//')
+curl -o dbd.tar.gz $URL
+tar zxvf dbd.tar.gz --strip-components 1
 perl -i -pe 's/^if\s*\(\s*0\s*\)\s\{/if (1) {/' Makefile.PL
 perl Makefile.PL SQLITE_INC=$DIR/sqlite SQLITE_LIB=$DIR/sqlite
 make && make install
 
 if [[ ! -z "$GITHUB_PATH" ]]; then
-    echo $DIR/sqlite >> $GITHUB_PATH
+    echo "$DIR/sqlite" >> $GITHUB_PATH
 fi
 
-export LD_LIBRARY_PATH=$DIR/sqlite:$LD_LIBRARY_PATH
-export PATH=$DIR/sqlite:$PATH
-
-set +ex
+if [[ ! -z "$GITHUB_ENV" ]]; then
+    echo "LD_LIBRARY_PATH=$DIR/sqlite" >> $GITHUB_ENV
+fi

@@ -1,12 +1,13 @@
 #!/bin/bash
 
-if [ ${MYSQL:=system} = 'system' ]; then
-    return
+set -ex
+
+if [[ -z "$MYSQL" ]]; then
+    echo "Usage: MYSQL=\$version $0"
+    exit 32
 fi
 
 # Derived from https://github.com/PyMySQL/PyMySQL/blob/master/.travis/initializedb.sh
-set -e
-sudo service mysql stop
 docker pull ${MYSQL}
 RUN_MYSQL="docker run -it --name=mysqld -d -e MYSQL_ALLOW_EMPTY_PASSWORD=yes -p 3306:3306"
 export MYSQL_URI=db:mysql://root@127.0.0.1/information_schema
