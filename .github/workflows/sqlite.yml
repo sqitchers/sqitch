@@ -1,6 +1,6 @@
 # This workflow tests Sqitch's SQLite engine on all supported versions of
 # SQLite. It runs for pushes and pull requests on the main and develop branches,
-# or any time a file matching "sqlite.*" changes.
+# or any time a file matching "sqlite.*" or "*Engine*" changes.
 name: 💡 SQLite
 on: [push, pull_request]
 jobs:
@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: dorny/paths-filter@v2
         id: filter
-        with: { filters: '{ sqlite: [ "**/sqlite.*" ] }' }
+        with: { filters: '{ sqlite: [ "**/sqlite.*", "**Engine**" ] }' }
   SQLite:
     # Run only on develop or main, or when a pg file has changed in the branch.
     if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main' || needs.filter.outputs.sqlite == 'true'

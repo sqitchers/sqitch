@@ -1,6 +1,6 @@
 # This workflow tests Sqitch's PostgreSQL engine on all supported versions of
 # Postgres. It runs for pushes and pull requests on the main and develop
-# branches, or any time a file matching "pg.*" changes.
+# branches, or any time a file matching "pg.*" or "*Engine*" changes.
 name: 🐘 Postgres
 on: [push, pull_request]
 jobs:
@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: dorny/paths-filter@v2
         id: filter
-        with: { filters: '{ pg: [ "**/pg.*" ] }' }
+        with: { filters: '{ pg: [ "**/pg.*", "**Engine**" ] }' }
   Postgres:
     # Run only on develop or main, or when a pg file has changed in the branch.
     if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main' || needs.filter.outputs.pg == 'true'

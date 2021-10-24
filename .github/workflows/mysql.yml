@@ -1,0 +1,67 @@
+# This workflow tests MySQL's PostgreSQL engine on all supported versions of
+# MySQL. It runs for pushes and pull requests on the main and develop branches,
+# or any time a file matching "mysql.*" or "*Engine*" changes.
+name: 🐬 MySQL
+on: [push, pull_request]
+jobs:
+  Filter:
+    # No need to filter on develop or main.
+    if: github.ref != 'refs/heads/develop' && github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    name: 🔎 Detect MySQL Changes
+    steps:
+      - uses: actions/checkout@v2
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with: { filters: '{ mysql: [ "**/mysql.*", "**Engine**" ] }' }
+  MySQL:
+    # Run only on develop or main, or when a pg file has changed in the branch.
+    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main' || ${{ needs.filter.outputs.mysql == 'true' }}
+    strategy:
+      matrix:
+        mysql:
+          - [🐬, MySQL,    8.0, mysql]
+          - [🐬, MySQL,    5.7, mysql]
+          - [🐬, MySQL,    5.6, mysql]
+          - [🐬, MySQL,    5.5, mysql]
+          - [🦭, MariaDB, 10.6, mariadb]
+          - [🦭, MariaDB, 10.5, mariadb]
+          - [🦭, MariaDB, 10.4, mariadb]
+          - [🦭, MariaDB, 10.3, mariadb]
+          - [🦭, MariaDB, 10.2, mariadb]
+          - [🦭, MariaDB, 10.1, mariadb]
+          - [🦭, MariaDB, '10.0', mariadb]
+    name: ${{ matrix.mysql[0] }} ${{ matrix.mysql[1] }} ${{ matrix.mysql[2] }}
+    runs-on: ubuntu-latest
+    services:
+      # Run the MySQL service in a container we can connect to. Means that the
+      # CLI and libraries DBD::mysql use are static to the version on the runner
+      # machine.
+      mysql:
+        image: "${{ matrix.mysql[3] }}:${{ matrix.mysql[2] }}"
+        env: { MYSQL_ALLOW_EMPTY_PASSWORD: yes }
+        ports: [ 3306 ]
+        options: --health-cmd="mysqladmin ping" --health-interval=5s --health-timeout=2s --health-retries=3
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup perl
+        id: perl
+        uses: shogo82148/actions-setup-perl@v1
+        with: { perl-version: latest }
+      - name: Cache CPAN Modules
+        uses: actions/cache@v2
+        with:
+          path: local/lib
+          key: perl-${{ steps.perl.outputs.perl-hash }}
+      - name: Download cpanfile
+        uses: carlosperate/download-file-action@v1.0.3
+        with:
+          file-url: https://fastapi.metacpan.org/source/DWHEELER/App-Sqitch-v1.1.0/dist/cpanfile
+      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends --cpanfile cpanfile
+      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends DBD::mysql
+      - name: prove
+        env:
+          PERL5LIB: "${{ github.workspace }}/local/lib/perl5"
+          LIVE_MYSQL_REQUIRED: true
+          MYSQL_URI: "db:mysql://root@127.0.0.1:${{ job.services.mysql.ports[3306] }}/information_schema"
+        run: prove -lvr t/mysql.t

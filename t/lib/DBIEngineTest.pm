@@ -1736,6 +1736,13 @@ sub run {
                 'Should fail to get same lock in second connection';
 
             lives_ok { $engine->dbh->do($sql->{free_lock}) } 'Free the lock';
+            # Wait for the free to complete if frees are async.
+            if (my $wait = $sql->{async_free}) {
+                while ($wait) {
+                    $wait = $engine->dbh->selectcol_arrayref($sql->{free_lock})->[0];
+                }
+            }
+
             ok !$engine->dbh->selectcol_arrayref($sql->{is_locked})->[0],
                 'Should not be locked';
             ok $dbh->selectcol_arrayref($sql->{try_lock})->[0],
@@ -1745,15 +1752,18 @@ sub run {
             ok !$engine->try_lock, 'Try lock should now return false';
 
             # Make sure that wait_lock waits.
-            $engine->lock_timeout(0.005);
+            my $secs = $sql->{wait_time} || 0.005;
+            $engine->lock_timeout($secs);
             my $time = [gettimeofday];
             ok !$engine->wait_lock, 'Should wait and fail to get the lock';
-            cmp_ok tv_interval($time), '>=', 0.005, 'Should have waited for the lock';
+            cmp_ok tv_interval($time), '>=', $secs, 'Should have waited for the lock';
             lives_ok { $dbh->do($sql->{free_lock}) } 'Free the second lock';
-            # Work to free all the locks in case previous waits actually finished.
-            my $wait = 1;
-            while ($wait) {
-                $wait = $engine->dbh->selectcol_arrayref($sql->{free_lock})->[0];
+
+            # Wait for the free to complete if frees are async.
+            if (my $wait = $sql->{async_free}) {
+                while ($wait) {
+                    $wait = $engine->dbh->selectcol_arrayref($sql->{free_lock})->[0];
+                }
             }
 
             # Now wait lock should acquire the lock.
