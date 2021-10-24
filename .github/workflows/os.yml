@@ -2,15 +2,15 @@
 # operating systems without much overhead. It uses the latest version of Perl on
 # the latest versions of Ubunti, macOS, and Windows. Think of it as a quick
 # check for working branches.
-name: 🅾️ OS
+name: 💿 OS
 on: [push, pull_request]
 jobs:
   OS:
     strategy:
       matrix:
-        os: [ubuntu, macos, windows]
-    name: 🅾️ ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}-latest
+        os: [[🐧, ubuntu], [🍎, macos], [🪟, windows]]
+    name: ${{ matrix.os[0] }} ${{ matrix.os[1] }}
+    runs-on: ${{ matrix.os[1] }}-latest
     steps:
       - uses: actions/checkout@v2
       - name: Setup perl
