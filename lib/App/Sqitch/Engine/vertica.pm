@@ -302,7 +302,7 @@ sub deployed_changes {
     return $self->_deployed_changes(qq{
         SELECT c.change_id AS id, c.change AS name, c.project, c.note,
                $tscol AS "timestamp", c.planner_name, c.planner_email,
-               t.tag AS tag
+               t.tag AS tag, c.script_hash
           FROM changes   c
           LEFT JOIN tags t ON c.change_id = t.change_id
          WHERE c.project = ?
@@ -316,7 +316,7 @@ sub deployed_changes_since {
     $self->_deployed_changes(qq{
         SELECT c.change_id AS id, c.change AS name, c.project, c.note,
                $tscol AS "timestamp", c.planner_name, c.planner_email,
-               t.tag AS tag
+               t.tag AS tag, c.script_hash
           FROM changes   c
           LEFT JOIN tags t ON c.change_id = t.change_id
          WHERE c.project = ?
@@ -331,7 +331,7 @@ sub load_change {
     my @res = $self->_deployed_changes(qq{
         SELECT c.change_id AS id, c.change AS name, c.project, c.note,
                $tscol AS "timestamp", c.planner_name, c.planner_email,
-                t.tag AS tag
+                t.tag AS tag, c.script_hash
           FROM changes   c
           LEFT JOIN tags t ON c.change_id = t.change_id
          WHERE c.change_id = ?
@@ -378,7 +378,7 @@ sub change_offset_from_id {
     my @res = $self->_deployed_changes(qq{
         SELECT c.change_id AS id, c.change AS name, c.project, c.note,
                $tscol AS "timestamp", c.planner_name, c.planner_email,
-               t.tag AS tag
+               t.tag AS tag, c.script_hash
           FROM changes   c
           LEFT JOIN tags t ON c.change_id = t.change_id
          WHERE c.project = ?

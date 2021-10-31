@@ -1,0 +1,63 @@
+# This workflow tests Firebird's PostgreSQL engine on all supported versions of
+# Firebird. It runs for pushes and pull requests on the main and develop branches,
+# or any time a file matching "firebird.*" or "*Engine*" changes.
+name: 🔥 Firebird
+on: [push, pull_request]
+jobs:
+  Filter:
+    # No need to filter on develop or main.
+    if: github.ref != 'refs/heads/develop' && github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    name: 🔎 Detect Firebird Changes
+    steps:
+      - uses: actions/checkout@v2
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with: { filters: '{ firebird: [ "**/firebird.*", "**Engine**" ] }' }
+  Firebird:
+    # Run only on develop or main, or when a pg file has changed in the branch.
+    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main' || ${{ needs.filter.outputs.firebird == 'true' }}
+    strategy:
+      matrix:
+        firebird: ['4.0', '3.0', 2.5-ss, 2.5-sc]
+    name: 🔥 Firebird ${{ matrix.firebird }}
+    runs-on: ubuntu-latest
+    services:
+      # Run the Firebird service in a container we can connect to. Means that the
+      # CLI and libraries DBD::firebird use are static to the version on the runner
+      # machine.
+      firebird:
+        image: jacobalberty/firebird:${{ matrix.firebird }}
+        ports: [ 3050 ]
+        env:
+          ISC_PASSWORD: nix
+          FIREBIRD_DATABASE: sqitchtest.db
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup perl
+        id: perl
+        uses: shogo82148/actions-setup-perl@v1
+        with: { perl-version: latest }
+      - name: Setup Firebird
+        run: |
+          sudo apt-get update -qq
+          sudo env DEBIAN_FRONTEND=noninteractive apt-get install -qq firebird-dev firebird3.0-utils
+      - name: Cache CPAN Modules
+        uses: actions/cache@v2
+        with:
+          path: local/lib
+          key: perl-${{ steps.perl.outputs.perl-hash }}
+      - name: Download cpanfile
+        uses: carlosperate/download-file-action@v1.0.3
+        with:
+          file-url: https://fastapi.metacpan.org/source/DWHEELER/App-Sqitch-v1.1.0/dist/cpanfile
+      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends --cpanfile cpanfile
+      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends DBD::Firebird
+        env: { FIREBIRD_HOME: /usr }
+      - name: prove
+        env:
+          PERL5LIB: "${{ github.workspace }}/local/lib/perl5"
+          LIVE_FIREBIRD_REQUIRED: true
+          FIREBIRD_HOME: /usr
+          FIREBIRD_URI: db:firebird://sysdba:nix@127.0.0.1:${{ job.services.firebird.ports[3050] }}//firebird/data/sqitchtest.db
+        run: prove -lvr t/firebird.t

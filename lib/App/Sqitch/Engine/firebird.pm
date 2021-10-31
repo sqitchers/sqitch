@@ -611,7 +611,7 @@ sub change_offset_from_id {
         SELECT FIRST 1 $offset_expr
                c.change_id AS "id", c.change AS name, c.project, c.note,
                $tscol AS "timestamp", c.planner_name, c.planner_email,
-               $tagcol AS tags
+               $tagcol AS tags, c.script_hash
           FROM changes   c
           LEFT JOIN tags t ON c.change_id = t.change_id
          WHERE c.project = ?
@@ -619,7 +619,7 @@ sub change_offset_from_id {
                SELECT committed_at FROM changes WHERE change_id = ?
          )
          GROUP BY c.change_id, c.change, c.project, c.note, c.planned_at,
-               c.planner_name, c.planner_email, c.committed_at
+               c.planner_name, c.planner_email, c.committed_at, c.script_hash
          ORDER BY c.committed_at $dir
     }, undef, $self->plan->project, $change_id ) || return undef;
     $change->{timestamp} = _dt $change->{timestamp};

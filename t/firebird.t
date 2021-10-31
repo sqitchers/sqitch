@@ -351,6 +351,8 @@ DBIEngineTest->run(
         my $cmd = $self->client;
         my $cmd_echo = qx(echo "quit;" | "$cmd" -z -quiet 2>&1 );
         return 0 unless $cmd_echo =~ m{Firebird}ims;
+        chomp $cmd_echo;
+        say "# Detected CLI $cmd_echo";
         # Skip if no DBD::Firebird.
         return 0 unless $have_fb_driver;
         say "# Connected to Firebird $fb_version" if $fb_version;
