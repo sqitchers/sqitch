@@ -1,0 +1,61 @@
+# This workflow tests Vertica's PostgreSQL engine on all supported versions of
+# Vertica. It runs for pushes and pull requests on the main and develop branches,
+# or any time a file matching "vertica.*" or "*Engine*" changes.
+name: 🔺 Vertica
+on: [push, pull_request]
+jobs:
+  Filter:
+    # No need to filter on develop or main.
+    if: github.ref != 'refs/heads/develop' && github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    name: 🔎 Detect Vertica Changes
+    steps:
+      - uses: actions/checkout@v2
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with: { filters: '{ vertica: [ "**/vertica.*", "**Engine**" ] }' }
+  Vertica:
+    # Run only on develop or main, or when a pg file has changed in the branch.
+    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main' || ${{ needs.filter.outputs.vertica == 'true' }}
+    strategy:
+      matrix:
+        vertica:
+         - { label: '11.0', version: 11.0.0-0, image: vertica/vertica-ce,     db: VMart }
+         - { label: '10.1', version: 10.1.1-0, image: vertica/vertica-ce,     db: VMart }
+         - { label: '9.2',  version: 9.2.1-0,  image: cjonesy/docker-vertica, db: docker }
+         - { label: '9.1',  version: 9.1.1-0,  image: cjonesy/docker-vertica, db: docker }
+         - { label: '8.1',  version: 8.1.1-0,  image: cjonesy/docker-vertica, db: docker }
+         - { label: '8.0',  version: 8.0.0-0,  image: cjonesy/docker-vertica, db: docker }
+         - { label: '7.2',  version: 7.2.3-18, image: cjonesy/docker-vertica, db: docker }
+         - { label: '7.1',  version: 7.1.2-21, image: cjonesy/docker-vertica, db: docker }
+    name: 🔺 Vertica ${{ matrix.vertica.label }}
+    runs-on: ubuntu-latest
+    services:
+      vertica:
+        image: ${{ matrix.vertica.image }}:${{ matrix.vertica.version }}
+        ports: [ 5433 ]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Vertica
+        run: ./dev/linux-vertica
+      - name: Setup perl
+        id: perl
+        uses: shogo82148/actions-setup-perl@v1
+        with: { perl-version: latest }
+      - name: Cache CPAN Modules
+        uses: actions/cache@v2
+        with:
+          path: local/lib
+          key: perl-${{ steps.perl.outputs.perl-hash }}
+      - name: Download cpanfile
+        uses: carlosperate/download-file-action@v1.0.3
+        with:
+          file-url: https://fastapi.metacpan.org/source/DWHEELER/App-Sqitch-v1.1.0/dist/cpanfile
+      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends --cpanfile cpanfile
+      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends DBD::ODBC
+      - name: prove
+        env:
+          PERL5LIB: "${{ github.workspace }}/local/lib/perl5"
+          LIVE_VERTICA_REQUIRED: true
+          VSQL_URI: db:vertica://dbadmin@localhost:${{ job.services.vertica.ports[5433] }}/${{ matrix.vertica.db }}?Driver=Vertica
+        run: prove -lvr t/vertica.t
