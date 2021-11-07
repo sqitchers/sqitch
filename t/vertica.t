@@ -301,7 +301,8 @@ DBIEngineTest->run(
         my $self = shift;
         die $err if $err;
         # Make sure we have vsql and can connect to the database.
-        $self->sqitch->probe( $self->client, '--version' );
+        my $version = $self->sqitch->capture( $self->client, '--version' );
+        say "# Detected $version";
         $self->_capture('--command' => 'SELECT version()');
     },
     engine_err_regex  => qr/\bERROR \d+:/,

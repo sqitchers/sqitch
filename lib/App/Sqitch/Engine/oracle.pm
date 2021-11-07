@@ -390,9 +390,9 @@ sub change_offset_from_id {
     my $tagcol = sprintf $self->_listagg_format, 't.tag';
 
     my $change = $self->dbh->selectrow_hashref(qq{
-        SELECT id, name, project, note, timestamp, planner_name, planner_email, tags
+        SELECT id, name, project, note, timestamp, planner_name, planner_email, tags, script_hash
           FROM (
-              SELECT id, name, project, note, timestamp, planner_name, planner_email, tags, rownum AS rnum
+              SELECT id, name, project, note, timestamp, planner_name, planner_email, tags, script_hash, rownum AS rnum
                 FROM (
                   SELECT c.change_id AS id, c.change AS name, c.project, c.note,
                          $tscol AS timestamp, c.planner_name, c.planner_email,
@@ -724,7 +724,7 @@ sub _script {
     my %vars = $self->variables;
 
     return join "\n" => (
-        'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
+        'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF VERIFY OFF',
         'WHENEVER OSERROR EXIT 9;',
         'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
         (map {; (my $v = $vars{$_}) =~ s/"/""/g; qq{DEFINE $_="$v"} } sort keys %vars),

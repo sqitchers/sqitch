@@ -1,13 +1,43 @@
 #!/usr/bin/perl -w
 
-# Environment variables required to test:
+# Environment variable required to test:
 #
-# * ORAUSER
-# * ORAPASS
-# * TWO_TASK
+# *   `SQITCH_TEST_ORACLE_URI` - A `db:oracle:` URI to connnect to the Oracle
+#     database.
+# *   `SQITCH_TEST_ALT_ORACLE_REGISTRY` A different Oracle username to use as an
+#     alternate registry schema. The user in `SQITCH_TEST_ORACLE_URI` must have
+#     permission to write to this user's schema.
 #
-# Tests can be run against the Developer Days VM with a bit of configuration.
-# Download the VM from:
+# ## Prerequisites
+#
+# Sqitch requires local access to the [Oracle Instant
+# Client](https://www.oracle.com/database/technologies/instant-client/downloads.html),
+# specifically the Basic, SQL*Plus, and SDK packages. Unpack them into a
+# directory and set `ORACLE_HOME` and `LD_LIBRARY_PATH` to point to that
+# director, and add it to the Path. Then install DBD::Oracle.
+#
+# ## Oracle-XE Docker Image
+#
+# The simplest way to the Sqitch Oracle engine is with the
+# [gvenzl/oracle-xe](https://hub.docker.com/r/gvenzl/oracle-xe) docker image.
+# See .github/workflows/oracle.yml for an example. But essentially, start it
+# like so:
+#
+# docker run -d -p 1521:1521 -e ORACLE_PASSWORD=oracle gvenzl/oracle-xe:18-slim
+#
+# Then you can configure connection like so:
+#
+#     export SQITCH_TEST_ORACLE_URI=db:oracle://system:oracle@localhost/XE
+#     export SQITCH_TEST_ALT_ORACLE_REGISTRY=gsmuser
+#     prove -lv t/oracle.t
+#
+# The `gsmuser` schema already exists in the `18-slim` image, so it should just
+# work.
+#
+# ## Developer Days VM
+#
+# Tests can also be run against the Developer Days VM with a bit of
+# configuration. Download the VM from:
 #
 #   https://www.oracle.com/technetwork/database/enterprise-edition/databaseappdev-vm-161299.html
 #
@@ -27,25 +57,28 @@
 #
 # If this fails with either of these errors:
 #
-#    ORA-01017: invalid username/password; logon denied
-#    ORA-21561: OID generation failed
+#    ORA-01017: invalid username/password; logon denied ORA-21561: OID
+#    generation failed
 #
-# Make sure that your computer's hostname is on the localhost line of
-# /etc/hosts (https://sourceforge.net/p/tora/discussion/52737/thread/f68b89ad/):
+# Make sure that your computer's hostname is on the localhost line of /etc/hosts
+# (https://sourceforge.net/p/tora/discussion/52737/thread/f68b89ad/):
 #
 #     > hostname
 #     stickywicket
 #     > grep 127 /etc/hosts
-#     127.0.0.1	localhost stickywicket
+#     127.0.0.1    localhost stickywicket
 #
 # Once connected, execute this SQL to create the user and give it access:
 #
 #     CREATE USER sqitchtest IDENTIFIED BY oracle;
 #     GRANT ALL PRIVILEGES TO sqitchtest;
 #
-# Now the tests can be run with:
+# The tests can use the existing "oe" user for the altnerate schema, so now the
+# test can be run with:
 #
-# ORAUSER=sqitchtest ORAPASS=oracle TWO_TASK=localhost/ORCL prove -lv t/oracle.t
+#     export SQITCH_TEST_ORACLE_URI=db:oracle://sqitchtest:oracle@localhost/ORCL
+#     export SQITCH_TEST_ALT_ORACLE_REGISTRY=oe
+#     prove -lv t/oracle.t
 
 use strict;
 use warnings;
@@ -115,7 +148,7 @@ is_deeply [$ora->sqlplus], [$client, @std_opts],
     'sqlplus command should connect to /nolog';
 
 is $ora->_script, join( "\n" => (
-    'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
+    'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF VERIFY OFF',
     'WHENEVER OSERROR EXIT 9;',
     'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
     'connect ',
@@ -133,7 +166,7 @@ isa_ok $ora = $CLASS->new(
 ), $CLASS;
 
 is $ora->_script, join( "\n" => (
-    'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
+    'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF VERIFY OFF',
     'WHENEVER OSERROR EXIT 9;',
     'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
     'connect fred/"derf"@"blah"',
@@ -151,7 +184,7 @@ isa_ok $ora = $CLASS->new(
 ), $CLASS;
 
 is $ora->_script('@foo'), join( "\n" => (
-    'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
+    'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF VERIFY OFF',
     'WHENEVER OSERROR EXIT 9;',
     'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
     'connect fred/"derf"@//there/"blah"',
@@ -174,7 +207,7 @@ ok $ora->set_variables(foo => 'baz', whu => 'hi there', yo => q{"stellar"}),
     'Set some variables';
 
 is $ora->_script, join( "\n" => (
-    'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
+    'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF VERIFY OFF',
     'WHENEVER OSERROR EXIT 9;',
     'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
     'DEFINE foo="baz"',
@@ -196,7 +229,7 @@ isa_ok $ora = $CLASS->new(
     target => $target,
 ), $CLASS;
 is $ora->_script('@foo'), join( "\n" => (
-    'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
+    'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF VERIFY OFF',
     'WHENEVER OSERROR EXIT 9;',
     'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
     'connect /@"secure_user_tns.tpg"',
@@ -216,7 +249,7 @@ isa_ok $ora = $CLASS->new(
     target => $target,
 ), $CLASS;
 is $ora->_script('@foo'), join( "\n" => (
-    'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
+    'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF VERIFY OFF',
     'WHENEVER OSERROR EXIT 9;',
     'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
     'connect /@"wallet_tns_name"',
@@ -495,7 +528,7 @@ $mock_change->unmock_all;
 
 ##############################################################################
 # Can we do live tests?
-if (App::Sqitch::ISWIN && eval { require Win32::API}) {
+if (App::Sqitch::ISWIN && eval { require Win32::API }) {
     # Call kernel32.SetErrorMode(SEM_FAILCRITICALERRORS):
     # "The system does not display the critical-error-handler message box.
     # Instead, the system sends the error to the calling process." and
@@ -504,6 +537,7 @@ if (App::Sqitch::ISWIN && eval { require Win32::API}) {
     my $SEM_FAILCRITICALERRORS = 0x0001;
     $SetErrorMode->Call($SEM_FAILCRITICALERRORS);
 }
+my $alt_reg = $ENV{SQITCH_TEST_ALT_ORACLE_REGISTRY} || 'oe';
 my $dbh;
 END {
     return unless $dbh;
@@ -522,22 +556,26 @@ END {
         'DROP TABLE projects',
         'DROP TABLE releases',
         'DROP TYPE  sqitch_array',
-        'DROP TABLE oe.events',
-        'DROP TABLE oe.dependencies',
-        'DROP TABLE oe.tags',
-        'DROP TABLE oe.changes',
-        'DROP TABLE oe.projects',
-        'DROP TABLE oe.releases',
-        'DROP TYPE  oe.sqitch_array',
+        "DROP TABLE $alt_reg.events",
+        "DROP TABLE $alt_reg.dependencies",
+        "DROP TABLE $alt_reg.tags",
+        "DROP TABLE $alt_reg.changes",
+        "DROP TABLE $alt_reg.projects",
+        "DROP TABLE $alt_reg.releases",
+        "DROP TYPE  $alt_reg.sqitch_array",
     );
 }
 
-my $user = $ENV{ORAUSER} || 'scott';
-my $pass = $ENV{ORAPASS} || 'tiger';
+my $uri = $ENV{SQITCH_TEST_ORACLE_URI} ? URI->new($ENV{SQITCH_TEST_ORACLE_URI}) : do {
+    my $uri = URI->new('db:oracle:');
+    $uri->user($ENV{ORAUSER} || 'scott');
+    $uri->password($ENV{ORAPASS} || 'tiger');
+    $uri;
+};
+
 my $err = try {
     $ora->use_driver;
-    my $dsn = 'dbi:Oracle:';
-    $dbh = DBI->connect($dsn, $user, $pass, {
+    $dbh = DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {
         PrintError => 0,
         RaiseError => 1,
         AutoCommit => 1,
@@ -547,20 +585,19 @@ my $err = try {
     eval { $_->message } || $_;
 };
 
-my $uri = URI->new('db:oracle:');
-$uri->user($user);
-$uri->password($pass);
-# $uri->dbname( $ENV{TWO_TASK} || $ENV{LOCAL} || $ENV{ORACLE_SID} );
 DBIEngineTest->run(
     class             => $CLASS,
     version_query     => q{SELECT * FROM v$version WHERE banner LIKE 'Oracle%'},
     target_params     => [ uri => $uri ],
-    alt_target_params => [ uri => $uri, registry => 'oe' ],
+    alt_target_params => [ uri => $uri, registry => $alt_reg ],
     skip_unless       => sub {
         my $self = shift;
         die $err if $err;
         # Make sure we have sqlplus and can connect to the database.
         $self->sqitch->probe( $self->client, '-v' );
+        my $v = $self->sqitch->capture( $self->client, '-v' );
+        $v =~ s/\n+/ /gsx; $v =~ s/^\s+//;
+        say "# Detected $v";
         $self->_capture('SELECT 1 FROM dual;');
     },
     engine_err_regex  => qr/^ORA-00925: /,

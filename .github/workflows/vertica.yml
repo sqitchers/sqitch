@@ -1,22 +1,14 @@
-# This workflow tests Vertica's PostgreSQL engine on all supported versions of
-# Vertica. It runs for pushes and pull requests on the main and develop branches,
-# or any time a file matching "vertica.*" or "*Engine*" changes.
+# This workflow tests Sqitch's Vertica engine on all supported versions of
+# MySQL. It runs for pushes and pull requests on the `main`, `develop`,
+# `**vertica**`, and `**engine**` branches.
 name: 🔺 Vertica
-on: [push, pull_request]
+on:
+  push:
+    branches: [main, develop, "**engine**", "**vertica**" ]
+  pull_request:
+    branches: [main, develop, "**engine**", "**vertica**" ]
 jobs:
-  Filter:
-    # No need to filter on develop or main.
-    if: github.ref != 'refs/heads/develop' && github.ref != 'refs/heads/main'
-    runs-on: ubuntu-latest
-    name: 🔎 Detect Vertica Changes
-    steps:
-      - uses: actions/checkout@v2
-      - uses: dorny/paths-filter@v2
-        id: filter
-        with: { filters: '{ vertica: [ "**/vertica.*", "**Engine**" ] }' }
   Vertica:
-    # Run only on develop or main, or when a pg file has changed in the branch.
-    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main' || ${{ needs.filter.outputs.vertica == 'true' }}
     strategy:
       matrix:
         vertica:

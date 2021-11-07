@@ -1,22 +1,14 @@
-# This workflow tests MySQL's PostgreSQL engine on all supported versions of
-# MySQL. It runs for pushes and pull requests on the main and develop branches,
-# or any time a file matching "mysql.*" or "*Engine*" changes.
+# This workflow tests Sqitch's MySQL engine on all supported versions of MySQL.
+# It runs for pushes and pull requests on the `main`, `develop`, `**mysql**`,
+# `**maria**`, and `**engine**` branches.
 name: 🐬 MySQL
-on: [push, pull_request]
+on:
+  push:
+    branches: [main, develop, "**engine**", "**mysql**", "**maria**" ]
+  pull_request:
+    branches: [main, develop, "**engine**", "**mysql**", "**maria**" ]
 jobs:
-  Filter:
-    # No need to filter on develop or main.
-    if: github.ref != 'refs/heads/develop' && github.ref != 'refs/heads/main'
-    runs-on: ubuntu-latest
-    name: 🔎 Detect MySQL Changes
-    steps:
-      - uses: actions/checkout@v2
-      - uses: dorny/paths-filter@v2
-        id: filter
-        with: { filters: '{ mysql: [ "**/mysql.*", "**Engine**" ] }' }
   MySQL:
-    # Run only on develop or main, or when a pg file has changed in the branch.
-    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main' || ${{ needs.filter.outputs.mysql == 'true' }}
     strategy:
       matrix:
         mysql:

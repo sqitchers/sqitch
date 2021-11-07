@@ -1,22 +1,14 @@
 # This workflow tests Sqitch's PostgreSQL engine on all supported versions of
-# Postgres. It runs for pushes and pull requests on the main and develop
-# branches, or any time a file matching "pg.*" or "*Engine*" changes.
+# Postgres. It runs for pushes and pull requests on the `main`, `develop`,
+# `**postgres**`, and `**engine**` branches.
 name: 🐘 Postgres
-on: [push, pull_request]
+on:
+  push:
+    branches: [main, develop, "**engine**", "**postgres**" ]
+  pull_request:
+    branches: [main, develop, "**engine**", "**postgres**" ]
 jobs:
-  filter:
-    # No need to filter on develop or main.
-    if: github.ref != 'refs/heads/develop' && github.ref != 'refs/heads/main'
-    runs-on: ubuntu-latest
-    name: 🔎 Detect Postgres Changes
-    steps:
-      - uses: actions/checkout@v2
-      - uses: dorny/paths-filter@v2
-        id: filter
-        with: { filters: '{ pg: [ "**/pg.*", "**Engine**" ] }' }
   Postgres:
-    # Run only on develop or main, or when a pg file has changed in the branch.
-    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main' || needs.filter.outputs.pg == 'true'
     strategy:
       matrix:
         pg: [14, 13, 12, 11, 10, 9.6, 9.5, 9.4, 9.3] #, 9.2, 9.1, 9.0, 8.4] https://github.com/bucardo/dbdpg/issues/84
