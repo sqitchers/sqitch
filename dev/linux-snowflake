@@ -6,13 +6,28 @@ set -e
 sudo apt-get update -qq
 sudo apt-get install -qq unixodbc-dev odbcinst unixodbc
 
-# Install snowsql.
-curl -o snowsql.bash http://sfc-snowsql-updates.s3.us-west-2.amazonaws.com/bootstrap/1.1/linux_x86_64/snowsql-1.1.72-linux_x86_64.bash
-sed -e '1,/^exit$/d' snowsql.bash | tar zxf -
-./snowsql -Uv
-sudo mv snowsql /bin/
+# https://docs.snowflake.net/manuals/release-notes/client-change-log-snowsql.html
+# https://sfc-repo.snowflakecomputing.com/index.html
+curl -sSLo snowsql.bash https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.2/linux_x86_64/snowsql-1.2.20-linux_x86_64.bash
+curl -sSLo snowdbc.tgz https://sfc-repo.snowflakecomputing.com/odbc/linux/2.24.2/snowflake_linux_x8664_odbc-2.24.2.tgz
 
-# TODO: Install Snowflake ODBC driver and config.
+# Install and configure ODBC.
+mkdir -p /opt/snowflake
+cat t/odbc/odbcinst.ini | sudo tee -a /etc/odbcinst.ini
+sudo tar --strip-components 1 -C /opt/snowflake -xzf snowdbc.tgz
+sudo mv /opt/snowflake/ErrorMessages/en-US /opt/snowflake/lib/
 
-# TODO: Configure with actual Snowflake account.
-export SNOWSQL_URI=db:snowflake://username:password@accountname/dbname?Driver=Snowflake;warehouse=warehouse
+# Install, update, and configure SnowSQL.
+sed -e '1,/^exit$/d' snowsql.bash | sudo tar -C /opt/snowflake -zxf -
+/opt/snowflake/snowsql -Uv
+echo "[options]\nnoup = true" > /opt/snowflake/config
+
+# Add to the path.
+if [[ ! -z "$GITHUB_PATH" ]]; then
+    echo "/opt/snowflake" >> $GITHUB_PATH
+fi
+
+# Tell SnowSQL where to find the config.
+if [[ ! -z "$GITHUB_ENV" ]]; then
+    echo "WORKSPACE=/opt/snowflake" >> $GITHUB_ENV
+fi

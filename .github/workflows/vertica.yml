@@ -1,5 +1,5 @@
 # This workflow tests Sqitch's Vertica engine on all supported versions of
-# MySQL. It runs for pushes and pull requests on the `main`, `develop`,
+# Vertica. It runs for pushes and pull requests on the `main`, `develop`,
 # `**vertica**`, and `**engine**` branches.
 name: 🔺 Vertica
 on:
