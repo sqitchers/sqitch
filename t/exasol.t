@@ -1,9 +1,10 @@
 #!/usr/bin/perl -w
 
-# To test against a live Exasol database, you must set the EXA_URI environment variable.
-# this is a stanard URI::db URI, and should look something like this:
+# To test against a live Exasol database, you must set the
+# SQITCH_TEST_EXASOL_URI environment variable. this is a stanard URI::db URI,
+# and should look something like this:
 #
-#     export EXA_URI=db:exasol://dbadmin:password@localhost:5433/dbadmin?Driver=Exasol
+#     export SQITCH_TEST_EXASOL_URI=db:exasol://dbadmin:password@localhost:5433/dbadmin?Driver=Exasol
 #
 # Note that it must include the `?Driver=$driver` bit so that DBD::ODBC loads
 # the proper driver.
@@ -386,7 +387,11 @@ END {
     );
 }
 
-$uri = URI->new($ENV{EXA_URI} || 'db:dbadmin:password@localhost/dbadmin');
+$uri = URI->new(
+    $ENV{SQITCH_TEST_EXASOL_URI} ||
+    $ENV{EXA_URI} ||
+    'db:dbadmin:password@localhost/dbadmin'
+);
 my $err = try {
     $exa->use_driver;
     $dbh = DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {

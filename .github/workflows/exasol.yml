@@ -1,0 +1,51 @@
+# This workflow tests Sqitch's Exasol engine on recent supported versions of
+# Oracle. It runs for pushes and pull requests on the `main`, `develop`,
+# `**exasol**`, and `**engine**` branches.
+name: ☀️ Exasol
+on:
+  push:
+    branches: [main, develop, "**engine**", "**exasol**" ]
+  pull_request:
+    branches: [main, develop, "**engine**", "**exasol**" ]
+jobs:
+  Exasol:
+    strategy:
+      matrix:
+        exasol:
+          - ['7.1', 'latest-7.1', ';SSLCertificate=SSL_VERIFY_NONE']
+          - ['7.0', 'latest-7.0', ';SSLCertificate=SSL_VERIFY_NONE']
+          # - ['6.2', 'latest-6.2', '']
+          # - ['6.1', 'latest-6.1']
+          # - ['6.0', '6.0.16-d1']
+    name: ☀️ Exasol ${{ matrix.exasol[0] }}
+    runs-on: ubuntu-latest
+    services:
+      exasol:
+        image: exasol/docker-db:${{ matrix.exasol[1] }}
+        ports: [ 8563 ]
+        options: --privileged
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Exasol
+        run: ./dev/linux-exasol ${{ matrix.exasol[0] }}
+      - name: Setup perl
+        id: perl
+        uses: shogo82148/actions-setup-perl@v1
+        with: { perl-version: latest }
+      - name: Cache CPAN Modules
+        uses: actions/cache@v2
+        with:
+          path: local/lib
+          key: perl-${{ steps.perl.outputs.perl-hash }}
+      - name: Download cpanfile
+        uses: carlosperate/download-file-action@v1.0.3
+        with:
+          file-url: https://fastapi.metacpan.org/source/DWHEELER/App-Sqitch-v1.1.0/dist/cpanfile
+      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends --cpanfile cpanfile
+      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends DBD::ODBC
+      - name: prove
+        env:
+          PERL5LIB: "${{ github.workspace }}/local/lib/perl5"
+          LIVE_EXASOL_REQUIRED: true
+          SQITCH_TEST_EXASOL_URI: db:exasol://sys:exasol@127.0.0.1:${{ job.services.exasol.ports[8563] }}/?Driver=Exasol${{ matrix.exasol[2] }}
+        run: prove -lvr t/exasol.t

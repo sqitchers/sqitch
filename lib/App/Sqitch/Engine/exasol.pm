@@ -221,7 +221,7 @@ sub change_offset_from_id {
 
     my $change = $self->dbh->selectrow_hashref(qq{
         SELECT id, name, project, note, "timestamp", planner_name, planner_email,
-               tags
+               tags, script_hash
           FROM (
             SELECT c.change_id AS id, c.change AS name, c.project, c.note,
                    $tscol AS "timestamp", c.planner_name, c.planner_email,

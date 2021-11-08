@@ -14,6 +14,7 @@ jobs:
         oracle:
           # In 11g, APP_USER "sqitchtest" is created in XE, but in more reent
           # versions it is not. So we use an existing user in those versions.
+          # Docker image source: https://github.com/gvenzl/oci-oracle-xe/
           # - { version: 21c, tag: 21-full, service: XE, altUser: gsmuser    }
           - { version: 18c, tag: 18-slim, service: XE, altUser: gsmuser    }
           - { version: 11g, tag: 11-slim, service: XE, altuser: sqitchtest }
