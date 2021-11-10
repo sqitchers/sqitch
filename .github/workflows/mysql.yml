@@ -12,16 +12,16 @@ jobs:
     strategy:
       matrix:
         mysql:
-          - [🐬, MySQL,    8.0, mysql]
-          - [🐬, MySQL,    5.7, mysql]
-          - [🐬, MySQL,    5.6, mysql]
-          - [🐬, MySQL,    5.5, mysql]
-          - [🦭, MariaDB, 10.6, mariadb]
-          - [🦭, MariaDB, 10.5, mariadb]
-          - [🦭, MariaDB, 10.4, mariadb]
-          - [🦭, MariaDB, 10.3, mariadb]
-          - [🦭, MariaDB, 10.2, mariadb]
-          - [🦭, MariaDB, 10.1, mariadb]
+          - [🐬, MySQL,    '8.0', mysql]
+          - [🐬, MySQL,    5.7,   mysql]
+          - [🐬, MySQL,    5.6,   mysql]
+          - [🐬, MySQL,    5.5,   mysql]
+          - [🦭, MariaDB, 10.6,   mariadb]
+          - [🦭, MariaDB, 10.5,   mariadb]
+          - [🦭, MariaDB, 10.4,   mariadb]
+          - [🦭, MariaDB, 10.3,   mariadb]
+          - [🦭, MariaDB, 10.2,   mariadb]
+          - [🦭, MariaDB, 10.1,   mariadb]
           - [🦭, MariaDB, '10.0', mariadb]
     name: ${{ matrix.mysql[0] }} ${{ matrix.mysql[1] }} ${{ matrix.mysql[2] }}
     runs-on: ubuntu-latest
@@ -36,7 +36,9 @@ jobs:
         options: --health-cmd="mysqladmin ping" --health-interval=5s --health-timeout=2s --health-retries=3
     steps:
       - uses: actions/checkout@v2
-      - name: Setup perl
+      - name: Setup Clients
+        run: ./dev/linux-mysql
+      - name: Setup Perl
         id: perl
         uses: shogo82148/actions-setup-perl@v1
         with: { perl-version: latest }
@@ -55,5 +57,5 @@ jobs:
         env:
           PERL5LIB: "${{ github.workspace }}/local/lib/perl5"
           LIVE_MYSQL_REQUIRED: true
-          MYSQL_URI: "db:mysql://root@127.0.0.1:${{ job.services.mysql.ports[3306] }}/information_schema"
+          SQITCH_TEST_MYSQL_URI: "db:mysql://root@127.0.0.1:${{ job.services.mysql.ports[3306] }}/information_schema"
         run: prove -lvr t/mysql.t

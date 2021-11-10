@@ -1,22 +1,8 @@
 #!/bin/bash
 
-set -ex
+set -e
 
-if [[ -z "$MYSQL" ]]; then
-    echo "Usage: MYSQL=\$version $0"
-    exit 32
-fi
+# Download dependencies.
+sudo apt-get update -qq
+sudo env DEBIAN_FRONTEND=noninteractive apt-get install -qq mysql-client default-libmysqlclient-dev
 
-# Derived from https://github.com/PyMySQL/PyMySQL/blob/master/.travis/initializedb.sh
-docker pull ${MYSQL}
-RUN_MYSQL="docker run -it --name=mysqld -d -e MYSQL_ALLOW_EMPTY_PASSWORD=yes -p 3306:3306"
-export MYSQL_URI=db:mysql://root@127.0.0.1/information_schema
-
-if [ $MYSQL == 'mysql:8.0' ]; then
-    ${RUN_MYSQL} ${MYSQL} --default-authentication-plugin=mysql_native_password
-else
-    ${RUN_MYSQL} ${MYSQL}
-fi
-
-# No need to wait for it to start, lots of stuff gets installed after this,
-# enough time goes by.

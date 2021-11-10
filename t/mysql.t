@@ -1,9 +1,10 @@
 #!/usr/bin/perl -w
 
-# To test against a live MySQL database, you must set the MYSQL_URI environment variable.
-# this is a standard URI::db URI, and should look something like this:
+# To test against a live MySQL database, you must set the SQITCH_TEST_MYSQL_URI
+# environment variable. this is a standard URI::db URI, and should look
+# something like this:
 #
-#     export MYSQL_URI=db:mysql://root:password@localhost:3306/information_schema
+#     export SQITCH_TEST_MYSQL_URI=db:mysql://root:password@localhost:3306/information_schema
 #
 
 use strict;
@@ -443,7 +444,11 @@ END {
 }
 
 
-$uri = URI->new($ENV{MYSQL_URI} || 'db:mysql://root@/information_schema');
+$uri = URI->new(
+    $ENV{SQITCH_TEST_MYSQL_URI} ||
+    $ENV{MYSQL_URI} ||
+    'db:mysql://root@/information_schema'
+);
 $uri->dbname('information_schema') unless $uri->dbname;
 my $err = try {
     $mysql->use_driver;
@@ -479,7 +484,7 @@ DBIEngineTest->run(
         die $err if $err;
         # Make sure we have mysql and can connect to the database.
         my $version = $self->sqitch->capture( $self->client, '--version' );
-        say "# Detected mysql CLI $version";
+        say "# Detected CLI $version";
         say '# Connected to MySQL ' . $self->_capture('--execute' => 'SELECT version()');
         1;
     },

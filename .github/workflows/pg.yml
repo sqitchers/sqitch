@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Setup perl
+      - name: Setup Perl
         id: perl
         uses: shogo82148/actions-setup-perl@v1
         with: { perl-version: latest }
@@ -43,4 +43,5 @@ jobs:
         env:
           PERL5LIB: "${{ github.workspace }}/local/lib/perl5"
           LIVE_PG_REQUIRED: true
+          SQITCH_TEST_PG_URI: db:pg://postgres@/postgres
         run: prove -lvr t/pg.t

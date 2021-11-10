@@ -13,7 +13,7 @@ jobs:
     runs-on: ${{ matrix.os[1] }}-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Setup perl
+      - name: Setup Perl
         id: perl
         uses: shogo82148/actions-setup-perl@v1
         with: { perl-version: latest }

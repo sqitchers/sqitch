@@ -26,14 +26,12 @@ jobs:
           FIREBIRD_DATABASE: sqitchtest.db
     steps:
       - uses: actions/checkout@v2
-      - name: Setup perl
+      - name: Setup Clients
+        run: ./dev/linux-firebird
+      - name: Setup Perl
         id: perl
         uses: shogo82148/actions-setup-perl@v1
         with: { perl-version: latest }
-      - name: Setup Firebird
-        run: |
-          sudo apt-get update -qq
-          sudo env DEBIAN_FRONTEND=noninteractive apt-get install -qq firebird-dev firebird3.0-utils
       - name: Cache CPAN Modules
         uses: actions/cache@v2
         with:
@@ -51,5 +49,5 @@ jobs:
           PERL5LIB: "${{ github.workspace }}/local/lib/perl5"
           LIVE_FIREBIRD_REQUIRED: true
           FIREBIRD_HOME: /usr
-          FIREBIRD_URI: db:firebird://sysdba:nix@127.0.0.1:${{ job.services.firebird.ports[3050] }}//firebird/data/sqitchtest.db
+          SQITCH_TEST_FIREBIRD_URI: db:firebird://sysdba:nix@127.0.0.1:${{ job.services.firebird.ports[3050] }}//firebird/data/sqitchtest.db
         run: prove -lvr t/firebird.t
