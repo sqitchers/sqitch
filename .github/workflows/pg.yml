@@ -38,7 +38,7 @@ jobs:
       - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends DBD::Pg Algorithm::Backoff::Exponential
       - name: Install Postgres
         env: { PERL5LIB: "${{ github.workspace }}/local/lib/perl5" }
-        run: dev/linux-pg ${{ matrix.pg }}
+        run: .github/ubuntu/pg.sh ${{ matrix.pg }}
       - name: prove
         env:
           PERL5LIB: "${{ github.workspace }}/local/lib/perl5"

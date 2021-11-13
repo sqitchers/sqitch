@@ -11,7 +11,7 @@ jobs:
   Vertica:
     strategy:
       matrix:
-        vertica:
+        include:
          - { label: '11.0', version: 11.0.0-0, image: vertica/vertica-ce,     db: VMart }
          - { label: '10.1', version: 10.1.1-0, image: vertica/vertica-ce,     db: VMart }
          - { label: '9.2',  version: 9.2.1-0,  image: cjonesy/docker-vertica, db: docker }
@@ -20,16 +20,16 @@ jobs:
          - { label: '8.0',  version: 8.0.0-0,  image: cjonesy/docker-vertica, db: docker }
          - { label: '7.2',  version: 7.2.3-18, image: cjonesy/docker-vertica, db: docker }
          - { label: '7.1',  version: 7.1.2-21, image: cjonesy/docker-vertica, db: docker }
-    name: 🔺 Vertica ${{ matrix.vertica.label }}
+    name: 🔺 Vertica ${{ matrix.label }}
     runs-on: ubuntu-latest
     services:
       vertica:
-        image: ${{ matrix.vertica.image }}:${{ matrix.vertica.version }}
+        image: ${{ matrix.image }}:${{ matrix.version }}
         ports: [ 5433 ]
     steps:
       - uses: actions/checkout@v2
       - name: Setup Clients
-        run: ./dev/linux-vertica
+        run: .github/ubuntu/vertica.sh
       - name: Setup Perl
         id: perl
         uses: shogo82148/actions-setup-perl@v1
@@ -49,5 +49,5 @@ jobs:
         env:
           PERL5LIB: "${{ github.workspace }}/local/lib/perl5"
           LIVE_VERTICA_REQUIRED: true
-          SQITCH_TEST_VSQL_URI: db:vertica://dbadmin@localhost:${{ job.services.vertica.ports[5433] }}/${{ matrix.vertica.db }}?Driver=Vertica
+          SQITCH_TEST_VSQL_URI: db:vertica://dbadmin@localhost:${{ job.services.vertica.ports[5433] }}/${{ matrix.db }}?Driver=Vertica
         run: prove -lvr t/vertica.t

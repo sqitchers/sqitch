@@ -34,7 +34,7 @@ jobs:
       - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends DBI
       - name: Install SQLite
         env: { PERL5LIB: "${{ github.workspace }}/local/lib/perl5" }
-        run: dev/linux-sqlite ${{ matrix.sqlite }}
+        run: .github/ubuntu/sqlite.sh ${{ matrix.sqlite }}
       - name: prove
         env:
           PERL5LIB: "${{ github.workspace }}/local/lib/perl5"

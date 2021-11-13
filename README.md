@@ -136,7 +136,7 @@ To install Sqitch on a specific platform, including Debian- and RedHat-derived
 Linux distributions and Windows, see the
 [Installation documentation](https://sqitch.org/#installation).
 
-Licence
+License
 -------
 
 Copyright © 2012-2021 iovation Inc.

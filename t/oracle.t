@@ -1,12 +1,14 @@
 #!/usr/bin/perl -w
 
-# Environment variable required to test:
+# Environment variables required to test:
 #
-# *   `SQITCH_TEST_ORACLE_URI` - A `db:oracle:` URI to connnect to the Oracle
+# *   `SQITCH_TEST_ORACLE_URI`: A `db:oracle:` URI to connnect to the Oracle
 #     database.
-# *   `SQITCH_TEST_ALT_ORACLE_REGISTRY` A different Oracle username to use as an
-#     alternate registry schema. The user in `SQITCH_TEST_ORACLE_URI` must have
-#     permission to write to this user's schema.
+# *   `SQITCH_TEST_ALT_ORACLE_REGISTRY`: A different Oracle username to use as
+#     an alternate registry schema. The user in `SQITCH_TEST_ORACLE_URI` must
+#     have permission to write to this user's schema.
+# *   `TWO_TASK`: If connecting to a pluggable database, you must also use the
+#     TWO_TASK environment variable.
 #
 # ## Prerequisites
 #
@@ -20,7 +22,7 @@
 #
 # The simplest way to the Sqitch Oracle engine is with the
 # [gvenzl/oracle-xe](https://hub.docker.com/r/gvenzl/oracle-xe) docker image.
-# See .github/workflows/oracle.yml for an example. But essentially, start it
+# See `.github/workflows/oracle.yml` for an example. But essentially, start it
 # like so:
 #
 # docker run -d -p 1521:1521 -e ORACLE_PASSWORD=oracle gvenzl/oracle-xe:18-slim
@@ -32,14 +34,33 @@
 #     prove -lv t/oracle.t
 #
 # The `gsmuser` schema already exists in the `18-slim` image, so it should just
-# work.
+# work. You can create another user (and schema), though on Oracle 12 and later
+# it will only be created in the XEPDB1 pluggable database. Pass the `APP_USER`
+# and `APP_USER_PASSWORD` variables to `docker run` like so:
+#
+# docker run -d -p 1521:1521 \
+#   -e ORACLE_PASSWORD=oracle \
+#   -e APP_USER=sqitch \
+#   -e APP_USER_PASSWORD=oracle \
+#   gvenzl/oracle-xe:18-slim
+#
+# Then use the `TWO_TASK` environment variable to complete the connection
+# (connecting to a pluggable database cannot be done purely by the connnection
+# URI; see [oci-oracle-xe#46](https://github.com/gvenzl/oci-oracle-xe/issues/46)
+# and [DBD::Oracle#131](https://github.com/perl5-dbi/DBD-Oracle/issues/131) for
+# details):
+#
+#     export SQITCH_TEST_ORACLE_URI=db:oracle://system:oracle@/
+#     export TWO_TASK=localhost/XEPDB1
+#     export SQITCH_TEST_ALT_ORACLE_REGISTRY=sqitch
+#     prove -lv t/oracle.t
 #
 # ## Developer Days VM
 #
 # Tests can also be run against the Developer Days VM with a bit of
 # configuration. Download the VM from:
 #
-#   https://www.oracle.com/technetwork/database/enterprise-edition/databaseappdev-vm-161299.html
+#   https://www.oracle.com/database/technologies/databaseappdev-vm.html
 #
 # Once the VM is imported into VirtualBox and started, login with the username
 # "oracle" and the password "oracle". Then, in VirtualBox, go to Settings ->

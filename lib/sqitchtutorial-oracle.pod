@@ -35,9 +35,88 @@ If you'd like to manage an Exasol database, see L<sqitchtutorial-exasol>.
 
 If you'd like to manage a Snowflake database, see L<sqitchtutorial-snowflake>.
 
-=head2 VM Configuration
+=head2 Prerequisites
 
-Some instructions for setting up a VM for following along in this tutorial.
+Sqitch requires L<Oracle Instant Client|https://www.oracle.com/database/technologies/instant-client.html>
+and the L<DBD::Oracle> Perl module to manage Oracle databases. Skip this section
+if you already have them installed and configured.
+
+=head3 Instant Client
+
+Sqitch requires three Instant Client packages:
+
+=over
+
+=item 1.
+
+Instant Client Basic
+
+=item 2.
+
+Instant Client SQL*Plus
+
+=item 3.
+
+Instant Client SDK
+
+=back
+
+Download all three as appropriate for your platform and OS, unpack them and
+put them all in a single directory, such as F<instantclient> in your home
+directory. Then set the C<$ORACLE_HOME> environment variable to that directory
+and add it to the path the PATH and LD_LIBRARY_PATH variables. For example:
+
+  export ORACLE_HOME=$HOME/instantclient
+  export PATH=$ORACLE_HOME:$PATH
+  export LD_LIBRARY_PATH=$ORACLE_HOME
+
+=head3 DBD::Oracle
+
+With these variables in place, install DBD::Oracle, like so:
+
+  cpanm DBD::Oracle
+
+If you run into issues, consult L<DBD::Oracle::Troubleshooting> and the
+relevant platform-specific C<DBD::Oracle::Troubleshooting::*> guides
+L<listed here|https://metacpan.org/dist/DBD-Oracle>.
+
+=head2 Test Environment
+
+If you have an Oracle instance ready to hand, you can skip this section. For
+For those who don't have a handy Oracle instance lying around, try using one
+of the L<Oracle-XE Docker images|https://hub.docker.com/r/gvenzl/oracle-xe>
+or the L<Database Virtual Box Appliance|https://www.oracle.com/database/technologies/databaseappdev-vm.html>.
+Details on each follow.
+
+=head3 Oracle-XE Docker Configuration
+
+The simplest way to the Sqitch Oracle engine is with the
+[gvenzl/oracle-xe](https://hub.docker.com/r/gvenzl/oracle-xe) docker image.
+Essentially, start it like so:
+
+  docker run -d -p 1521:1521 \
+    -e ORACLE_PASSWORD=oracle \
+    -e APP_USER=scott \
+    -e APP_USER_PASSWORD=tiger \
+    gvenzl/oracle-xe:18-slim
+
+This will create a user (and schema) named C<scott> in the pluggable database C<pdb1>.
+To create a SID named C<flipr_test> pointing to the C<pdb1> database, add this entry to
+F<$ORACLE_HOME/network/admin/tnsnames.ora>:
+
+  FLIPR_TEST =
+    (DESCRIPTION =
+      (ADDRESS = (PROTOCOL = TCP)(HOST = localhost)(PORT = 1521))
+      (CONNECT_DATA =
+        (SERVER = DEDICATED)
+        (SERVICE_NAME = pdb1)
+      )
+    )
+
+=head3 Virtual Box Configuration
+
+Some instructions for setting up the Database Virtual Box Appliance for
+following along in this tutorial.
 
 =over
 
@@ -48,9 +127,42 @@ the Oracle developer days VM.
 
 =item *
 
-Connect as the DBA via SQL*Plus:
+Download and install L<VirtualBox|https://www.virtualbox.org/wiki/Downloads>.
+
+=item *
+
+Download the VM from the L<Database Virtual Box
+Appliance|https://www.oracle.com/database/technologies/databaseappdev-vm.html>
+page and import it into VirtualBox.
+
+=item *
+
+Once the VM is imported into VirtualBox and started, login with the username
+"oracle" and the password "oracle". Then, in VirtualBox, go to Settings ->
+Network, select the NAT adapter, and add two port forwarding rules
+(https://barrymcgillin.blogspot.com/2011/12/using-oracle-developer-days-virtualbox.html):
+
+  Host Port | Guest Port
+ -----------+------------
+       1521 |       1521
+       2222 |         22
+
+Then restart the VM. You should then be able to connect from your host with:
 
   sqlplus sys/oracle@localhost/ORCL as sysdba
+
+If this fails with either of these errors:
+
+  ORA-01017: invalid username/password; logon denied ORA-21561: OID
+  generation failed
+
+Make sure that your computer's hostname is on the localhost line of F</etc/hosts>
+(L<reference|https://sourceforge.net/p/tora/discussion/52737/thread/f68b89ad/>):
+
+  > hostname
+  stickywicket
+  > grep 127 /etc/hosts
+  127.0.0.1    localhost stickywicket
 
 =item *
 
@@ -61,7 +173,8 @@ Give user C<scott> the access it needs:
 
 =item *
 
-Add this entry to F<tnsnames.ora>:
+To create a SID named C<flipr_test> pointing to the C<pdb1> database, add this entry to
+F<$ORACLE_HOME/network/admin/tnsnames.ora>:
 
   FLIPR_TEST =
     (DESCRIPTION =
@@ -108,7 +221,7 @@ with the same name. So let's specify one when we initialize Sqitch:
 
 Let's have a look at F<sqitch.conf>:
 
-  > cat sqitch.conf 
+  > cat sqitch.conf
   [core]
   	engine = oracle
   	# plan_file = sqitch.plan
@@ -188,14 +301,17 @@ script, so we add this to F<revert/appschema.sql>:
 
   DROP USER flipr;
 
-Now we can try deploying this change. Before going any further, you might
-need to
+Now we can try deploying this change. Before going any further, unless you're
+using the Docker or VM environments described above, you might need to
 L<create the database|https://docs.oracle.com/cd/B28359_01/server.111/b28310/create001.htm#ADMIN11068>
-and configure the SID. Assuming you have an Oracle SID named C<flipr_test> set
+and configure the SID. Assuming you have an Oracle SID named C<FLIPR_TEST> set
 up in your C<F<TNSNAMES.ORA>|https://www.orafaq.com/wiki/Tnsnames.ora> file,
 tell Sqitch where to send the change via a
-L<database URI|https://github.com/libwww-perl/uri-db/>:
+L<database URI|https://github.com/libwww-perl/uri-db/>, such as
 
+  export SQITCH_URI=db:oracle://$username:$password@/flipr_test
+
+With that URI set up, we can deploy:
 
   > sqitch deploy db:oracle://scott:tiger@/flipr_test
   Adding registry tables to db:oracle://scott:@/flipr_test

@@ -11,15 +11,19 @@ jobs:
   Firebird:
     strategy:
       matrix:
-        firebird: ['4.0', '3.0', 2.5-ss, 2.5-sc]
-    name: 🔥 Firebird ${{ matrix.firebird }}
+        include:
+          - { version: '4.0'    }
+          - { version: '3.0'    }
+          - { version: '2.5-ss' }
+          - { version: '2.5-sc' }
+    name: 🔥 Firebird ${{ matrix.version }}
     runs-on: ubuntu-latest
     services:
       # Run the Firebird service in a container we can connect to. Means that the
       # CLI and libraries DBD::firebird use are static to the version on the runner
       # machine.
       firebird:
-        image: jacobalberty/firebird:${{ matrix.firebird }}
+        image: jacobalberty/firebird:${{ matrix.version }}
         ports: [ 3050 ]
         env:
           ISC_PASSWORD: nix
@@ -27,7 +31,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Setup Clients
-        run: ./dev/linux-firebird
+        run: .github/ubuntu/firebird.sh
       - name: Setup Perl
         id: perl
         uses: shogo82148/actions-setup-perl@v1

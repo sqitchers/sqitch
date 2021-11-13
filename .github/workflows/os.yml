@@ -8,9 +8,12 @@ jobs:
   OS:
     strategy:
       matrix:
-        os: [[🐧, ubuntu], [🍎, macos], [🪟, windows]]
-    name: ${{ matrix.os[0] }} ${{ matrix.os[1] }}
-    runs-on: ${{ matrix.os[1] }}-latest
+        include:
+          - { icon: 🐧, os: ubuntu,  name: Linux }
+          - { icon: 🍎, os: macos,   name: macOS }
+          - { icon: 🪟, os: windows, name: Windows }
+    name: ${{ matrix.icon }} ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}-latest
     steps:
       - uses: actions/checkout@v2
       - name: Setup Perl

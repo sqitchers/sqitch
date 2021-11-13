@@ -11,33 +11,33 @@ jobs:
   MySQL:
     strategy:
       matrix:
-        mysql:
-          - [🐬, MySQL,    '8.0', mysql]
-          - [🐬, MySQL,    5.7,   mysql]
-          - [🐬, MySQL,    5.6,   mysql]
-          - [🐬, MySQL,    5.5,   mysql]
-          - [🦭, MariaDB, 10.6,   mariadb]
-          - [🦭, MariaDB, 10.5,   mariadb]
-          - [🦭, MariaDB, 10.4,   mariadb]
-          - [🦭, MariaDB, 10.3,   mariadb]
-          - [🦭, MariaDB, 10.2,   mariadb]
-          - [🦭, MariaDB, 10.1,   mariadb]
-          - [🦭, MariaDB, '10.0', mariadb]
-    name: ${{ matrix.mysql[0] }} ${{ matrix.mysql[1] }} ${{ matrix.mysql[2] }}
+        include:
+          - { version: '8.0',  icon: 🐬, name: MySQL,   image: mysql   }
+          - { version: '5.7',  icon: 🐬, name: MySQL,   image: mysql   }
+          - { version: '5.6',  icon: 🐬, name: MySQL,   image: mysql   }
+          - { version: '5.5',  icon: 🐬, name: MySQL,   image: mysql   }
+          - { version: '10.6', icon: 🦭, name: MariaDB, image: mariadb }
+          - { version: '10.5', icon: 🦭, name: MariaDB, image: mariadb }
+          - { version: '10.4', icon: 🦭, name: MariaDB, image: mariadb }
+          - { version: '10.3', icon: 🦭, name: MariaDB, image: mariadb }
+          - { version: '10.2', icon: 🦭, name: MariaDB, image: mariadb }
+          - { version: '10.1', icon: 🦭, name: MariaDB, image: mariadb }
+          - { version: '10.0', icon: 🦭, name: MariaDB, image: mariadb }
+    name: ${{ matrix.icon }} ${{ matrix.name }} ${{ matrix.version }}
     runs-on: ubuntu-latest
     services:
       # Run the MySQL service in a container we can connect to. Means that the
       # CLI and libraries DBD::mysql use are static to the version on the runner
       # machine.
       mysql:
-        image: "${{ matrix.mysql[3] }}:${{ matrix.mysql[2] }}"
+        image: "${{ matrix.image }}:${{ matrix.version }}"
         env: { MYSQL_ALLOW_EMPTY_PASSWORD: yes }
         ports: [ 3306 ]
         options: --health-cmd="mysqladmin ping" --health-interval=5s --health-timeout=2s --health-retries=3
     steps:
       - uses: actions/checkout@v2
       - name: Setup Clients
-        run: ./dev/linux-mysql
+        run: .github/ubuntu/mysql.sh
       - name: Setup Perl
         id: perl
         uses: shogo82148/actions-setup-perl@v1
