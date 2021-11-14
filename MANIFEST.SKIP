@@ -37,6 +37,7 @@
 ^dist\.ini$
 ^MYMETA\.yml$
 ^MYMETA\.json$
+^latest_changes\.md$
 
 # Development tools.
 ^xt/
