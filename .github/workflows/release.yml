@@ -4,7 +4,7 @@ on:
     # tags: [v*]
 jobs:
   release:
-    name: Release on GitHub
+    name: 🚀 Release
     runs-on: ubuntu-latest
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -20,6 +20,10 @@ jobs:
       with:
         path: local
         key: perl-${{ steps.perl.outputs.perl-hash }}
+    - name: Install Prereqs
+      run |
+        sudo apt-get update -qq
+        sudo env DEBIAN_FRONTEND=noninteractive apt-get install -qq  libicu-dev gettext aspell-en software-properties-common
     - name: Install Dist::Zilla
       run: cpm install --verbose --show-build-log-on-failure --no-test Dist::Zilla
     - name: Install Build Dependencies
