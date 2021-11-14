@@ -6,12 +6,14 @@ version=${1:-7}
 echo $version
 
 # Download dependencies.
-sudo apt-get update -qq
-sudo env DEBIAN_FRONTEND=noninteractive apt-get install -qq curl unixodbc-dev odbcinst unixodbc default-jre
+if [ -z "$SKIP_DEPENDS" ]; then
+    sudo apt-get update -qq
+    sudo env DEBIAN_FRONTEND=noninteractive apt-get install -qq curl unixodbc-dev odbcinst unixodbc default-jre
+    cat t/odbc/odbcinst.ini | sudo tee -a /etc/odbcinst.ini
+fi
 
 # Prepare the configuration.
 mkdir -p /opt/exasol
-cat t/odbc/odbcinst.ini | sudo tee -a /etc/odbcinst.ini
 
 # Download and unpack Exasol ODBC Driver & EXAplus.
 if [[ "$version" =~ ^6 ]]; then

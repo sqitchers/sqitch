@@ -28,7 +28,7 @@ sub run {
     my $mock_change = Test::MockModule->new('App::Sqitch::Plan::Change');
     my @lines = grep { $_ } file('README.md')->slurp(
         chomp  => 1,
-        iomode => '<:encoding(UTF-8)'
+        iomode => '<:raw'
     );
     # Each change should retain its own hash.
     my $orig_deploy_hash;

@@ -45,7 +45,7 @@ jobs:
       - name: Cache CPAN Modules
         uses: actions/cache@v2
         with:
-          path: local/lib
+          path: local
           key: perl-${{ steps.perl.outputs.perl-hash }}
       - name: Download cpanfile
         uses: carlosperate/download-file-action@v1.0.3

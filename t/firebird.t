@@ -316,7 +316,7 @@ my $err = try {
 };
 
 END {
-    return if $ENV{CI}; # No need to clean up under Travis.
+    return if $ENV{CI}; # No need to clean up in CI environment.
     foreach my $dbname (@cleanup) {
         $uri->dbname($dbname);
         my $dsn = $uri->dbi_dsn . q{;ib_dialect=3;ib_charset=UTF8};

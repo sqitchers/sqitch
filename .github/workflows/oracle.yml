@@ -15,11 +15,12 @@ jobs:
           # In 11g, APP_USER "sqitchtest" is created in XE, but in more recent
           # versions it is created in the XEPDB1 pluggable database, which we
           # cannot connect to using a URI. So we use an existing user in those
-          # versions.
+          # versions. Uncomment code in skip_unless in t/oracle.t to find other
+          # user schemas that will work.
           # * Image Source:      https://github.com/gvenzl/oci-oracle-xe/
           # * Image Issue:       https://github.com/gvenzl/oci-oracle-xe/issues/46
           # * DBD::Oracle Issue: https://github.com/perl5-dbi/DBD-Oracle/issues/131
-          # - { version: 21c, tag: 21-full, service: XE, altUser: gsmuser    }
+          - { version: 21c, tag: 21,      service: XE, altUser: dbsnmp    }
           - { version: 18c, tag: 18-slim, service: XE, altUser: gsmuser    }
           - { version: 11g, tag: 11-slim, service: XE, altuser: sqitchtest }
     name: "🔮 Oracle ${{ matrix.version }}"
@@ -38,7 +39,6 @@ jobs:
           --health-timeout 10s
           --health-retries 10
     steps:
-      - run: "echo Filter: ${{ needs.filter.outputs.oracle }}"
       - uses: actions/checkout@v2
       - name: Setup Clients
         run: .github/ubuntu/oracle.sh
@@ -49,7 +49,7 @@ jobs:
       - name: Cache CPAN Modules
         uses: actions/cache@v2
         with:
-          path: local/lib
+          path: local
           key: perl-${{ steps.perl.outputs.perl-hash }}
       - name: Download cpanfile
         uses: carlosperate/download-file-action@v1.0.3

@@ -585,6 +585,7 @@ END {
         "DROP TABLE $alt_reg.releases",
         "DROP TYPE  $alt_reg.sqitch_array",
     );
+    $dbh->disconnect;
 }
 
 my $uri = $ENV{SQITCH_TEST_ORACLE_URI} ? URI->new($ENV{SQITCH_TEST_ORACLE_URI}) : do {
@@ -614,6 +615,22 @@ DBIEngineTest->run(
     skip_unless       => sub {
         my $self = shift;
         die $err if $err;
+
+        #####
+        ## Uncomment to find another user/schema to use for the alternate
+        # schema in .github/workflows/oracle.yml.
+        # my $dbh = $self->dbh;
+        # for my $u (@{ $dbh->selectcol_arrayref('SELECT USERNAME FROM all_users') }) {
+        #     my $result = 'success';
+        #     try {
+        #         $dbh->do("CREATE TABLE $u.try(id FLOAT)");
+        #         $dbh->do("INSERT INTO $u.try VALUES(?)", undef, 1.0);
+        #     } catch {
+        #         $result = 'fail';
+        #     };
+        #     Test::More::diag("$u: $result");
+        # }
+
         # Make sure we have sqlplus and can connect to the database.
         $self->sqitch->probe( $self->client, '-v' );
         my $v = $self->sqitch->capture( $self->client, '-v' );

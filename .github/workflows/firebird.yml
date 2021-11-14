@@ -39,7 +39,7 @@ jobs:
       - name: Cache CPAN Modules
         uses: actions/cache@v2
         with:
-          path: local/lib
+          path: local
           key: perl-${{ steps.perl.outputs.perl-hash }}
       - name: Download cpanfile
         uses: carlosperate/download-file-action@v1.0.3
@@ -47,11 +47,9 @@ jobs:
           file-url: https://fastapi.metacpan.org/source/DWHEELER/App-Sqitch-v1.1.0/dist/cpanfile
       - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends --cpanfile cpanfile
       - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends DBD::Firebird
-        env: { FIREBIRD_HOME: /usr }
       - name: prove
         env:
           PERL5LIB: "${{ github.workspace }}/local/lib/perl5"
           LIVE_FIREBIRD_REQUIRED: true
-          FIREBIRD_HOME: /usr
           SQITCH_TEST_FIREBIRD_URI: db:firebird://sysdba:nix@127.0.0.1:${{ job.services.firebird.ports[3050] }}//firebird/data/sqitchtest.db
         run: prove -lvr t/firebird.t

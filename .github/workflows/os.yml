@@ -24,7 +24,7 @@ jobs:
       - name: Cache CPAN Modules
         uses: actions/cache@v2
         with:
-          path: local/lib
+          path: local
           key: perl-${{ steps.perl.outputs.perl-hash }}
       - name: Download cpanfile
         uses: carlosperate/download-file-action@v1.0.3
@@ -37,4 +37,4 @@ jobs:
       - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends Test::Spelling Test::Pod Test::Pod::Coverage
       - name: prove
         env: { PERL5LIB: "${{ github.workspace }}/local/lib/perl5" }
-        run: prove -lr --comments --directives
+        run: prove -lrj4

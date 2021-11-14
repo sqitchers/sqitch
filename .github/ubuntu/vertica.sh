@@ -2,10 +2,12 @@
 
 set -e
 
-sudo apt-get update -qq
-sudo apt-get install -qq unixodbc-dev odbcinst unixodbc
+if [ -z "$SKIP_DEPENDS" ]; then
+    sudo apt-get update -qq
+    sudo env DEBIAN_FRONTEND=noninteractive apt-get install -qq unixodbc-dev odbcinst unixodbc
+    cat t/odbc/odbcinst.ini | sudo tee -a /etc/odbcinst.ini
+fi
 
-cat t/odbc/odbcinst.ini | sudo tee -a /etc/odbcinst.ini
 cat t/odbc/vertica.ini | sudo tee -a /etc/vertica.ini
 
 # https://www.vertica.com/download/vertica/client-drivers/

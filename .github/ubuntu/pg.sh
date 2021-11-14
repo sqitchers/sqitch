@@ -2,12 +2,7 @@
 
 set -e
 
-PGVERSION=${PGVERSION:=$1}
-if [[ -z "$PGVERSION" ]]; then
-    echo "Usage: $0 \$version"
-    exit 32
-fi
-
+PGVERSION=${PGVERSION:=${1:-14}}
 [[ $PGVERSION =~ ^[0-9]$ ]] && PGVERSION+=.0
 
 curl -O https://salsa.debian.org/postgresql/postgresql-common/-/raw/master/pgdg/apt.postgresql.org.sh

@@ -6,8 +6,10 @@ version=21.3.0.0.0
 icdr=213000
 
 # Install bsdtar, required to get --strip-components for a zip file.
-sudo apt-get update -qq
-sudo apt-get install -qq libarchive-tools
+if [ -z "$SKIP_DEPENDS" ]; then
+    sudo apt-get update -qq
+    sudo env DEBIAN_FRONTEND=noninteractive apt-get install -qq libarchive-tools
+fi
 
 # Download Instant Client.
 # https://www.oracle.com/database/technologies/instant-client/downloads.html
@@ -28,5 +30,9 @@ fi
 
 if [[ ! -z "$GITHUB_ENV" ]]; then
     echo "ORACLE_HOME=/opt/instantclient" >> $GITHUB_ENV
-    echo "LD_LIBRARY_PATH=/opt/instantclient" >> $GITHUB_ENV
+    if [[ -z "$LD_LIBRARY_PATH" ]]; then
+        echo "LD_LIBRARY_PATH=/opt/instantclient" >> $GITHUB_ENV
+    else
+        echo "LD_LIBRARY_PATH=/opt/instantclient:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+    fi
 fi

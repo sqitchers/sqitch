@@ -3,8 +3,11 @@
 set -e
 
 # Set up Snowflake.
-sudo apt-get update -qq
-sudo apt-get install -qq unixodbc-dev odbcinst unixodbc
+if [ -z "$SKIP_DEPENDS" ]; then
+    sudo apt-get update -qq
+    sudo env DEBIAN_FRONTEND=noninteractive apt-get install -qq unixodbc-dev odbcinst unixodbc
+    cat t/odbc/odbcinst.ini | sudo tee -a /etc/odbcinst.ini
+fi
 
 # https://docs.snowflake.net/manuals/release-notes/client-change-log-snowsql.html
 # https://sfc-repo.snowflakecomputing.com/index.html
@@ -13,7 +16,6 @@ curl -sSLo snowdbc.tgz https://sfc-repo.snowflakecomputing.com/odbc/linux/2.24.2
 
 # Install and configure ODBC.
 mkdir -p /opt/snowflake
-cat t/odbc/odbcinst.ini | sudo tee -a /etc/odbcinst.ini
 sudo tar --strip-components 1 -C /opt/snowflake -xzf snowdbc.tgz
 sudo mv /opt/snowflake/ErrorMessages/en-US /opt/snowflake/lib/
 

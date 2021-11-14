@@ -2,13 +2,7 @@
 
 set -e
 
-DIR=$(pwd)
-
-SQLITE=${SQLITE:=$1}
-if [[ -z "$SQLITE" ]]; then
-    echo "Usage: $0 \$version"
-    exit 32
-fi
+SQLITE=${SQLITE:=${1:-3.36.0}}
 
 # Convert to the SQLITE_VERSION_NUMBER format https://sqlite.org/c3ref/c_source_id.html
 SQLITE=$(perl -e 'my @v = split /[.]/, shift; printf "%d%02d%02d%02d\n", @v[0..3]' $SQLITE)
@@ -33,8 +27,8 @@ fi
 
 # Download, compile, and install SQLite.
 curl -o sqlite.zip https://sqlite.org/$YEAR/sqlite-amalgamation-$SQLITE.zip
-unzip -j sqlite.zip -d sqlite
-cd sqlite
+unzip -j sqlite.zip -d /opt/sqlite
+cd /opt/sqlite
 # Build the CLI.
 gcc shell.c sqlite3.c -lpthread -ldl -o sqlite3
 # Build the shared library
@@ -47,13 +41,17 @@ URL=https://cpan.metacpan.org/authors/id/${DIST:0:1}/${DIST:0:2}/$DIST
 curl -o dbd.tar.gz $URL
 tar zxvf dbd.tar.gz --strip-components 1
 perl -i -pe 's/^if\s*\(\s*0\s*\)\s\{/if (1) {/' Makefile.PL
-perl Makefile.PL SQLITE_INC=$DIR/sqlite SQLITE_LIB=$DIR/sqlite
+perl Makefile.PL SQLITE_INC=/opt/sqlite SQLITE_LIB=/opt/sqlite
 make && make install
 
 if [[ ! -z "$GITHUB_PATH" ]]; then
-    echo "$DIR/sqlite" >> $GITHUB_PATH
+    echo "/opt/sqlite" >> $GITHUB_PATH
 fi
 
 if [[ ! -z "$GITHUB_ENV" ]]; then
-    echo "LD_LIBRARY_PATH=$DIR/sqlite" >> $GITHUB_ENV
+    if [[ -z "$LD_LIBRARY_PATH" ]]; then
+        echo "LD_LIBRARY_PATH=/opt/sqlite" >> $GITHUB_ENV
+    else
+        echo "LD_LIBRARY_PATH=/opt/sqlite:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+    fi
 fi

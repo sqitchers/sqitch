@@ -1,0 +1,102 @@
+# This workflow creates the services and installs the clients in order to run
+# coverage tests. Each engine must be accessible for a complete coverage report.
+# It runs for pushes and pull requests on the main and develop branches.
+name: 📈 Coverage
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+jobs:
+  Snowflake:
+    name: 📈 Coverage
+    runs-on: ubuntu-latest
+    services:
+      exasol:
+        image: exasol/docker-db:latest
+        ports: [ 8563 ]
+        options: --privileged
+      firebird:
+        image: jacobalberty/firebird:latest
+        ports: [ 3050 ]
+        env:
+          ISC_PASSWORD: nix
+          FIREBIRD_DATABASE: sqitchtest.db
+      mysql:
+        image: mysql:latest
+        env: { MYSQL_ALLOW_EMPTY_PASSWORD: yes }
+        ports: [ 3306 ]
+        options: --health-cmd="mysqladmin ping" --health-interval=5s --health-timeout=2s --health-retries=3
+      oracle:
+        image: gvenzl/oracle-xe:latest
+        ports: [ 1521 ]
+        env:
+          ORACLE_PASSWORD: oracle
+          APP_USER: sqitchtest
+          APP_USER_PASSWORD: sqitchtest
+        options: >-
+          --health-cmd healthcheck.sh
+          --health-interval 20s
+          --health-timeout 10s
+          --health-retries 10
+      vertica:
+        image: vertica/vertica-ce:latest
+        ports: [ 5433 ]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Clients
+        env:
+          SKIP_DEPENDS: true
+        run: |
+          .github/ubuntu/all-apt-prereqs.sh
+          .github/ubuntu/exasol.sh
+          .github/ubuntu/firebird.sh
+          .github/ubuntu/mysql.sh
+          .github/ubuntu/oracle.sh
+          .github/ubuntu/pg.sh
+          .github/ubuntu/snowflake.sh
+          .github/ubuntu/vertica.sh
+      - name: Setup Perl
+        id: perl
+        uses: shogo82148/actions-setup-perl@v1
+        with: { perl-version: latest }
+      - name: Cache CPAN Modules
+        uses: actions/cache@v2
+        with:
+          path: local
+          key: perl-${{ steps.perl.outputs.perl-hash }}
+      - name: Download cpanfile
+        uses: carlosperate/download-file-action@v1.0.3
+        with:
+          file-url: https://fastapi.metacpan.org/source/DWHEELER/App-Sqitch-v1.1.0/dist/cpanfile
+      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends --cpanfile cpanfile
+      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends DBI DBD::ODBC DBD::Firebird DBD::Oracle DBD::mysql DBD::Pg Devel::Cover Devel::Cover::Report::Coveralls Algorithm::Backoff::Exponential
+      - name: Install SQLite
+        env: { PERL5LIB: "${{ github.workspace }}/local/lib/perl5" }
+        run: .github/ubuntu/sqlite.sh
+      - name: Run Tests
+        env:
+          PERL5LIB: "${{ github.workspace }}/local/lib/perl5"
+          HARNESS_PERL_SWITCHES: -MDevel::Cover=-ignore,^(?:x?t|inc|bin|local)/
+          LIVE_EXASOL_REQUIRED: true
+          SQITCH_TEST_EXASOL_URI: db:exasol://sys:exasol@127.0.0.1:${{ job.services.exasol.ports[8563] }}/?Driver=Exasol;SSLCertificate=SSL_VERIFY_NONE
+          LIVE_FIREBIRD_REQUIRED: true
+          SQITCH_TEST_FIREBIRD_URI: db:firebird://sysdba:nix@127.0.0.1:${{ job.services.firebird.ports[3050] }}//firebird/data/sqitchtest.db
+          LIVE_MYSQL_REQUIRED: true
+          SQITCH_TEST_MYSQL_URI: "db:mysql://root@127.0.0.1:${{ job.services.mysql.ports[3306] }}/information_schema"
+          LIVE_ORACLE_REQUIRED: true
+          SQITCH_TEST_ALT_ORACLE_REGISTRY: dbsnmp
+          SQITCH_TEST_ORACLE_URI: db:oracle://system:oracle@127.0.0.1:${{ job.services.oracle.ports[1521] }}/XE
+          LIVE_PG_REQUIRED: true
+          SQITCH_TEST_PG_URI: db:pg://postgres@/postgres
+          LIVE_SNOWFLAKE_REQUIRED: true
+          SQITCH_TEST_SNOWFLAKE_URI: db:snowflake://${{ secrets.SNOWFLAKE_USERNAME }}:${{ secrets.SNOWFLAKE_PASSWORD }}@sra81677.us-east-1/sqitchtest?Driver=Snowflake;warehouse=compute_wh
+          LIVE_SQLITE_REQUIRED: true
+          LIVE_VERTICA_REQUIRED: true
+          SQITCH_TEST_VSQL_URI: db:vertica://dbadmin@localhost:${{ job.services.vertica.ports[5433] }}/VMart?Driver=Vertica
+        run: prove -lrj4 t
+      - name: Report Coverage
+        env:
+          PERL5LIB: "${{ github.workspace }}/local/lib/perl5"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: local/bin/cover -report coveralls
