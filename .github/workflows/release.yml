@@ -21,7 +21,7 @@ jobs:
         path: local
         key: perl-${{ steps.perl.outputs.perl-hash }}
     - name: Install Prereqs
-      run |
+      run: |
         sudo apt-get update -qq
         sudo env DEBIAN_FRONTEND=noninteractive apt-get install -qq  libicu-dev gettext aspell-en software-properties-common
     - name: Install Dist::Zilla
