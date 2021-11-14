@@ -15,3 +15,5 @@
 .build/
 *.mo
 .al
+/latest_changes.md
+/local/

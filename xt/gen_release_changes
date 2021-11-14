@@ -1,0 +1,30 @@
+#!/usr/bin/env perl -w
+
+# This script is used by .github/workflow/release.yml to generate a list of
+# changes to apply to a release on GitHub. The latest_changes.md file contains
+# the changes.
+
+open my $in, '<:raw', 'Changes' or die "Cannot open Changes: $!\n";
+open my $out, '>:raw', 'latest_changes.md' or die "Cannot open latest_changes.md: $!\n";
+my $dv;
+my $version_re = qr/^(\d+[.]\d+[.]\d+)\b/;
+while (<$in>) {
+    if (/$version_re/) {
+        $dv = $1;
+        last;
+    }
+}
+
+print {$out} "Changes for v$dv\n";
+while (<$in>) {
+    last if /$version_re/;
+    chomp;
+    if (s/^\s+-/-  /) {
+        print {$out} "\n";
+    } else {
+        s/^\s+/ /;
+    }
+    print {$out} $_;
+}
+
+print {$out} "\n";
