@@ -23,6 +23,7 @@ jobs:
     - name: Install Dist::Zilla
       run: cpm install --verbose --show-build-log-on-failure --no-test Dist::Zilla
     - name: Install Build Dependencies
+      env: { PERL5LIB: "${{ github.workspace }}/local/lib/perl5" }
       run: local/bin/dzil authordeps | xargs cpm install --verbose --show-build-log-on-failure --no-test
     - name: Prepare PAUSE
       env:
@@ -33,8 +34,9 @@ jobs:
         echo "password $CPAN_PASSWORD" >> .pause      
     - name: Build and Release on CPAN
       id: cpan
+      env: { PERL5LIB: "${{ github.workspace }}/local/lib/perl5" }
       run: |
-        dzil build
+        local/bin/dzil build
         echo "::set-output name=tarball::$( ls App-Sqitch-*.tar.gz )"
     - name: Generate Release Changes
       run: xt/gen_release_changes
