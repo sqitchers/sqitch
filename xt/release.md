@@ -121,7 +121,7 @@ then make the updates.
 
     ``` sh
     git checkout main
-    perl -i -pe "s/(VERSION=).+/\$1=$VERSION/"
+    perl -i -pe "s/^(VERSION)=.+/\$1=$VERSION/" build
     ```
 
 *   Edit the `README.md` to add the new version to the list of tags. It should
@@ -168,7 +168,7 @@ Update the Sqitch Homebrew tap with the new version.
 
     ``` sh
     git commit -am "Upgrade to v$VERSION"
-    git tag v1.2.0 -sm "Tag v$VERSION"
+    git tag v$VERSION -sm "Tag v$VERSION"
     git push
     git push --tags
     ```
