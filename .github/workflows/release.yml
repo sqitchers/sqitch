@@ -38,7 +38,9 @@ jobs:
         echo "password $CPAN_PASSWORD" >> .pause
     - name: Build and Release on CPAN
       id: cpan
-      env: { PERL5LIB: "${{ github.workspace }}/local/lib/perl5" }
+      env:
+        PERL5LIB: "${{ github.workspace }}/local/lib/perl5"
+        DZIL_CONFIRMRELEASE_DEFAULT: "yes"
       run: |
         local/bin/dzil release
         echo "::set-output name=tarball::$( ls App-Sqitch-*.tar.gz )"
