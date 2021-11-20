@@ -1,7 +1,7 @@
 # This workflow tests Sqitch's basic functionality (no database testing) on all
 # supported versions of Perl on Ubuntu, macOS, and Windows. It runs for pushes
 # and pull requests on the main and develop branches.
-name: 🐪 Perl
+name: 🧅 Perl
 on:
   push:
     branches: [main, develop]
@@ -16,7 +16,7 @@ jobs:
         exclude:
           - { os: [🪟, windows], perl: '5.12' } # https://github.com/shogo82148/actions-setup-perl/issues/876
           - { os: [🪟, windows], perl: '5.14' } # https://github.com/shogo82148/actions-setup-perl/issues/881
-    name: 🐪 Perl ${{ matrix.perl }} on ${{ matrix.os[0] }} ${{ matrix.os[1] }}
+    name: 🧅 Perl ${{ matrix.perl }} on ${{ matrix.os[0] }} ${{ matrix.os[1] }}
     runs-on: ${{ matrix.os[1] }}-latest
     steps:
       - uses: actions/checkout@v2

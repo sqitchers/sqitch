@@ -2,12 +2,12 @@
 
 # This script reads in the Sqitch META.json file and generates a dependency
 # report. The idea is to review the build-time dependency list to ensure that
-# they are well and trully build-time-only. Also, check the runtime list to
-# ensure that they are runtime-only. And finally, review the overalpping list
+# they are well and truly build-time-only. Also, check the runtime list to
+# ensure that they are runtime-only. And finally, review the overlapping list
 # to ensure that all of the items there are used at runtime. If it all checks
 # out and looks reasonable, copy the list of build-time-only dependencies into
 # the __DATA__ section of inc/Menlo/Sqitch.pm. This allows the `./Build
-# bundle` command to remove any build-only dependencies frozm the bundle.
+# bundle` command to remove any build-only dependencies from the bundle.
 
 package App::Sqitch::PhaseReporter;
 our $VERSION = '0.01';

@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-1.1.1
+1.2.0  2021-11-20T22:45:00Z
      - Fixed partitioned search for deployed changes on Oracle and Exasol to
        correctly support plans with more than 250 changes. Thanks to @Nicqu
        for the report (#521).

@@ -1,10 +1,10 @@
-App/Sqitch version v1.1.1
+App/Sqitch version v1.2.0
 =========================
 
 | Release           | Coverage          | Database                             ||
 |-------------------|-------------------|-------------------|-------------------|
 | [![CPAN]][📚]     | [![OSes]][💿]     | [![Exasol]][☀️]    | [![Oracle]][🔮]   |
-| [![Docker]][🐳]   | [![Perl]][🐪]     | [![Firebird]][🔥] | [![Snowflake]][❄️] |
+| [![Docker]][🐳]   | [![Perl]][🧅]     | [![Firebird]][🔥] | [![Snowflake]][❄️] |
 | [![Homebrew]][🍺] | [![Coverage]][📈] | [![MySQL]][🐬]    | [![SQLite]][💡]   |
 | [![Debian]][🍥]   |                   | [![Postgres]][🐘] | [![Vertica]][🔺]  |
 
@@ -128,7 +128,7 @@ Linux distributions and Windows, see the [Installation documentation].
 License
 -------
 
-Copyright © 2012-2021 iovation Inc.
+Copyright (c) 2012-2021 iovation Inc., David E. Wheeler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -159,7 +159,7 @@ SOFTWARE.
   [Docker]:    https://img.shields.io/docker/v/sqitch/sqitch?label=%F0%9F%90%B3%20Docker&sort=semver
   [🐳]:        https://hub.docker.com/r/sqitch/sqitch "Latest version on Docker Hub"
   [Perl]:      https://github.com/sqitchers/sqitch/actions/workflows/perl.yml/badge.svg?branch=develop
-  [🐪]:        https://github.com/sqitchers/sqitch/actions/workflows/perl.yml "Tested with Perl 5.12–5.34"
+  [🧅]:        https://github.com/sqitchers/sqitch/actions/workflows/perl.yml "Tested with Perl 5.12–5.34"
   [Firebird]:  https://github.com/sqitchers/sqitch/actions/workflows/firebird.yml/badge.svg?branch=develop
   [🔥]:        https://github.com/sqitchers/sqitch/actions/workflows/firebird.yml "Tested with Firebird 2.5, 3, and 4"
   [Snowflake]: https://github.com/sqitchers/sqitch/actions/workflows/snowflake.yml/badge.svg?branch=develop
