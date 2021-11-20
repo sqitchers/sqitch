@@ -34,8 +34,8 @@ jobs:
         CPAN_USERNAME: ${{ secrets.CPAN_USERNAME }}
         CPAN_PASSWORD: ${{ secrets.CPAN_PASSWORD }}
       run: |
-        echo "user $CPAN_USERNAME" > .pause
-        echo "password $CPAN_PASSWORD" >> .pause
+        echo "user $CPAN_USERNAME" > ~/.pause
+        echo "password $CPAN_PASSWORD" >> ~/.pause
     - name: Build and Release on CPAN
       id: cpan
       env:
