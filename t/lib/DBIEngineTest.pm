@@ -6,7 +6,7 @@ use utf8;
 use Try::Tiny;
 use Test::More;
 use Test::Exception;
-use Time::HiRes qw(sleep);
+use Time::HiRes qw(sleep tv_interval gettimeofday);
 use Path::Class 0.33 qw(file dir);
 use Digest::SHA qw(sha1_hex);
 use Locale::TextDomain qw(App-Sqitch);
@@ -28,7 +28,7 @@ sub run {
     my $mock_change = Test::MockModule->new('App::Sqitch::Plan::Change');
     my @lines = grep { $_ } file('README.md')->slurp(
         chomp  => 1,
-        iomode => '<:encoding(UTF-8)'
+        iomode => '<:raw'
     );
     # Each change should retain its own hash.
     my $orig_deploy_hash;
@@ -56,6 +56,9 @@ sub run {
         change_offset_from_id
         change_id_offset_from_id
         load_change
+        lock_destination
+        try_lock
+        wait_lock
     );
 
     subtest 'live database' => sub {
@@ -953,9 +956,10 @@ sub run {
         is $engine->latest_change_id(3), $change->id,  'Should get "users" offset 3 from latest';
 
         $state = $engine->current_state;
-        # MySQL's group_concat() does not by default sort by row order, alas.
+        # MySQL's group_concat() and Oracle's collect() do not by default sort
+        # by row order, alas.
         $state->{tags} = [ sort @{ $state->{tags} } ]
-            if $class eq 'App::Sqitch::Engine::mysql';
+            if $class =~ /::(?:mysql|oracle)$/;
         is_deeply $state, {
             project         => 'engine',
             change_id       => $barney->id,
@@ -1711,6 +1715,63 @@ sub run {
         while (my $row = $sth->fetch) {
             is $row->[1], $row->[0],
                 'Change ID and script hash should be ' . substr $row->[0], 0, 6;
+        }
+
+        ######################################################################
+        # Test try_lock() and wait_lock().
+        if (my $sql = $p{lock_sql}) {
+            ok !$engine->dbh->selectcol_arrayref($sql->{is_locked})->[0],
+                'Should not be locked';
+            ok $engine->try_lock, 'Try lock';
+            ok $engine->dbh->selectcol_arrayref($sql->{is_locked})->[0],
+                'Should be locked';
+            ok $engine->wait_lock, 'Should not have to wait for lock';
+
+            # Make a second connection to the database.
+            my $dbh = DBI->connect($engine->uri->dbi_dsn, $engine->username, $engine->password, {
+                PrintError        => 0,
+                RaiseError        => 1,
+                AutoCommit        => 1,
+            });
+            ok !$dbh->selectcol_arrayref($sql->{try_lock})->[0],
+                'Should fail to get same lock in second connection';
+
+            lives_ok { $engine->dbh->do($sql->{free_lock}) } 'Free the lock';
+            # Wait for the free to complete if frees are async.
+            if (my $wait = $sql->{async_free}) {
+                while ($wait) {
+                    $wait = $engine->dbh->selectcol_arrayref($sql->{free_lock})->[0];
+                }
+            }
+
+            ok !$engine->dbh->selectcol_arrayref($sql->{is_locked})->[0],
+                'Should not be locked';
+            ok $dbh->selectcol_arrayref($sql->{try_lock})->[0],
+                'Should now get the lock in second connection';
+            ok $engine->dbh->selectcol_arrayref($sql->{is_locked})->[0],
+                'Should be locked';
+            ok !$engine->try_lock, 'Try lock should now return false';
+
+            # Make sure that wait_lock waits.
+            my $secs = $sql->{wait_time} || 0.005;
+            $engine->lock_timeout($secs);
+            my $time = [gettimeofday];
+            ok !$engine->wait_lock, 'Should wait and fail to get the lock';
+            cmp_ok tv_interval($time), '>=', $secs, 'Should have waited for the lock';
+            lives_ok { $dbh->do($sql->{free_lock}) } 'Free the second lock';
+
+            # Wait for the free to complete if frees are async.
+            if (my $wait = $sql->{async_free}) {
+                while ($wait) {
+                    $wait = $engine->dbh->selectcol_arrayref($sql->{free_lock})->[0];
+                }
+            }
+
+            # Now wait lock should acquire the lock.
+            ok $engine->wait_lock, 'Should no longer wait for lock';
+            ok $engine->dbh->selectcol_arrayref($sql->{is_locked})->[0],
+                'Should be locked';
+            lives_ok { $dbh->do($sql->{free_lock}) } 'Free the lock one last time';
         }
 
         ######################################################################

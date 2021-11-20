@@ -1112,10 +1112,13 @@ is_deeply $get_all_names->( $plan->search_changes( offset => 2, limit => 1 ) ),
     [qw(this/rocks)], 'Search with offset 2, limit 1 should work';
 
 is_deeply $get_all_names->( $plan->search_changes( offset => 3, direction => 'desc' ) ),
-    [qw(hey)], 'Search with offset 3 and dierction "desc" should work';
+    [qw(hey)], 'Search with offset 3 and direction "desc" should work';
 
 is_deeply $get_all_names->( $plan->search_changes( offset => 2, limit => 1, direction => 'desc' ) ),
-    [qw(you)], 'Search with offset 2, limit 1, dierction "desc" should work';
+    [qw(you)], 'Search with offset 2, limit 1, direction "desc" should work';
+
+is_deeply $get_all_names->( $plan->search_changes( limit => 3, direction => 'desc' ) ),
+    [qw(hey-there this/rocks you)], 'Search with limit 3, direction "desc" should work';
 
 ##############################################################################
 # Test writing the plan.

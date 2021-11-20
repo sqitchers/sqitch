@@ -1,0 +1,66 @@
+# This workflow tests Sqitch's Oracle engine on recent supported versions of
+# Oracle. It runs for pushes and pull requests on the `main`, `develop`,
+# `**oracle**`, and `**engine**` branches.
+name: 🔮 Oracle
+on:
+  push:
+    branches: [main, develop, "**engine**", "**oracle**" ]
+  pull_request:
+    branches: [main, develop, "**engine**", "**oracle**" ]
+jobs:
+  Oracle:
+    strategy:
+      matrix:
+        include:
+          # In 11g, APP_USER "sqitchtest" is created in XE, but in more recent
+          # versions it is created in the XEPDB1 pluggable database, which we
+          # cannot connect to using a URI. So we use an existing user in those
+          # versions. Uncomment code in skip_unless in t/oracle.t to find other
+          # user schemas that will work.
+          # * Image Source:      https://github.com/gvenzl/oci-oracle-xe/
+          # * Image Issue:       https://github.com/gvenzl/oci-oracle-xe/issues/46
+          # * DBD::Oracle Issue: https://github.com/perl5-dbi/DBD-Oracle/issues/131
+          - { version: 21c, tag: 21,      service: XE, altUser: dbsnmp    }
+          - { version: 18c, tag: 18-slim, service: XE, altUser: gsmuser    }
+          - { version: 11g, tag: 11-slim, service: XE, altuser: sqitchtest }
+    name: "🔮 Oracle ${{ matrix.version }}"
+    runs-on: ubuntu-latest
+    services:
+      oracle:
+        image: gvenzl/oracle-xe:${{ matrix.tag }}
+        ports: [ 1521 ]
+        env:
+          ORACLE_PASSWORD: oracle
+          APP_USER: sqitchtest
+          APP_USER_PASSWORD: sqitchtest
+        options: >-
+          --health-cmd healthcheck.sh
+          --health-interval 20s
+          --health-timeout 10s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Clients
+        run: .github/ubuntu/oracle.sh
+      - name: Setup Perl
+        id: perl
+        uses: shogo82148/actions-setup-perl@v1
+        with: { perl-version: latest }
+      - name: Cache CPAN Modules
+        uses: actions/cache@v2
+        with:
+          path: local
+          key: perl-${{ steps.perl.outputs.perl-hash }}
+      - name: Download cpanfile
+        uses: carlosperate/download-file-action@v1.0.3
+        with:
+          file-url: https://fastapi.metacpan.org/source/DWHEELER/App-Sqitch-v1.1.0/dist/cpanfile
+      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends --cpanfile cpanfile
+      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends DBD::Oracle
+      - name: prove
+        env:
+          PERL5LIB: "${{ github.workspace }}/local/lib/perl5"
+          LIVE_ORACLE_REQUIRED: true
+          SQITCH_TEST_ALT_ORACLE_REGISTRY: "${{ matrix.altUser }}"
+          SQITCH_TEST_ORACLE_URI: db:oracle://system:oracle@127.0.0.1:${{ job.services.oracle.ports[1521] }}/${{ matrix.service }}
+        run: prove -lvr t/oracle.t

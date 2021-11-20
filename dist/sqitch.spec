@@ -1,5 +1,5 @@
 Name:           sqitch
-Version:        1.1.0
+Version:        1.2.0
 Release:        1%{?dist}
 Summary:        Sensible database change management
 License:        MIT
@@ -9,6 +9,7 @@ Source0:        https://www.cpan.org/modules/by-module/App/App-Sqitch-%{version}
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch:      noarch
 BuildRequires:  perl >= 1:v5.10.0
+BuildRequires:  perl(Algorithm::Backoff::Exponential) >= 0.006
 BuildRequires:  perl(Capture::Tiny) >= 0.12
 BuildRequires:  perl(Carp)
 BuildRequires:  perl(Class::XSAccessor) >= 1.18
@@ -83,6 +84,7 @@ BuildRequires:  perl(URI::db) >= 0.19
 BuildRequires:  perl(User::pwent)
 BuildRequires:  perl(utf8)
 BuildRequires:  perl(warnings)
+Requires:       perl(Algorithm::Backoff::Exponential) >= 0.006
 Requires:       perl(Class::XSAccessor) >= 1.18
 Requires:       perl(Clone)
 Requires:       perl(Config)
@@ -306,6 +308,10 @@ also be installed.
 # No additional files required.
 
 %changelog
+* Sat Nov 20 2021 David E. Wheeler <david@justatheory.com> 1.2.0-1
+- Upgrade to v1.3.0.
+- Added the Algorithm::Backoff::Exponential requirement.
+
 * Sun May 17 2020 David E. Wheeler <david.wheeler@iovation.com> 1.1.0-1
 - Upgrade to v1.1.0.
 - Added the Test::MockObject::Extends build requirement.

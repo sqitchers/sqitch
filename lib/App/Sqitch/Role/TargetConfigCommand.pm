@@ -157,7 +157,10 @@ sub config_target {
             if ($name !~ /:/ && !$config->get(key => "target.$name.uri")) {
                 # No URI. Give it one.
                 my $engine = $p{engine} || $props->{engine}
-                          || $config->get(key => 'core.engine');
+                    || $config->get(key => 'core.engine')
+                    || hurl $self->command => __(
+                        'No engine specified; specify via target or core.engine'
+                    );
                 push @params => (uri => URI::db->new("db:$engine:"));
             }
         }
@@ -280,7 +283,8 @@ sub write_plan {
             $uri     ||= $conf_plan->uri;
         } else {
             hurl $self->command => __x(
-                'Cannot write a plan file without a project name'
+                'Missing %project pragma in {file}',
+                file => $file,
             ) unless $project;
         }
     }
@@ -526,7 +530,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2020 iovation Inc.
+Copyright (c) 2012-2021 iovation Inc., David E. Wheeler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

@@ -27,6 +27,7 @@ can_ok $CLASS, qw(
     to_change
     modified
     log_only
+    lock_timeout
     execute
     variables
     does
@@ -40,6 +41,7 @@ is_deeply [$CLASS->options], [qw(
     to-change|to|change=s
     set|s=s%
     log-only
+    lock-timeout=i
     modified|m
     y
     plan-file|f=s
@@ -112,9 +114,15 @@ CONFIG: {
     }, 'Should have no_prompt true, prompt_accept false';
 
     # But option should override.
-    is_deeply $CLASS->configure($config, {y => 0}), {
+    is_deeply $CLASS->configure($config, {
+        y            => 0,
+        log_only     => 1,
+        lock_timeout => 30,
+    }), {
         no_prompt     => 0,
         prompt_accept => 0,
+        log_only      => 1,
+        lock_timeout  => 30,
         _params       => [],
         _cx           => [],
     }, 'Should have no_prompt false again';
@@ -256,6 +264,8 @@ $orig_method = $mock_cmd->original('parse_args');
 ok $revert->execute('@alpha'), 'Execute to "@alpha"';
 ok $target->engine->no_prompt, 'Engine should be no_prompt';
 ok !$target->engine->log_only, 'Engine should not be log_only';
+is $target->engine->lock_timeout, App::Sqitch::Engine::default_lock_timeout(),
+    'The engine should have the default lock_timeout';
 is_deeply \@args, ['@alpha'],
     '"@alpha" should be passed to the engine';
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
@@ -298,17 +308,19 @@ is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
 # Now specify options.
 isa_ok $revert = $CLASS->new(
-    sqitch    => $sqitch,
-    target    => 'db:sqlite:welp',
-    to_change => 'foo',
-    log_only  => 1,
-    variables => { foo => 'bar', one => 1 },
+    sqitch       => $sqitch,
+    target       => 'db:sqlite:welp',
+    to_change    => 'foo',
+    log_only     => 1,
+    lock_timeout => 30,
+    variables    => { foo => 'bar', one => 1 },
 ), $CLASS, 'Object with to and variables';
 
 @args = ();
 ok $revert->execute, 'Execute again';
 ok !$target->engine->no_prompt, 'Engine should not be no_prompt';
 ok $target->engine->log_only, 'Engine should be log_only';
+is $target->engine->lock_timeout, 30, 'The lock timeout should be set to 30';
 is_deeply \@args, ['foo'],
     '"foo" and 1 should be passed to the engine';
 is_deeply {@vars}, { foo => 'bar', one => 1 },
@@ -320,6 +332,7 @@ is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 ok $revert->execute('db:sqlite:lol', '@alpha'), 'Execute with options and args';
 ok !$target->engine->no_prompt, 'Engine should not be no_prompt';
 ok $target->engine->log_only, 'Engine should be log_only';
+is $target->engine->lock_timeout, 30, 'The lock timeout should be set to 30';
 is_deeply \@args, ['foo'],
     '"foo" and 1 should be passed to the engine';
 is_deeply {@vars}, { foo => 'bar', one => 1 },

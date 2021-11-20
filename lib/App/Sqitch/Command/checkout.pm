@@ -40,6 +40,9 @@ sub execute {
         no_changes => 1,
     );
 
+    # Branch required.
+    $self->usage unless length $branch;
+
     # Warn on multiple targets.
     my $target = shift @{ $targets };
     $self->warn(__x(
@@ -55,6 +58,7 @@ sub execute {
     $engine->no_prompt( $self->no_prompt );
     $engine->prompt_accept( $self->prompt_accept );
     $engine->log_only( $self->log_only );
+    $engine->lock_timeout( $self->lock_timeout );
 
     # What branch are we on?
     my $current_branch = $sqitch->probe($git, qw(rev-parse --abbrev-ref HEAD));
@@ -75,8 +79,17 @@ sub execute {
         sqitch => $sqitch,
         target => $target,
       )->parse(
+        # Git assumes a relative file name is relative to the repo root, even
+        # when you're in a subdirectory. So we have to prepend the currrent
+        # directory path ./ to convince it to read the file relative to the
+        # current directory. See #560 and
+        # https://git-scm.com/docs/gitrevisions#Documentation/gitrevisions.txt-emltrevgtltpathgtemegemHEADREADMEememmasterREADMEem
+        # for details.
         # XXX Handle missing file/no contents.
-        scalar $sqitch->capture( $git, 'show', "$branch:" . $target->plan_file)
+        scalar $sqitch->capture(
+            $git, 'show', "$branch:"
+            . File::Spec->catfile(File::Spec->curdir, $target->plan_file)
+        )
     );
 
     # Find the last change the plans have in common.
@@ -186,7 +199,7 @@ The Sqitch command-line client.
 
 =head1 License
 
-Copyright (c) 2012-2020 iovation Inc.
+Copyright (c) 2012-2021 iovation Inc., David E. Wheeler
 
 Copyright (c) 2012-2013 Ronan Dunklau
 

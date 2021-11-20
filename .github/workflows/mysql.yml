@@ -1,0 +1,61 @@
+# This workflow tests Sqitch's MySQL engine on all supported versions of MySQL.
+# It runs for pushes and pull requests on the `main`, `develop`, `**mysql**`,
+# `**maria**`, and `**engine**` branches.
+name: 🐬 MySQL
+on:
+  push:
+    branches: [main, develop, "**engine**", "**mysql**", "**maria**" ]
+  pull_request:
+    branches: [main, develop, "**engine**", "**mysql**", "**maria**" ]
+jobs:
+  MySQL:
+    strategy:
+      matrix:
+        include:
+          - { version: '8.0',  icon: 🐬, name: MySQL,   image: mysql   }
+          - { version: '5.7',  icon: 🐬, name: MySQL,   image: mysql   }
+          - { version: '5.6',  icon: 🐬, name: MySQL,   image: mysql   }
+          - { version: '5.5',  icon: 🐬, name: MySQL,   image: mysql   }
+          - { version: '10.6', icon: 🦭, name: MariaDB, image: mariadb }
+          - { version: '10.5', icon: 🦭, name: MariaDB, image: mariadb }
+          - { version: '10.4', icon: 🦭, name: MariaDB, image: mariadb }
+          - { version: '10.3', icon: 🦭, name: MariaDB, image: mariadb }
+          - { version: '10.2', icon: 🦭, name: MariaDB, image: mariadb }
+          - { version: '10.1', icon: 🦭, name: MariaDB, image: mariadb }
+          - { version: '10.0', icon: 🦭, name: MariaDB, image: mariadb }
+    name: ${{ matrix.icon }} ${{ matrix.name }} ${{ matrix.version }}
+    runs-on: ubuntu-latest
+    services:
+      # Run the MySQL service in a container we can connect to. Means that the
+      # CLI and libraries DBD::mysql use are static to the version on the runner
+      # machine.
+      mysql:
+        image: "${{ matrix.image }}:${{ matrix.version }}"
+        env: { MYSQL_ALLOW_EMPTY_PASSWORD: yes }
+        ports: [ 3306 ]
+        options: --health-cmd="mysqladmin ping" --health-interval=5s --health-timeout=2s --health-retries=3
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Clients
+        run: .github/ubuntu/mysql.sh
+      - name: Setup Perl
+        id: perl
+        uses: shogo82148/actions-setup-perl@v1
+        with: { perl-version: latest }
+      - name: Cache CPAN Modules
+        uses: actions/cache@v2
+        with:
+          path: local
+          key: perl-${{ steps.perl.outputs.perl-hash }}
+      - name: Download cpanfile
+        uses: carlosperate/download-file-action@v1.0.3
+        with:
+          file-url: https://fastapi.metacpan.org/source/DWHEELER/App-Sqitch-v1.1.0/dist/cpanfile
+      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends --cpanfile cpanfile
+      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends DBD::mysql
+      - name: prove
+        env:
+          PERL5LIB: "${{ github.workspace }}/local/lib/perl5"
+          LIVE_MYSQL_REQUIRED: true
+          SQITCH_TEST_MYSQL_URI: "db:mysql://root@127.0.0.1:${{ job.services.mysql.ports[3306] }}/information_schema"
+        run: prove -lvr t/mysql.t

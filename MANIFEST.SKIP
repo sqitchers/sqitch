@@ -3,7 +3,6 @@
 \bCVS\b
 ,v$
 \B\.git
-\B\.travis\.yml
 
 # Avoid Makemaker generated and utility files.
 \bMakefile$
@@ -38,7 +37,7 @@
 ^dist\.ini$
 ^MYMETA\.yml$
 ^MYMETA\.json$
+^latest_changes\.md$
 
 # Development tools.
 ^xt/
-^dev/

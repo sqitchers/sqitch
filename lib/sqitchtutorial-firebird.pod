@@ -44,7 +44,7 @@ source code repository. So let's do that with Git:
   > touch README.md
   > git add .
   > git commit -am 'Initialize project, add README.'
-  [master (root-commit) 761ffcd] Initialize project, add README.
+  [main (root-commit) 761ffcd] Initialize project, add README.
    1 files changed, 39 insertions(+), 0 deletions(-)
    create mode 100644 README.md
 
@@ -138,7 +138,7 @@ Let's commit these changes and start creating the database changes.
 
   > git add .
   > git commit -am 'Initialize Sqitch configuration.'
-  [master 2177ce4] Initialize Sqitch configuration.
+  [main 2177ce4] Initialize Sqitch configuration.
    2 files changed, 19 insertions(+), 0 deletions(-)
    create mode 100644 sqitch.conf
    create mode 100644 sqitch.plan
@@ -371,7 +371,7 @@ Cool. Now let's commit it.
 
   > git add .
   > git commit -m 'Add users table.'
-  [master ec72105] Add users table.
+  [main ec72105] Add users table.
    4 files changed, 24 insertions(+), 0 deletions(-)
    create mode 100644 deploy/users.sql
    create mode 100644 revert/users.sql
@@ -445,7 +445,7 @@ We'll see the L<C<rebase>|sqitch-rebase> command a bit later. In the meantime,
 let's commit the new configuration and and make some more changes!
 
   > git commit -am 'Set default target and always verify.'
-  [master cfc9fea] Set default target and always verify.
+  [main cfc9fea] Set default target and always verify.
    1 files changed, 8 insertions(+), 0 deletions(-)
 
 =head1 Deploy with Dependency
@@ -594,7 +594,7 @@ Okay, let's commit and deploy again:
 
   > git add .
   > git commit -am 'Add flips table.'
-  [master 09c636c] Add flips table.
+  [main 09c636c] Add flips table.
    4 files changed, 24 insertions(+), 0 deletions(-)
    create mode 100644 deploy/flips.sql
    create mode 100644 revert/flips.sql
@@ -664,7 +664,7 @@ Looks good! Commit it.
 
   > git add .
   > git commit -m 'Add the userflips view.'
-  [master 28ffa63] Add the userflips view.
+  [main 28ffa63] Add the userflips view.
    4 files changed, 23 insertions(+), 0 deletions(-)
    create mode 100644 deploy/userflips.sql
    create mode 100644 revert/userflips.sql
@@ -679,7 +679,7 @@ release, let's tag it:
   > sqitch tag v1.0.0-dev1 -n 'Tag v1.0.0-dev1.'
   Tagged "userflips" with @v1.0.0-dev1
   > git commit -am 'Tag the database with v1.0.0-dev1.'
-  [master 696a891] Tag the database with v1.0.0-dev1.
+  [main 696a891] Tag the database with v1.0.0-dev1.
    1 files changed, 1 insertions(+), 0 deletions(-)
   > git tag v1.0.0-dev1 -am 'Tag v1.0.0-dev1'
 
@@ -808,14 +808,14 @@ Note the use of C<--show-tags> to show all the deployed tags. Now make it so:
    create mode 100644 revert/hashtags.sql
    create mode 100644 verify/hashtags.sql
 
-Good, we've finished this feature. Time to merge back into C<master>.
+Good, we've finished this feature. Time to merge back into C<main>.
 
 =head2 Emergency
 
 Let's do it:
 
-  > git checkout master
-  Switched to branch 'master'
+  > git checkout main
+  Switched to branch 'main'
   > git pull
   Updating 696a891..9af80a1
   Fast-forward
@@ -828,7 +828,7 @@ Let's do it:
    create mode 100644 revert/lists.sql
    create mode 100644 verify/lists.sql
 
-Hrm, that's interesting. Looks like someone made some changes to C<master>.
+Hrm, that's interesting. Looks like someone made some changes to C<main>.
 They added list support. Well, let's see what happens when we merge our
 changes.
 
@@ -841,38 +841,38 @@ Oh, a conflict in F<sqitch.plan>. Not too surprising, since both the merged
 C<lists> branch and our C<hashtags> branch added changes to the plan. Let's
 try a different approach.
 
-The truth is, we got lazy. Those changes when we pulled master from the origin
+The truth is, we got lazy. Those changes when we pulled main from the origin
 should have raised a red flag. It's considered a bad practice not to look at
-what's changed in C<master> before merging in a branch. What one I<should> do
+what's changed in C<main> before merging in a branch. What one I<should> do
 is either:
 
 =over
 
 =item *
 
-Rebase the F<hashtags> branch from master before merging. This "rewinds" the
-branch changes, pulls from C<master>, and then replays the changes back on top
+Rebase the F<hashtags> branch from main before merging. This "rewinds" the
+branch changes, pulls from C<main>, and then replays the changes back on top
 of the pulled changes.
 
 =item *
 
-Create a patch and apply I<that> to master. This is the sort of thing you
+Create a patch and apply I<that> to main. This is the sort of thing you
 might have to do if you're sending changes to another user, especially if the
 VCS is not Git.
 
 =back
 
-So let's restore things to how they were at master:
+So let's restore things to how they were at main:
 
   > git reset --hard HEAD
   HEAD is now at d5e7e86 Merge branch 'lists'
 
 That throws out our botched merge. Now let's go back to our branch and rebase
-it on C<master>:
+it on C<main>:
 
   > git checkout hashtags
   Switched to branch 'hashtags'
-  > git rebase master
+  > git rebase main
   First, rewinding head to replay your work on top of it...
   Applying: Add hashtags table.
   Using index info to reconstruct a base tree...
@@ -915,7 +915,7 @@ Now add the union merge driver to F<.gitattributes> for F<sqitch.plan>
 and rebase again:
 
   > echo sqitch.plan merge=union > .gitattributes
-  > git rebase master
+  > git rebase main
   First, rewinding head to replay your work on top of it...
   Applying: Add hashtags table.
   Using index info to reconstruct a base tree...
@@ -969,10 +969,10 @@ worthwhile to keep that change:
 
 =head2 Merges Mastered
 
-And now, finally, we can merge into C<master>:
+And now, finally, we can merge into C<main>:
 
-  > git checkout master
-  Switched to branch 'master'
+  > git checkout main
+  Switched to branch 'main'
   > git merge --no-ff hashtags -m "Merge branch 'hashtags'"
   Merge made by recursive.
    .gitattributes      |    1 +
@@ -1001,14 +1001,14 @@ And double-check our work:
   lists [flips] 2014-01-05T22:44:41Z Marge N. O’Vera <marge@example.com> # Adds table for storing lists.
   hashtags [flips] 2014-01-05T22:54:27Z Marge N. O’Vera <marge@example.com> # Adds table for storing hashtags.
 
-Much much better, a nice clean master now. And because it is now identical to
+Much much better, a nice clean main now. And because it is now identical to
 the "hashtags" branch, we can just carry on. Go ahead and tag it, bundle, and
 release:
 
   > sqitch tag v1.0.0-dev2 -n 'Tag v1.0.0-dev2.'
   Tagged "hashtags" with @v1.0.0-dev2
   > git commit -am 'Tag the database with v1.0.0-dev2.'
-  [master 7d07ee3] Tag the database with v1.0.0-dev2.
+  [main 7d07ee3] Tag the database with v1.0.0-dev2.
    1 file changed, 1 insertion(+)
   > git tag v1.0.0-dev2 -am 'Tag v1.0.0-dev2'
   > sqitch bundle --dest-dir flipr-1.0.0-dev2
@@ -1095,8 +1095,8 @@ point of fact, it has copied the files to stand in for the previous instance
 of the C<userflips> change, which we can see via C<git status>:
 
   > git status
-  # On branch master
-  # Your branch is ahead of 'origin/master' by 4 commits.
+  # On branch main
+  # Your branch is ahead of 'origin/main' by 4 commits.
   #   (use "git push" to publish your local commits)
   #
   # Changes not staged for commit:
@@ -1220,7 +1220,7 @@ Excellent. Let's go ahead and commit these changes:
   > rm -rf flipr-1.0.0-dev2
   > git add .
   > git commit -m 'Add the twitter column to the userflips view.'
-  [master f530359] Add the twitter column to the userflips view.
+  [main f530359] Add the twitter column to the userflips view.
    7 files changed, 32 insertions(+), 4 deletions(-)
    create mode 100644 deploy/userflips@v1.0.0-dev2.sql
    create mode 100644 revert/userflips@v1.0.0-dev2.sql
@@ -1243,7 +1243,7 @@ is planned to make managing idempotent reworkings even easier. Stay tuned.
 
 =head1 License
 
-Copyright (c) 2012-2020 iovation Inc.
+Copyright (c) 2012-2021 iovation Inc., David E. Wheeler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

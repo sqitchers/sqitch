@@ -126,7 +126,7 @@ Let's commit these changes and start creating the database changes.
 
   > git add .
   > git commit -am 'Initialize Sqitch configuration.'
-  [master 85e8d7c] Initialize Sqitch configuration.
+  [main 85e8d7c] Initialize Sqitch configuration.
    2 files changed, 19 insertions(+)
    create mode 100644 sqitch.conf
    create mode 100644 sqitch.plan
@@ -359,7 +359,7 @@ Cool. Now let's commit it.
 
   > git add .
   > git commit -m 'Add flipr schema.'
-  [master d812132] Add flipr schema.
+  [main d812132] Add flipr schema.
    4 files changed, 22 insertions(+)
    create mode 100644 deploy/appschema.sql
    create mode 100644 revert/appschema.sql
@@ -435,7 +435,7 @@ We'll see the L<C<rebase>|sqitch-rebase> command a bit later. In the meantime,
 let's commit the new configuration and and make some more changes!
 
   > git commit -am 'Set default deployment target and always verify.'
-  [master a6267d3] Set default deployment target and always verify.
+  [main a6267d3] Set default deployment target and always verify.
    1 file changed, 8 insertions(+)
 
 =head1 Deploy with Dependency
@@ -591,7 +591,7 @@ Okay, let's commit and deploy again:
 
   > git add .
   > git commit -am 'Add users table.'
-  [master d58ea2f] Add users table.
+  [main d58ea2f] Add users table.
    4 files changed, 31 insertions(+)
    create mode 100644 deploy/users.sql
    create mode 100644 revert/users.sql
@@ -765,7 +765,7 @@ the last deployed change. Looks good. Let's do the commit and re-deploy dance:
 
   > git add .
   > git commit -m 'Add `insert_user()` and `change_pass()`.'
-  [master c9b4d68] Add `insert_user()` and `change_pass()`.
+  [main c9b4d68] Add `insert_user()` and `change_pass()`.
    7 files changed, 65 insertions(+)
    create mode 100644 deploy/change_pass.sql
    create mode 100644 deploy/insert_user.sql
@@ -807,7 +807,7 @@ to have it go out with deployments tied to the release, let's tag it:
   > sqitch tag v1.0.0-dev1 -n 'Tag v1.0.0-dev1.'
   Tagged "change_pass" with @v1.0.0-dev1
   > git commit -am 'Tag the database with v1.0.0-dev1.'
-  [master 0acef3e] Tag the database with v1.0.0-dev1.
+  [main 0acef3e] Tag the database with v1.0.0-dev1.
    1 file changed, 1 insertion(+)
   > git tag v1.0.0-dev1 -am 'Tag v1.0.0-dev1'
 
@@ -1065,14 +1065,14 @@ should end up looking something like this:
   # 
   Nothing to deploy (up-to-date)
 
-Good, we've finished this feature. Time to merge back into C<master>.
+Good, we've finished this feature. Time to merge back into C<main>.
 
 =head2 Emergency
 
 Let's do it:
 
-  > git checkout master
-  Switched to branch 'master'
+  > git checkout main
+  Switched to branch 'main'
   > git pull
   Updating 0acef3e..d4cbd7d
   Fast-forward
@@ -1097,7 +1097,7 @@ Let's do it:
    create mode 100644 verify/insert_list.sql
    create mode 100644 verify/lists.sql
 
-Hrm, that's interesting. Looks like someone made some changes to C<master>.
+Hrm, that's interesting. Looks like someone made some changes to C<main>.
 They added list support. Well, let's see what happens when we merge our
 changes.
 
@@ -1110,38 +1110,38 @@ Oh, a conflict in F<sqitch.plan>. Not too surprising, since both the merged
 C<lists> branch and our C<flips> branch added changes to the plan. Let's try a
 different approach.
 
-The truth is, we got lazy. Those changes when we pulled master from the origin
+The truth is, we got lazy. Those changes when we pulled main from the origin
 should have raised a red flag. It's considered a bad practice not to look at
-what's changed in C<master> before merging in a branch. What one I<should> do
+what's changed in C<main> before merging in a branch. What one I<should> do
 is either:
 
 =over
 
 =item *
 
-Rebase the F<flips> branch from master before merging. This "rewinds" the
-branch changes, pulls from C<master>, and then replays the changes back on top
+Rebase the F<flips> branch from main before merging. This "rewinds" the
+branch changes, pulls from C<main>, and then replays the changes back on top
 of the pulled changes.
 
 =item *
 
-Create a patch and apply I<that> to master. This is the sort of thing you
+Create a patch and apply I<that> to main. This is the sort of thing you
 might have to do if you're sending changes to another user, especially if the
 VCS is not Git.
 
 =back
 
-So let's restore things to how they were at master:
+So let's restore things to how they were at main:
 
   > git reset --hard HEAD
   HEAD is now at ff60b9b Merge branch 'lists'
 
 That throws out our botched merge. Now let's go back to our branch and rebase
-it on C<master>:
+it on C<main>:
 
   > git checkout flips
   Switched to branch 'flips'
-  > git rebase master
+  > git rebase main
   First, rewinding head to replay your work on top of it...
   Applying: Add flips table.
   Using index info to reconstruct a base tree...
@@ -1184,7 +1184,7 @@ Now add the union merge driver to F<.gitattributes> for F<sqitch.plan>
 and rebase again:
 
   > echo sqitch.plan merge=union > .gitattributes
-  > git rebase master                            
+  > git rebase main                            
   First, rewinding head to replay your work on top of it...
   Applying: Add flips table.
   Using index info to reconstruct a base tree...
@@ -1260,10 +1260,10 @@ worthwhile to keep that change:
 
 =head2 Merges Mastered
 
-And now, finally, we can merge into C<master>:
+And now, finally, we can merge into C<main>:
 
-  > git checkout master
-  Switched to branch 'master'
+  > git checkout main
+  Switched to branch 'main'
   > git merge --no-ff flips
   Merge made by the 'recursive' strategy.
    .gitattributes         |  1 +
@@ -1309,14 +1309,14 @@ And double-check our work:
   insert_flip [flips appschema users] 2013-12-31T00:35:59Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a flip.
   delete_flip [flips appschema users] 2013-12-31T00:36:34Z Marge N. O’Vera <marge@example.com> # Creates a function to delete a flip.
 
-Much much better, a nice clean master now. And because it is now identical to
+Much much better, a nice clean main now. And because it is now identical to
 the "flips" branch, we can just carry on. Go ahead and tag it, bundle, and
 release:
 
   > sqitch tag v1.0.0-dev2 -n 'Tag v1.0.0-dev2.'
   Tagged "delete_flip" with @v1.0.0-dev2
   > git commit -am 'Tag the database with v1.0.0-dev2.'
-  [master 230603b] Tag the database with v1.0.0-dev2.
+  [main 230603b] Tag the database with v1.0.0-dev2.
    1 file changed, 1 insertion(+)
   > git tag v1.0.0-dev2 -am 'Tag v1.0.0-dev2'
   > sqitch bundle --dest-dir flipr-1.0.0-dev2
@@ -1454,7 +1454,7 @@ point of fact, it has copied the files to stand in for the previous instance
 of the C<insert_user> change, which we can see via C<git status>:
 
   > git status
-  # On branch master
+  # On branch main
   # Changes not staged for commit:
   #   (use "git add <file>..." to update what will be committed)
   #   (use "git checkout -- <file>..." to discard changes in working directory)
@@ -1636,7 +1636,7 @@ Excellent. Let's go ahead and commit these changes:
 
   > git add .
   > git commit -m 'Use pgcrypto to encrypt passwords.'
-  [master 4257ae6] Use pgcrypto to encrypt passwords.
+  [main 4257ae6] Use pgcrypto to encrypt passwords.
    13 files changed, 107 insertions(+), 9 deletions(-)
    create mode 100644 deploy/change_pass@v1.0.0-dev2.sql
    create mode 100644 deploy/insert_user@v1.0.0-dev2.sql
@@ -1666,7 +1666,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2020 iovation Inc.
+Copyright (c) 2012-2021 iovation Inc., David E. Wheeler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

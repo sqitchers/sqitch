@@ -263,6 +263,32 @@ sub begin_work {
     return $self;
 }
 
+# Override to try to acquire a lock on a constant number without waiting.
+sub try_lock {
+    shift->dbh->selectcol_arrayref(
+        'SELECT pg_try_advisory_lock(75474063)'
+    )->[0]
+}
+
+# Override to try to acquire a lock on a constant number, waiting for the lock
+# until timeout.
+sub wait_lock {
+    my $self = shift;
+    # Asynchronously request a lock with an indefinite wait.
+    my $dbh = $self->dbh;
+    $dbh->do(
+        'SELECT pg_advisory_lock(75474063)',
+        { pg_async => DBD::Pg::PG_ASYNC() },
+    );
+
+    # Use _timeout to periodically check for the result.
+    return 1 if $self->_timeout(sub { $dbh->pg_ready && $dbh->pg_result });
+
+    # Timed out, cancel the query and return false.
+    $dbh->pg_cancel;
+    return 0;
+}
+
 sub run_file {
     my ($self, $file) = @_;
     $self->_run('--file' => $file);
@@ -482,7 +508,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2020 iovation Inc.
+Copyright (c) 2012-2021 iovation Inc., David E. Wheeler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

@@ -1,9 +1,10 @@
 #!/usr/bin/perl -w
 
-# To test against a live Snowflake database, you must set the SNOWSQL_URI environment variable.
-# this is a stanard URI::db URI, and should look something like this:
+# To test against a live Snowflake database, you must set the
+# SQITCH_TEST_SNOWFLAKE_URI environment variable. this is a stanard URI::db URI,
+# and should look something like this:
 #
-#     export SNOWSQL_URI=db:snowflake://username:password@accountname/dbname?Driver=Snowflake;warehouse=warehouse
+#     export SQITCH_TEST_SNOWFLAKE_URI=db:snowflake://username:password@accountname/dbname?Driver=Snowflake;warehouse=warehouse
 #
 # Note that it must include the `?Driver=$driver` bit so that DBD::ODBC loads
 # the proper driver.
@@ -90,26 +91,28 @@ SNOWENV: {
     local $ENV{SNOWSQL_REGION} = 'Australia';
     local $ENV{SNOWSQL_WAREHOUSE} = 'madrigal';
     local $ENV{SNOWSQL_ACCOUNT} = 'egregious';
-    local $ENV{SNOWSQL_HOST} = 'test.snowflake.com';
+    local $ENV{SNOWSQL_HOST} = 'test.us-east-2.aws.snowflakecomputing.com';
     local $ENV{SNOWSQL_PORT} = 4242;
     local $ENV{SNOWSQL_DATABASE} = 'tryme';
 
     my $target = App::Sqitch::Target->new(sqitch => $sqitch, uri => URI->new($uri));
     my $snow = $CLASS->new( sqitch => $sqitch, target => $target );
-    is $snow->uri, 'db:snowflake://test.snowflake.com:4242/tryme',
+    is $snow->uri, 'db:snowflake://test.us-east-2.aws.snowflakecomputing.com:4242/tryme',
         'Should build URI from environment';
     is $snow->username, 'kamala', 'Should read username from environment';
     is $snow->password, 'gimme', 'Should read password from environment';
-    is $snow->account, 'test', 'Should read account from host';
+    is $snow->account, 'test.us-east-2.aws', 'Should read account from host';
     is $snow->warehouse, 'madrigal', 'Should read warehouse from environment';
 
     # Delete host.
     $target = App::Sqitch::Target->new(sqitch => $sqitch, uri => URI->new($uri));
     delete $ENV{SNOWSQL_HOST};
     $snow = $CLASS->new( sqitch => $sqitch, target => $target );
-    is $snow->uri, 'db:snowflake://egregious.Australia.snowflakecomputing.com:4242/tryme',
+    is $snow->uri,
+        'db:snowflake://egregious.Australia.snowflakecomputing.com:4242/tryme',
         'Should build URI host from account and region environment vars';
-    is $snow->account, 'egregious', 'Should read account from environment';
+    is $snow->account, 'egregious.Australia',
+        'Should read account and region from environment';
 
     # SQITCH_PASSWORD has priority.
     local $ENV{SQITCH_PASSWORD} = 'irule';
@@ -518,7 +521,11 @@ END {
     );
 }
 
-$uri = URI->new($ENV{SNOWSQL_URI} || 'db:snowflake://accountname/?Driver=Snowflake');
+$uri = URI->new(
+    $ENV{SQITCH_TEST_SNOWFLAKE_URI} ||
+    $ENV{SNOWSQL_URI} ||
+    'db:snowflake://accountname/?Driver=Snowflake'
+);
 $uri->host($uri->host . ".snowflakecomputing.com") if $uri->host !~ /snoflakecomputing[.]com/;
 my $err = try {
     $snow->use_driver;
@@ -541,7 +548,8 @@ DBIEngineTest->run(
         my $self = shift;
         die $err if $err;
         # Make sure we have vsql and can connect to the database.
-        $self->sqitch->probe( $self->client, '--version' );
+        my $version = $self->sqitch->capture( $self->client, '--version' );
+        say "# Detected SnowSQL $version";
         $self->_capture('--query' => 'SELECT CURRENT_DATE FROM dual');
     },
     engine_err_regex  => qr/\bSQL\s+compilation\s+error:/,

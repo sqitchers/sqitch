@@ -64,14 +64,14 @@ variable.
 Username from the original system. Intended for use by scripts that run Sqitch
 from another host, where the originating host username should be passed to the
 execution host, such as
-L<this Docker script|https://github.com/sqitchers/docker-sqitch/blob/master/docker-sqitch.sh>.
+L<this Docker script|https://github.com/sqitchers/docker-sqitch/blob/main/docker-sqitch.sh>.
 
 =item C<SQITCH_ORIG_FULLNAME>
 
 Full name of the original system user. Intended for use by scripts that run
 Sqitch from another host, where the originating host user's identity should be
 passed to the execution host, such as
-L<this Docker script|https://github.com/sqitchers/docker-sqitch/blob/master/docker-sqitch.sh>.
+L<this Docker script|https://github.com/sqitchers/docker-sqitch/blob/main/docker-sqitch.sh>.
 This value will be used only when neither the C<$SQITCH_FULLNAME> nor the
 C<user.name> L<sqitch-config> variable is set.
 
@@ -80,7 +80,7 @@ C<user.name> L<sqitch-config> variable is set.
 Email address of the original user. Intended for use by scripts that run
 Sqitch on a separate host, where the originating host user's identity should
 be passed to the execution host, such as
-L<this Docker script|https://github.com/sqitchers/docker-sqitch/blob/master/docker-sqitch.sh>.
+L<this Docker script|https://github.com/sqitchers/docker-sqitch/blob/main/docker-sqitch.sh>.
 This value will be used only when neither the C<$SQITCH_EMAIL> nor the
 C<user.email> L<sqitch-config> variable is set.
 
@@ -272,7 +272,7 @@ executing SQL scripts unexpectedly.
 =head3 Snowflake
 
 Sqitch provides explicit support for the following
-L<Snowflake environment variables|https://docs.snowflake.net/manuals/user-guide/snowsql-start.html#connection-syntax>:
+L<Snowflake environment variables|https://docs.snowflake.com/en/user-guide/snowsql-start.html#connection-syntax>:
 
 =over
 
@@ -301,28 +301,30 @@ See L<sqitch-authentication> for details.
 The role to use when connecting to the server. Superseded by the target URI
 database C<role> query parameter.
 
-=item C<SNOWSQL_HOST>
-
-The PostgreSQL server host to connect to. Superseded by the target URI host
-name.
-
-=item C<SNOWSQL_PORT>
-
-The PostgreSQL server port to connect to. Superseded by the target URI port.
-
 =item C<SNOWSQL_DATABASE>
 
 The name of the database to connect to. Superseded by the target URI database
 name.
 
-=item C<SNOWSQL_REGION>
-
-The snowflake region. Superseded by the target URI host name.
-
 =item C<SNOWSQL_WAREHOUSE>
 
 The warehouse to use. Superseded by the target URI database C<warehouse> query
 parameter.
+
+=item C<SNOWSQL_HOST>
+
+The Snowflake server host to connect to. Superseded by the target URI host
+name. Deprecated by Snowflake.
+
+=item C<SNOWSQL_PORT>
+
+The Snowflake server port to connect to. Superseded by the target URI port.
+Deprecated by Snowflake.
+
+=item C<SNOWSQL_REGION>
+
+The Snowflake region. Superseded by the target URI host name. Deprecated by
+Snowflake.
 
 =back
 

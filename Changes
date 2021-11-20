@@ -1,5 +1,60 @@
 Revision history for Perl extension App::Sqitch
 
+1.2.0  2021-11-20T22:45:00Z
+     - Fixed partitioned search for deployed changes on Oracle and Exasol to
+       correctly support plans with more than 250 changes. Thanks to @Nicqu
+       for the report (#521).
+     - DBI connections to the registry will now be set to trace level one
+       when a verbosity level of three or higher is passed to Sqitch
+       (i.e., `sqitch -vvv`). Thanks to @wkoszek for the suggestion (#155).
+     - Renamed the "master" branch to "main" and updated all relevant
+       references.
+     - Fixed the parsing of the Snowflake account name from the target URL
+       to that it no longer strips out the region and cloud platform parts.
+       Also deprecated the use of the region, host, and port config and
+       environment variables. This is to comply with the new account name
+       format. Thanks to @ldsingh00 for the report (#544).
+     - The checkout command will now show a usage statement when no branch
+       name is passed to it, rather than a series of warnings and a Git error.
+       Thanks to François Beausoleil for the report (#561).
+     - The checkout command now works when operating on a Sqitch project in
+       a subdirectory of a Git project. Thanks to François Beausoleil for the
+       report and suggested fix (#560).
+     - Fixed a failing bundle test when a top directory was configured in the
+       user or system configuration. Thanks to @CodingMinds for the spot
+       (#587).
+     - Added support to the Exasol engine for the `AUTHMETHOD` query parameter
+       (to allow Open ID authentication) and the `SSLCERTIFICATE=SSL_VERIFY_NONE`
+       query parameter to disable SSL verification. Thanks to Torsten Glunde
+       for the report (#588).
+     - Fixed "Use of uninitialized value $engine in concatenation" error when
+       Sqitch is unable to determine the engine when writing a plan file. Only
+       happens in the rare case that the core.engine value is not set.
+     - Improved the error message when attempting to update a plan file and no
+       project pragma is present. Thanks to Laurentiu Diaconu for the report
+       (#577).
+     - Fixed the error message when attempting to deploy a change that has
+       already been deployed to display the name of the change, rather than a
+       memory address. Thanks to Neil Mayhew for the report (#579).
+     - Added destination locking, currently implemented for PostgresQL and
+       MySQL. On starting a deploy or revert, Sqitch attempts to "lock the
+       destination" using advisory locks, to ensure that only one instance of
+       Sqitch makes changes to the database at any one time. This complements
+       the existing locking, which applies as each change is deployed or
+       reverted, as that pattern led to failures when multiple instances of
+       Sqitch were working at once. Thanks to Neil Mayhew for the report
+       (#579).
+     - Added the --lock-timeout option to the deploy, revert, rebase, and
+       checkout commands, to allow for shorter or longer times to wait for an
+       exclusive target database advisory lock for engines that support it.
+       Defaults to 60 seconds.
+     - Fixed the behavior of the plan command's `--max-count` option when used
+       with `--reverse` to show the proper items. Thanks to Adrian Klaver for
+       the report (#517).
+     - Fixed an issue that could cause bugs with the `check` command on
+       Firebird, Exasol, Oracle, and Vertica. Broken since the `check` command
+       was added in v1.1.0.
+
 1.1.0  2020-05-17T16:20:07Z
      - Fixed Perl Pod errors, thanks to a pull request from Mohammad S Anwar
        (#470).
@@ -17,7 +72,7 @@ Revision history for Perl extension App::Sqitch
      - Sqitch now only passes the `--password` option to the MySQL client if
        it was not read from the `.my.cnf` file, as it's more secure to let
        the client use `.my.cnf`, and it eliminates a warning from recent
-       versions of the client. Thanks to Kiel R Stirling for the fix (#484)!
+       versions of the client. Thanks to Kiel R Stirling for the fix (#485)!
      - Added a note to the tutorials to skip setting the `engine.$engine.client`
        config when using the Docker image.
      - Added the new `check` command, which compares the SHA1 hashes of the

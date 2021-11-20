@@ -99,6 +99,15 @@ deploy scripts. Useful for an existing database that is being converted to
 Sqitch, and you need to log changes as deployed because they have been
 deployed by other means in the past.
 
+=item C<--lock-timeout>
+
+  sqitch deploy --lock-timeout 600
+
+Set the number of seconds for Sqitch to wait to get an exclusive advisory
+lock on the target database, for engines that support such a lock. This
+lock prevents other instances of Sqitch from working on the target at the
+same time, but prevents no other database activity. Defaults to 60.
+
 =item C<--registry>
 
   sqitch deploy --registry registry
@@ -197,7 +206,7 @@ L<user variables|https://dev.mysql.com/doc/refman/5.6/en/user-variables.html>,
 SQL*Plus's
 L<C<DEFINE> variables|https://docs.oracle.com/cd/B19306_01/server.102/b14357/ch12017.htm>,
 and Snowflake's
-L<SnowSQL variables|https://docs.snowflake.net/manuals/user-guide/snowsql-use.html#using-variables>.
+L<SnowSQL variables|https://docs.snowflake.com/en/user-guide/snowsql-use.html#using-variables>.
 
 May be overridden by C<--set> or target and engine configuration. Variables
 are merged in the following priority order:

@@ -138,6 +138,14 @@ The name or URI of the database target as specified by the C<--target> option.
 An L<App::Sqitch::Target> object from which to perform the checks. Must be
 instantiated by C<execute()>.
 
+=head3 C<from_change>
+
+Change from which to check changes.
+
+=head3 C<to_change>
+
+Change up to which to check changes.
+
 =head2 Instance Methods
 
 =head3 C<execute>
@@ -168,7 +176,7 @@ Matthieu Foucault <matthieu@button.is>
 
 =head1 License
 
-Copyright (c) 2012-2019 iovation Inc., Button Inc.
+Copyright (c) 2012-2021 iovation Inc., David E. Wheeler, Button Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

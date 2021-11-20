@@ -78,7 +78,7 @@ has _snowcfg => (
             # Apparently snowsql config supports single quotes, while
             # Config::GitLike does not.
             # https://support.snowflake.net/s/case/5000Z000010xUYJQA2
-            # https://docs.snowflake.net/manuals/user-guide/snowsql-config.html#snowsql-config-file
+            # https://docs.snowflake.com/en/user-guide/snowsql-config.html#snowsql-config-file
             if ($val =~ s/\A'//) {
                 $val = $data->{$k} unless $val =~ s/'\z//;
             }
@@ -98,6 +98,7 @@ has uri => (
 
         # Set defaults in the URI.
         $uri->host($self->_host($uri));
+        # XXX SNOWSQL_PORT deprecated; remove once Snowflake removes it.
         $uri->port($ENV{SNOWSQL_PORT}) if !$uri->_port && $ENV{SNOWSQL_PORT};
         $uri->dbname(
             $ENV{SNOWSQL_DATABASE}
@@ -114,8 +115,15 @@ sub _def_user {
 
 sub _def_pass { $ENV{SNOWSQL_PWD} || shift->_snowcfg->{password} }
 sub _def_acct {
-    return $ENV{SNOWSQL_ACCOUNT} || shift->_snowcfg->{accountname}
+    my $acct = $ENV{SNOWSQL_ACCOUNT} || $_[0]->_snowcfg->{accountname}
         || hurl engine => __('Cannot determine Snowflake account name');
+
+    # XXX Region is deprecated as a separate value, because the acount name may now be
+    # <account_name>.<region_id>.<cloud_platform_or_private_link>
+    # https://docs.snowflake.com/en/user-guide/snowsql-start.html#a-accountname
+    # Remove from here down and just return on the line above once Snowflake removes it.
+    my $region = $ENV{SNOWSQL_REGION} || $_[0]->_snowcfg->{region} or return $acct;
+    return "$acct.$region";
 }
 
 has account => (
@@ -125,8 +133,8 @@ has account => (
     default => sub {
         my $self = shift;
         if (my $host = $self->uri->host) {
-            # <account_name>.<region_id>.snowflakecomputing.com
-            $host =~ s/[.].+//;
+            # <account_name>.<region_id>.<cloud_platform_or_privatelink>.snowflakecomputing.com
+            $host =~ s/[.]snowflakecomputing[.]com$//;
             return $host;
         }
         return $self->_def_acct;
@@ -136,16 +144,12 @@ has account => (
 sub _host {
     my ($self, $uri) = @_;
     if (my $host = $uri->host) {
-        # Allow host to just be account name or account + region.
         return $host if $host =~ /\.snowflakecomputing\.com$/;
         return $host . ".snowflakecomputing.com";
     }
+    # XXX SNOWSQL_HOST is deprecated; remove it once Snowflake removes it.
     return $ENV{SNOWSQL_HOST} if $ENV{SNOWSQL_HOST};
-    return join '.', (
-        $self->_def_acct,
-        (grep { $_ } $ENV{SNOWSQL_REGION} || $self->_snowcfg->{region} || ()),
-        'snowflakecomputing.com',
-    );
+    return $self->_def_acct . '.snowflakecomputing.com';
 }
 
 has warehouse => (
@@ -351,7 +355,7 @@ sub changes_requiring_change {
     # NOTE: Query from DBIEngine doesn't work in Snowflake:
     #   SQL compilation error: Unsupported subquery type cannot be evaluated (SQL-42601)
     # Looks like it doesn't yet support correlated subqueries.
-    # https://docs.snowflake.net/manuals/sql-reference/operators-subquery.html
+    # https://docs.snowflake.com/en/sql-reference/operators-subquery.html
     # The CTE-based query borrowed from Exasol seems to be fine, however.
     return @{ $self->dbh->selectall_arrayref(q{
         WITH tag AS (
@@ -373,7 +377,7 @@ sub name_for_change_id {
     # NOTE: Query from DBIEngine doesn't work in Snowflake:
     #   SQL compilation error: Unsupported subquery type cannot be evaluated (SQL-42601)
     # Looks like it doesn't yet support correlated subqueries.
-    # https://docs.snowflake.net/manuals/sql-reference/operators-subquery.html
+    # https://docs.snowflake.com/en/sql-reference/operators-subquery.html
     # The CTE-based query borrowed from Exasol seems to be fine, however.
     return $self->dbh->selectcol_arrayref(q{
         WITH tag AS (
@@ -504,22 +508,24 @@ reference the Snowflake account name or the account name and region in URLs.
 
 =item 2
 
-In the C<$SNOWSQL_HOST> environment variable.
+In the C<$SNOWSQL_HOST> environment variable (Deprecated by Snowflake).
 
 =item 3
 
 By concatenating the account name and region, if available, from the
 C<$SNOWSQL_ACCOUNT> environment variable or C<connections.accountname> setting
 in the
-L<SnowSQL configuration file|https://docs.snowflake.net/manuals/user-guide/snowsql-start.html#configuring-default-connection-settings>,
+L<SnowSQL configuration file|https://docs.snowflake.com/en/user-guide/snowsql-start.html#configuring-default-connection-settings>,
 the C<$SNOWSQL_REGION> or C<connections.region> setting in the
-L<SnowSQL configuration file|https://docs.snowflake.net/manuals/user-guide/snowsql-start.html#configuring-default-connection-settings>,
-and C<snowflakecomputing.com>.
+L<SnowSQL configuration file|https://docs.snowflake.com/en/user-guide/snowsql-start.html#configuring-default-connection-settings>,
+and C<snowflakecomputing.com>. Note that Snowflake has deprecated
+C<$SNOWSQL_REGION> and C<connections.region>, and will be removed in a future
+version. Append the region name and cloud platform name to the account name,
+instead.
 
 =back
 
-The port defaults to 443, but uses to the C<$SNOWSQL_PORT> environment
-variable if it's set. The database name is determined by the following methods:
+The database name is determined by the following methods:
 
 =over
 
@@ -534,7 +540,7 @@ The C<$SNOWSQL_DATABASE> environment variable.
 =item 3.
 
 In the C<connections.dbname> setting in the
-L<SnowSQL configuration file|https://docs.snowflake.net/manuals/user-guide/snowsql-start.html#configuring-default-connection-settings>.
+L<SnowSQL configuration file|https://docs.snowflake.com/en/user-guide/snowsql-start.html#configuring-default-connection-settings>.
 
 =item 4.
 
@@ -564,7 +570,7 @@ In the C<$SNOWSQL_ACCOUNT> environment variable.
 =item 3
 
 In the C<connections.accountname> setting in the
-L<SnowSQL configuration file|https://docs.snowflake.net/manuals/user-guide/snowsql-start.html#configuring-default-connection-settings>.
+L<SnowSQL configuration file|https://docs.snowflake.com/en/user-guide/snowsql-start.html#configuring-default-connection-settings>.
 
 =back
 
@@ -589,7 +595,7 @@ In the C<$SNOWSQL_USER> environment variable.
 =item 4
 
 In the C<connections.username> variable from the
-L<SnowSQL config file|https://docs.snowflake.net/manuals/user-guide/snowsql-config.html#snowsql-config-file>.
+L<SnowSQL config file|https://docs.snowflake.com/en/user-guide/snowsql-config.html#snowsql-config-file>.
 
 =item 5
 
@@ -618,7 +624,7 @@ In the C<$SNOWSQL_PWD> environment variable.
 =item 4
 
 In the C<connections.password> variable from the
-L<SnowSQL config file|https://docs.snowflake.net/manuals/user-guide/snowsql-config.html#snowsql-config-file>.
+L<SnowSQL config file|https://docs.snowflake.com/en/user-guide/snowsql-config.html#snowsql-config-file>.
 
 =back
 
@@ -641,7 +647,7 @@ In the C<$SNOWSQL_WAREHOUSE> environment variable.
 =item 3
 
 In the C<connections.warehousename> variable from the
-L<SnowSQL config file|https://docs.snowflake.net/manuals/user-guide/snowsql-config.html#snowsql-config-file>.
+L<SnowSQL config file|https://docs.snowflake.com/en/user-guide/snowsql-config.html#snowsql-config-file>.
 
 =item 4
 
@@ -668,7 +674,7 @@ In the C<$SNOWSQL_ROLE> environment variable.
 =item 3
 
 In the C<connections.rolename> variable from the
-L<SnowSQL config file|https://docs.snowflake.net/manuals/user-guide/snowsql-config.html#snowsql-config-file>.
+L<SnowSQL config file|https://docs.snowflake.com/en/user-guide/snowsql-config.html#snowsql-config-file>.
 
 =item 4
 
@@ -702,7 +708,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2020 iovation Inc.
+Copyright (c) 2012-2021 iovation Inc., David E. Wheeler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

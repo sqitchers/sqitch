@@ -1,0 +1,55 @@
+# This workflow tests Sqitch's Firebird engine on all supported versions of
+# Postgres. It runs for pushes and pull requests on the `main`, `develop`,
+# `**firebird**`, and `**engine**` branches.
+name: 🔥 Firebird
+on:
+  push:
+    branches: [main, develop, "**engine**", "**firebird**" ]
+  pull_request:
+    branches: [main, develop, "**engine**", "**firebird**" ]
+jobs:
+  Firebird:
+    strategy:
+      matrix:
+        include:
+          - { version: '4.0'    }
+          - { version: '3.0'    }
+          - { version: '2.5-ss' }
+          - { version: '2.5-sc' }
+    name: 🔥 Firebird ${{ matrix.version }}
+    runs-on: ubuntu-latest
+    services:
+      # Run the Firebird service in a container we can connect to. Means that the
+      # CLI and libraries DBD::firebird use are static to the version on the runner
+      # machine.
+      firebird:
+        image: jacobalberty/firebird:${{ matrix.version }}
+        ports: [ 3050 ]
+        env:
+          ISC_PASSWORD: nix
+          FIREBIRD_DATABASE: sqitchtest.db
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Clients
+        run: .github/ubuntu/firebird.sh
+      - name: Setup Perl
+        id: perl
+        uses: shogo82148/actions-setup-perl@v1
+        with: { perl-version: latest }
+      - name: Cache CPAN Modules
+        uses: actions/cache@v2
+        with:
+          path: local
+          key: perl-${{ steps.perl.outputs.perl-hash }}
+      - name: Download cpanfile
+        uses: carlosperate/download-file-action@v1.0.3
+        with:
+          file-url: https://fastapi.metacpan.org/source/DWHEELER/App-Sqitch-v1.1.0/dist/cpanfile
+      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends --cpanfile cpanfile
+      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends DBD::Firebird
+      - name: prove
+        env:
+          PERL5LIB: "${{ github.workspace }}/local/lib/perl5"
+          LIVE_FIREBIRD_REQUIRED: true
+          SQITCH_TEST_FIREBIRD_URI: db:firebird://sysdba:nix@127.0.0.1:${{ job.services.firebird.ports[3050] }}//firebird/data/sqitchtest.db
+        run: prove -lvr t/firebird.t

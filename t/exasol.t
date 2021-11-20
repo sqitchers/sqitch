@@ -1,9 +1,10 @@
 #!/usr/bin/perl -w
 
-# To test against a live Exasol database, you must set the EXA_URI environment variable.
-# this is a stanard URI::db URI, and should look something like this:
+# To test against a live Exasol database, you must set the
+# SQITCH_TEST_EXASOL_URI environment variable. this is a stanard URI::db URI,
+# and should look something like this:
 #
-#     export EXA_URI=db:exasol://dbadmin:password@localhost:5433/dbadmin?Driver=Exasol
+#     export SQITCH_TEST_EXASOL_URI=db:exasol://dbadmin:password@localhost:5433/dbadmin?Driver=Exasol
 #
 # Note that it must include the `?Driver=$driver` bit so that DBD::ODBC loads
 # the proper driver.
@@ -98,6 +99,52 @@ is $exa->_script, join( "\n" => (
     "DEFINE yo='''stellar''';",
     $exa->_registry_variable,
 ) ), '_script should assemble variables';
+
+##############################################################################
+# Make sure the URI query properly affect the client options.
+for my $spec (
+    {
+        qry => 'SSLCertificate=SSL_VERIFY_NONE',
+        opt => [qw(-jdbcparam validateservercertificate=0)],
+    },
+    {
+        qry => 'SSLCERTIFICATE=SSL_VERIFY_NONE',
+        opt => [qw(-jdbcparam validateservercertificate=0)],
+    },
+    {
+        qry => 'SSLCERTIFICATE=xxx',
+        opt => [],
+    },
+    {
+        qry => 'SSLCERTIFICATE=SSL_VERIFY_NONE&SSLCERTIFICATE=xyz',
+        opt => [],
+    },
+    {
+        qry => 'AuthMethod=refreshtoken',
+        opt => [qw(-jdbcparam authmethod=refreshtoken)],
+    },
+    {
+        qry => 'AUTHMETHOD=xyz',
+        opt => [qw(-jdbcparam authmethod=xyz)],
+    },
+    {
+        qry => 'SSLCertificate=SSL_VERIFY_NONE&AUTHMETHOD=xyz',
+        opt => [qw(-jdbcparam validateservercertificate=0 -jdbcparam authmethod=xyz)],
+    },
+) {
+    $uri->query($spec->{qry});
+    my $target = App::Sqitch::Target->new(
+        sqitch => $sqitch,
+        uri    => $uri,
+    );
+    my $exa = $CLASS->new(
+        sqitch => $sqitch,
+        target => $target,
+    );
+    is_deeply [$exa->exaplus], [$client, @{ $spec->{opt} }, @std_opts],
+        "Should handle query $spec->{qry}";
+}
+$uri->query('');
 
 ##############################################################################
 # Test other configs for the target.
@@ -340,7 +387,11 @@ END {
     );
 }
 
-$uri = URI->new($ENV{EXA_URI} || 'db:dbadmin:password@localhost/dbadmin');
+$uri = URI->new(
+    $ENV{SQITCH_TEST_EXASOL_URI} ||
+    $ENV{EXA_URI} ||
+    'db:dbadmin:password@localhost/dbadmin'
+);
 my $err = try {
     $exa->use_driver;
     $dbh = DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {

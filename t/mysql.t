@@ -1,9 +1,10 @@
 #!/usr/bin/perl -w
 
-# To test against a live MySQL database, you must set the MYSQL_URI environment variable.
-# this is a stanard URI::db URI, and should look something like this:
+# To test against a live MySQL database, you must set the SQITCH_TEST_MYSQL_URI
+# environment variable. this is a standard URI::db URI, and should look
+# something like this:
 #
-#     export MYSQL_URI=db:mysql://root:password@localhost:3306/information_schema
+#     export SQITCH_TEST_MYSQL_URI=db:mysql://root:password@localhost:3306/information_schema
 #
 
 use strict;
@@ -443,7 +444,11 @@ END {
 }
 
 
-$uri = URI->new($ENV{MYSQL_URI} || 'db:mysql://root@/information_schema');
+$uri = URI->new(
+    $ENV{SQITCH_TEST_MYSQL_URI} ||
+    $ENV{MYSQL_URI} ||
+    'db:mysql://root@/information_schema'
+);
 $uri->dbname('information_schema') unless $uri->dbname;
 my $err = try {
     $mysql->use_driver;
@@ -478,7 +483,8 @@ DBIEngineTest->run(
         my $self = shift;
         die $err if $err;
         # Make sure we have mysql and can connect to the database.
-        $self->sqitch->probe( $self->client, '--version' );
+        my $version = $self->sqitch->capture( $self->client, '--version' );
+        say "# Detected CLI $version";
         say '# Connected to MySQL ' . $self->_capture('--execute' => 'SELECT version()');
         1;
     },
@@ -492,14 +498,14 @@ DBIEngineTest->run(
         my $dbh = shift;
         # Check the session configuration.
         for my $spec (
-            [character_set_client   => 'utf8'],
-            [character_set_server   => 'utf8'],
-            ($dbh->{mysql_serverversion} < 50500 ? () : ([default_storage_engine => 'InnoDB'])),
-            [time_zone              => '+00:00'],
-            [group_concat_max_len   => 32768],
+            [character_set_client   => qr/^utf8/],
+            [character_set_server   => qr/^utf8/],
+            ($dbh->{mysql_serverversion} < 50500 ? () : ([default_storage_engine => qr/^InnoDB$/])),
+            [time_zone              => qr/^\+00:00$/],
+            [group_concat_max_len   => qr/^32768$/],
         ) {
-            is $dbh->selectcol_arrayref('SELECT @@SESSION.' . $spec->[0])->[0],
-                $spec->[1], "Setting $spec->[0] should be set to $spec->[1]";
+            like $dbh->selectcol_arrayref('SELECT @@SESSION.' . $spec->[0])->[0],
+                $spec->[1], "Setting $spec->[0] should match $spec->[1]";
         }
 
         # Special-case sql_mode.
@@ -515,6 +521,19 @@ DBIEngineTest->run(
         )) {
             like $sql_mode, qr/\b\Q$mode\E\b/i, "sql_mode should include $mode";
         }
+    },
+    lock_sql => {
+        is_locked  => q{SELECT is_used_lock('sqitch working')},
+        try_lock   => q{SELECT get_lock('sqitch working', 0)},
+        wait_time  => 1, # get_lock() does not support sub-second precision, apparently.
+        async_free => 1,
+        free_lock  => 'SELECT ' . ($dbh ? do {
+            # MySQL 5.5-5.6 and Maria 10.0-10.4 prefer release_lock(), while
+            # 5.7+ and 10.5+ prefer release_all_locks().
+            $dbh->selectrow_arrayref('SELECT version()')->[0] =~ /^(?:5\.[56]|10\.[0-4])/
+                ? q{release_lock('sqitch working')}
+                : 'release_all_locks()'
+        } : ''),
     },
 );
 

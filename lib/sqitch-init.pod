@@ -168,11 +168,11 @@ Sets the following configuration variables:
 
 =item * C<reworked> sets C<core.reworked_dir>
 
-=item * C<reworked_deplpoy> sets C<core.reworked_deploy_dir>
+=item * C<reworked_deploy> sets C<core.reworked_deploy_dir>
 
-=item * C<reworked_deplpoy> sets C<core.reworked_revert_dir>
+=item * C<reworked_deploy> sets C<core.reworked_revert_dir>
 
-=item * C<reworked_deplpoy> sets C<core.reworked_verify_dir>
+=item * C<reworked_deploy> sets C<core.reworked_verify_dir>
 
 =back
 

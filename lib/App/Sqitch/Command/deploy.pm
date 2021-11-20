@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use utf8;
 use Moo;
-use App::Sqitch::Types qw(URI Str Bool HashRef);
+use App::Sqitch::Types qw(Int URI Str Bool HashRef);
 use Locale::TextDomain qw(App-Sqitch);
 use Type::Utils qw(enum);
 use App::Sqitch::X qw(hurl);
@@ -44,6 +44,13 @@ has log_only => (
     default  => 0,
 );
 
+has lock_timeout => (
+    is      => 'ro',
+    isa     => Int,
+    lazy    => 1,
+    default => sub { App::Sqitch::Engine::default_lock_timeout() },
+);
+
 has verify => (
     is       => 'ro',
     isa      => Bool,
@@ -64,6 +71,7 @@ sub options {
         mode=s
         set|s=s%
         log-only
+        lock-timeout=i
         verify!
     );
 }
@@ -76,9 +84,9 @@ sub configure {
         verify   => $opt->{verify} // $config->get( key => 'deploy.verify', as => 'boolean' ) // 0,
         log_only => $opt->{log_only} || 0,
     );
-    $params{to_change} = $opt->{to_change} if exists $opt->{to_change};
-    $params{target}    = $opt->{target}    if exists $opt->{target};
-
+    for my $key (qw(to_change target lock_timeout)) {
+        $params{$key} = $opt->{$key} if exists $opt->{$key};
+    }
     if ( my $vars = $opt->{set} ) {
         $params{variables} = $vars;
     }
@@ -100,8 +108,8 @@ sub _collect_vars {
 sub execute {
     my $self = shift;
     my ($targets, $changes) = $self->parse_args(
-        target     => $self->target,
-        args       => \@_,
+        target => $self->target,
+        args   => \@_,
     );
 
     # Warn on multiple targets.
@@ -122,6 +130,7 @@ sub execute {
     my $engine = $target->engine;
     $engine->with_verify( $self->verify );
     $engine->log_only( $self->log_only );
+    $engine->lock_timeout( $self->lock_timeout );
     $engine->set_variables( $self->_collect_vars($target) );
     $engine->deploy( $change, $self->mode );
     return $self;
@@ -162,6 +171,11 @@ options for the C<deploy> command.
 =head3 C<log_only>
 
 Boolean indicating whether to log the deploy without running the scripts.
+
+=head3 C<lock_timeout>
+
+The number of seconds to wait for an exclusive advisory lock on the target,
+for engines that support the feature.
 
 =head3 C<mode>
 
@@ -207,7 +221,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2020 iovation Inc.
+Copyright (c) 2012-2021 iovation Inc., David E. Wheeler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

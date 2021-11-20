@@ -1,0 +1,40 @@
+# This workflow is intended to be the default to check for compatibility across
+# operating systems without much overhead. It uses the latest version of Perl on
+# the latest versions of Ubuntu, macOS, and Windows. Think of it as a quick
+# check for working branches.
+name: 💿 OS
+on: [push, pull_request]
+jobs:
+  OS:
+    strategy:
+      matrix:
+        include:
+          - { icon: 🐧, os: ubuntu,  name: Linux }
+          - { icon: 🍎, os: macos,   name: macOS }
+          - { icon: 🪟, os: windows, name: Windows }
+    name: ${{ matrix.icon }} ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Perl
+        id: perl
+        uses: shogo82148/actions-setup-perl@v1
+        with: { perl-version: latest }
+      - run: perl -V
+      - name: Cache CPAN Modules
+        uses: actions/cache@v2
+        with:
+          path: local
+          key: perl-${{ steps.perl.outputs.perl-hash }}
+      - name: Download cpanfile
+        uses: carlosperate/download-file-action@v1.0.3
+        with:
+          file-url: https://fastapi.metacpan.org/source/DWHEELER/App-Sqitch-v1.1.0/dist/cpanfile
+      # Remove Locale::TextDomain if https://github.com/gflohr/libintl-perl/issues/7 fixed and released.
+      - if: ${{ matrix.os == 'windows' }}
+        run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends Encode Win32::Console::ANSI Win32API::Net Win32::Locale Win32::ShellQuote DateTime::TimeZone::Local::Win32 Locale::TextDomain@1.31
+      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends --cpanfile cpanfile
+      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends Test::Spelling Test::Pod Test::Pod::Coverage
+      - name: prove
+        env: { PERL5LIB: "${{ github.workspace }}/local/lib/perl5" }
+        run: prove -lrj4

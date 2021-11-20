@@ -1,0 +1,44 @@
+# This workflow tests Sqitch's basic functionality (no database testing) on all
+# supported versions of Perl on Ubuntu, macOS, and Windows. It runs for pushes
+# and pull requests on the main and develop branches.
+name: 🧅 Perl
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+jobs:
+  Perl:
+    strategy:
+      matrix:
+        os: [[🐧, ubuntu], [🍎, macos], [🪟, windows]]
+        perl: [ '5.34', '5.32', '5.30', '5.28', '5.26', '5.24', '5.22', '5.20', '5.18', '5.16', '5.14', '5.12' ]
+        exclude:
+          - { os: [🪟, windows], perl: '5.12' } # https://github.com/shogo82148/actions-setup-perl/issues/876
+          - { os: [🪟, windows], perl: '5.14' } # https://github.com/shogo82148/actions-setup-perl/issues/881
+    name: 🧅 Perl ${{ matrix.perl }} on ${{ matrix.os[0] }} ${{ matrix.os[1] }}
+    runs-on: ${{ matrix.os[1] }}-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Perl
+        id: perl
+        uses: shogo82148/actions-setup-perl@v1
+        with: { perl-version: "${{ matrix.perl }}" }
+      - run: perl -V
+      - name: Cache CPAN Modules
+        uses: actions/cache@v2
+        with:
+          path: local
+          key: perl-${{ steps.perl.outputs.perl-hash }}
+      - name: Download cpanfile
+        uses: carlosperate/download-file-action@v1.0.3
+        with:
+          file-url: https://fastapi.metacpan.org/source/DWHEELER/App-Sqitch-v1.1.0/dist/cpanfile
+      # Remove Locale::TextDomain if https://github.com/gflohr/libintl-perl/issues/7 fixed and released.
+      - if: ${{ matrix.os[1] == 'windows' }}
+        run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends Encode Win32::Console::ANSI Win32API::Net Win32::Locale Win32::ShellQuote DateTime::TimeZone::Local::Win32 Locale::TextDomain@1.31
+      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends --cpanfile cpanfile
+      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends Test::Spelling Test::Pod Test::Pod::Coverage
+      - name: prove
+        env: { PERL5LIB: "${{ github.workspace }}/local/lib/perl5" }
+        run: prove -lrj4

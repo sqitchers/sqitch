@@ -1,9 +1,10 @@
 #!/usr/bin/perl -w
 #
-# To test against a live Firebird database, you must set the FIREBIRD_URI environment variable.
-# this is a stanard URI::db URI, and should look something like this:
+# To test against a live Firebird database, you must set the
+# SQITCH_TEST_FIREBIRD_URI environment variable. this is a standard URI::db URI,
+# and should look something like this:
 #
-#     export FIREBIRD_URI=db:firebird://sysdba:password@localhost//path/to/test.db
+#     export SQITCH_TEST_FIREBIRD_URI=db:firebird://sysdba:password@localhost//path/to/test.db
 #
 #
 use strict;
@@ -35,7 +36,7 @@ try { require DBD::Firebird; } catch { $have_fb_driver = 0; };
 BEGIN {
     $CLASS = 'App::Sqitch::Engine::firebird';
     require_ok $CLASS or die;
-    $uri = URI->new($ENV{FIREBIRD_URI} || do {
+    $uri = URI->new($ENV{SQITCH_TEST_FIREBIRD_URI} || $ENV{FIREBIRD_URI} || do {
         my $user = $ENV{ISC_USER}     || $ENV{DBI_USER} || 'SYSDBA';
         my $pass = $ENV{ISC_PASSWORD} || $ENV{DBI_PASS} || 'masterkey';
         "db:firebird://$user:$pass@/"
@@ -315,7 +316,7 @@ my $err = try {
 };
 
 END {
-    return if $ENV{CI}; # No need to clean up under Travis.
+    return if $ENV{CI}; # No need to clean up in CI environment.
     foreach my $dbname (@cleanup) {
         $uri->dbname($dbname);
         my $dsn = $uri->dbi_dsn . q{;ib_dialect=3;ib_charset=UTF8};
@@ -351,6 +352,8 @@ DBIEngineTest->run(
         my $cmd = $self->client;
         my $cmd_echo = qx(echo "quit;" | "$cmd" -z -quiet 2>&1 );
         return 0 unless $cmd_echo =~ m{Firebird}ims;
+        chomp $cmd_echo;
+        say "# Detected $cmd_echo";
         # Skip if no DBD::Firebird.
         return 0 unless $have_fb_driver;
         say "# Connected to Firebird $fb_version" if $fb_version;

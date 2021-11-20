@@ -35,9 +35,88 @@ If you'd like to manage an Exasol database, see L<sqitchtutorial-exasol>.
 
 If you'd like to manage a Snowflake database, see L<sqitchtutorial-snowflake>.
 
-=head2 VM Configuration
+=head2 Prerequisites
 
-Some instructions for setting up a VM for following along in this tutorial.
+Sqitch requires L<Oracle Instant Client|https://www.oracle.com/database/technologies/instant-client.html>
+and the L<DBD::Oracle> Perl module to manage Oracle databases. Skip this section
+if you already have them installed and configured.
+
+=head3 Instant Client
+
+Sqitch requires three Instant Client packages:
+
+=over
+
+=item 1.
+
+Instant Client Basic
+
+=item 2.
+
+Instant Client SQL*Plus
+
+=item 3.
+
+Instant Client SDK
+
+=back
+
+Download all three as appropriate for your platform and OS, unpack them and
+put them all in a single directory, such as F<instantclient> in your home
+directory. Then set the C<$ORACLE_HOME> environment variable to that directory
+and add it to the path the PATH and LD_LIBRARY_PATH variables. For example:
+
+  export ORACLE_HOME=$HOME/instantclient
+  export PATH=$ORACLE_HOME:$PATH
+  export LD_LIBRARY_PATH=$ORACLE_HOME
+
+=head3 DBD::Oracle
+
+With these variables in place, install DBD::Oracle, like so:
+
+  cpanm DBD::Oracle
+
+If you run into issues, consult L<DBD::Oracle::Troubleshooting> and the
+relevant platform-specific C<DBD::Oracle::Troubleshooting::*> guides
+L<listed here|https://metacpan.org/dist/DBD-Oracle>.
+
+=head2 Test Environment
+
+If you have an Oracle instance ready to hand, you can skip this section. For
+For those who don't have a handy Oracle instance lying around, try using one
+of the L<Oracle-XE Docker images|https://hub.docker.com/r/gvenzl/oracle-xe>
+or the L<Database Virtual Box Appliance|https://www.oracle.com/database/technologies/databaseappdev-vm.html>.
+Details on each follow.
+
+=head3 Oracle-XE Docker Configuration
+
+The simplest way to the Sqitch Oracle engine is with the
+[gvenzl/oracle-xe](https://hub.docker.com/r/gvenzl/oracle-xe) docker image.
+Essentially, start it like so:
+
+  docker run -d -p 1521:1521 \
+    -e ORACLE_PASSWORD=oracle \
+    -e APP_USER=scott \
+    -e APP_USER_PASSWORD=tiger \
+    gvenzl/oracle-xe:18-slim
+
+This will create a user (and schema) named C<scott> in the pluggable database C<pdb1>.
+To create a SID named C<flipr_test> pointing to the C<pdb1> database, add this entry to
+F<$ORACLE_HOME/network/admin/tnsnames.ora>:
+
+  FLIPR_TEST =
+    (DESCRIPTION =
+      (ADDRESS = (PROTOCOL = TCP)(HOST = localhost)(PORT = 1521))
+      (CONNECT_DATA =
+        (SERVER = DEDICATED)
+        (SERVICE_NAME = pdb1)
+      )
+    )
+
+=head3 Virtual Box Configuration
+
+Some instructions for setting up the Database Virtual Box Appliance for
+following along in this tutorial.
 
 =over
 
@@ -48,9 +127,42 @@ the Oracle developer days VM.
 
 =item *
 
-Connect as the DBA via SQL*Plus:
+Download and install L<VirtualBox|https://www.virtualbox.org/wiki/Downloads>.
+
+=item *
+
+Download the VM from the L<Database Virtual Box
+Appliance|https://www.oracle.com/database/technologies/databaseappdev-vm.html>
+page and import it into VirtualBox.
+
+=item *
+
+Once the VM is imported into VirtualBox and started, login with the username
+"oracle" and the password "oracle". Then, in VirtualBox, go to Settings ->
+Network, select the NAT adapter, and add two port forwarding rules
+(https://barrymcgillin.blogspot.com/2011/12/using-oracle-developer-days-virtualbox.html):
+
+  Host Port | Guest Port
+ -----------+------------
+       1521 |       1521
+       2222 |         22
+
+Then restart the VM. You should then be able to connect from your host with:
 
   sqlplus sys/oracle@localhost/ORCL as sysdba
+
+If this fails with either of these errors:
+
+  ORA-01017: invalid username/password; logon denied ORA-21561: OID
+  generation failed
+
+Make sure that your computer's hostname is on the localhost line of F</etc/hosts>
+(L<reference|https://sourceforge.net/p/tora/discussion/52737/thread/f68b89ad/>):
+
+  > hostname
+  stickywicket
+  > grep 127 /etc/hosts
+  127.0.0.1    localhost stickywicket
 
 =item *
 
@@ -61,7 +173,8 @@ Give user C<scott> the access it needs:
 
 =item *
 
-Add this entry to F<tnsnames.ora>:
+To create a SID named C<flipr_test> pointing to the C<pdb1> database, add this entry to
+F<$ORACLE_HOME/network/admin/tnsnames.ora>:
 
   FLIPR_TEST =
     (DESCRIPTION =
@@ -86,7 +199,7 @@ source code repository. So let's do that with Git:
   > touch README.md
   > git add .
   > git commit -am 'Initialize project, add README.'
-  [master (root-commit) 1bd134b] Initialize project, add README.
+  [main (root-commit) 1bd134b] Initialize project, add README.
    1 file changed, 38 insertions(+)
    create mode 100644 README.md
 
@@ -108,7 +221,7 @@ with the same name. So let's specify one when we initialize Sqitch:
 
 Let's have a look at F<sqitch.conf>:
 
-  > cat sqitch.conf 
+  > cat sqitch.conf
   [core]
   	engine = oracle
   	# plan_file = sqitch.plan
@@ -159,7 +272,7 @@ Let's commit these changes and start creating the database changes.
 
   > git add .
   > git commit -am 'Initialize Sqitch configuration.'
-  [master bd82f41] Initialize Sqitch configuration.
+  [main bd82f41] Initialize Sqitch configuration.
    2 files changed, 19 insertions(+)
    create mode 100644 sqitch.conf
    create mode 100644 sqitch.plan
@@ -188,14 +301,17 @@ script, so we add this to F<revert/appschema.sql>:
 
   DROP USER flipr;
 
-Now we can try deploying this change. Before going any further, you might
-need to
+Now we can try deploying this change. Before going any further, unless you're
+using the Docker or VM environments described above, you might need to
 L<create the database|https://docs.oracle.com/cd/B28359_01/server.111/b28310/create001.htm#ADMIN11068>
-and configure the SID. Assuming you have an Oracle SID named C<flipr_test> set
+and configure the SID. Assuming you have an Oracle SID named C<FLIPR_TEST> set
 up in your C<F<TNSNAMES.ORA>|https://www.orafaq.com/wiki/Tnsnames.ora> file,
 tell Sqitch where to send the change via a
-L<database URI|https://github.com/libwww-perl/uri-db/>:
+L<database URI|https://github.com/libwww-perl/uri-db/>, such as
 
+  export SQITCH_URI=db:oracle://$username:$password@/flipr_test
+
+With that URI set up, we can deploy:
 
   > sqitch deploy db:oracle://scott:tiger@/flipr_test
   Adding registry tables to db:oracle://scott:@/flipr_test
@@ -388,7 +504,7 @@ Cool. Now let's commit it.
 
   > git add .
   > git commit -m 'Add flipr schema.'
-  [master e0e0b11] Add flipr schema.
+  [main e0e0b11] Add flipr schema.
    4 files changed, 11 insertions(+)
    create mode 100644 deploy/appschema.sql
    create mode 100644 revert/appschema.sql
@@ -464,7 +580,7 @@ We'll see the L<C<rebase>|sqitch-rebase> command a bit later. In the meantime,
 let's commit the new configuration and make some more changes!
 
   > git commit -am 'Set default target and always verify.'
-  [master c4a308a] Set default target and always verify.
+  [main c4a308a] Set default target and always verify.
    1 file changed, 8 insertions(+)
 
 =head1 Deploy with Dependency
@@ -619,7 +735,7 @@ Okay, let's commit and deploy again:
 
   > git add .
   > git commit -am 'Add users table.'
-  [master 2506312] Add users table.
+  [main 2506312] Add users table.
    4 files changed, 17 insertions(+)
    create mode 100644 deploy/users.sql
    create mode 100644 revert/users.sql
@@ -855,7 +971,7 @@ the last deployed change. Looks good. Let's do the commit and re-deploy dance:
 
   > git add .
   > git commit -m 'Add `insert_user()` and `change_pass()`.'
-  [master 6b6797e] Add `insert_user()` and `change_pass()`.
+  [main 6b6797e] Add `insert_user()` and `change_pass()`.
    7 files changed, 92 insertions(+)
    create mode 100644 deploy/change_pass.sql
    create mode 100644 deploy/insert_user.sql
@@ -899,7 +1015,7 @@ to have it go out with deployments tied to the release, let's tag it:
   > sqitch tag v1.0.0-dev1 -n 'Tag v1.0.0-dev1.'
   Tagged "change_pass" with @v1.0.0-dev1
   > git commit -am 'Tag the database with v1.0.0-dev1.'
-  [master eae5f71] Tag the database with v1.0.0-dev1.
+  [main eae5f71] Tag the database with v1.0.0-dev1.
    1 file changed, 1 insertion(+)
   > git tag v1.0.0-dev1 -am 'Tag v1.0.0-dev1'
 
@@ -1162,14 +1278,14 @@ should end up looking something like this:
   # 
   Nothing to deploy (up-to-date)
 
-Good, we've finished this feature. Time to merge back into C<master>.
+Good, we've finished this feature. Time to merge back into C<main>.
 
 =head2 Emergency
 
 Let's do it:
 
-  > git checkout master
-  Switched to branch 'master'
+  > git checkout main
+  Switched to branch 'main'
   > git pull
   Updating eae5f71..a16f97c
   Fast-forward
@@ -1194,7 +1310,7 @@ Let's do it:
    create mode 100644 verify/insert_list.sql
    create mode 100644 verify/lists.sql
 
-Hrm, that's interesting. Looks like someone made some changes to C<master>.
+Hrm, that's interesting. Looks like someone made some changes to C<main>.
 They added list support. Well, let's see what happens when we merge our
 changes.
 
@@ -1207,38 +1323,38 @@ Oh, a conflict in F<sqitch.plan>. Not too surprising, since both the merged
 C<lists> branch and our C<flips> branch added changes to the plan. Let's try a
 different approach.
 
-The truth is, we got lazy. Those changes when we pulled master from the origin
+The truth is, we got lazy. Those changes when we pulled main from the origin
 should have raised a red flag. It's considered a bad practice not to look at
-what's changed in C<master> before merging in a branch. What one I<should> do
+what's changed in C<main> before merging in a branch. What one I<should> do
 is either:
 
 =over
 
 =item *
 
-Rebase the F<flips> branch from master before merging. This "rewinds" the
-branch changes, pulls from C<master>, and then replays the changes back on top
+Rebase the F<flips> branch from main before merging. This "rewinds" the
+branch changes, pulls from C<main>, and then replays the changes back on top
 of the pulled changes.
 
 =item *
 
-Create a patch and apply I<that> to master. This is the sort of thing you
+Create a patch and apply I<that> to main. This is the sort of thing you
 might have to do if you're sending changes to another user, especially if the
 VCS is not Git.
 
 =back
 
-So let's restore things to how they were at master:
+So let's restore things to how they were at main:
 
   > git reset --hard HEAD
   HEAD is now at a16f97c Merge branch 'lists'
 
 That throws out our botched merge. Now let's go back to our branch and rebase
-it on C<master>:
+it on C<main>:
 
   > git checkout flips
   Switched to branch 'flips'
-  > git rebase master
+  > git rebase main
   First, rewinding head to replay your work on top of it...
   Applying: Add flips table.
   Using index info to reconstruct a base tree...
@@ -1281,7 +1397,7 @@ Now add the union merge driver to F<.gitattributes> for F<sqitch.plan>
 and rebase again:
 
   > echo sqitch.plan merge=union > .gitattributes
-  > git rebase master
+  > git rebase main
   First, rewinding head to replay your work on top of it...
   Applying: Add flips table.
   Using index info to reconstruct a base tree...
@@ -1359,10 +1475,10 @@ worthwhile to keep that change:
 
 =head2 Merges Mastered
 
-And now, finally, we can merge into C<master>:
+And now, finally, we can merge into C<main>:
 
-  > git checkout master
-  Switched to branch 'master'
+  > git checkout main
+  Switched to branch 'main'
   > git merge --no-ff flips -m "Merge branch 'flips'"
   Merge made by the 'recursive' strategy.
    .gitattributes         |  1 +
@@ -1408,14 +1524,14 @@ And double-check our work:
   insert_flip [flips appschema] 2014-01-01T00:53:00Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a flip.
   delete_flip [flips appschema] 2014-01-01T00:53:16Z Marge N. O’Vera <marge@example.com> # Creates a function to delete a flip.
 
-Much much better, a nice clean master now. And because it is now identical to
+Much much better, a nice clean main now. And because it is now identical to
 the "flips" branch, we can just carry on. Go ahead and tag it, bundle, and
 release:
 
   > sqitch tag v1.0.0-dev2 -n 'Tag v1.0.0-dev2.'
   Tagged "delete_flip" with @v1.0.0-dev2
   > git commit -am 'Tag the database with v1.0.0-dev2.'
-  [master 5427456] Tag the database with v1.0.0-dev2.
+  [main 5427456] Tag the database with v1.0.0-dev2.
    1 file changed, 1 insertion(+)
   > git tag v1.0.0-dev2 -am 'Tag v1.0.0-dev2'
   > sqitch bundle --dest-dir flipr-1.0.0-dev2 
@@ -1597,8 +1713,8 @@ point of fact, it has copied the files to stand in for the previous instance
 of the C<insert_user> change, which we can see via C<git status>:
 
   > git status
-  # On branch master
-  # Your branch is ahead of 'origin/master' by 2 commits.
+  # On branch main
+  # Your branch is ahead of 'origin/main' by 2 commits.
   #   (use "git push" to publish your local commits)
   #
   # Changes not staged for commit:
@@ -1815,7 +1931,7 @@ Excellent. Let's go ahead and commit these changes:
 
   > git add .
   > git commit -m 'Use crypt to encrypt passwords.'
-  [master be46175] Use crypt to encrypt passwords.
+  [main be46175] Use crypt to encrypt passwords.
    13 files changed, 181 insertions(+), 15 deletions(-)
    create mode 100644 deploy/change_pass@v1.0.0-dev2.sql
    create mode 100644 deploy/insert_user@v1.0.0-dev2.sql
@@ -1847,7 +1963,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2020 iovation Inc.
+Copyright (c) 2012-2021 iovation Inc., David E. Wheeler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

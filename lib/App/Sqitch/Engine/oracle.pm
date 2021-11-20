@@ -390,13 +390,13 @@ sub change_offset_from_id {
     my $tagcol = sprintf $self->_listagg_format, 't.tag';
 
     my $change = $self->dbh->selectrow_hashref(qq{
-        SELECT id, name, project, note, timestamp, planner_name, planner_email, tags
+        SELECT id, name, project, note, timestamp, planner_name, planner_email, tags, script_hash
           FROM (
-              SELECT id, name, project, note, timestamp, planner_name, planner_email, tags, rownum AS rnum
+              SELECT id, name, project, note, timestamp, planner_name, planner_email, tags, script_hash, rownum AS rnum
                 FROM (
                   SELECT c.change_id AS id, c.change AS name, c.project, c.note,
                          $tscol AS timestamp, c.planner_name, c.planner_email,
-                         $tagcol AS tags
+                         $tagcol AS tags, c.script_hash
                     FROM changes   c
                     LEFT JOIN tags t ON c.change_id = t.change_id
                    WHERE c.project = ?
@@ -404,7 +404,7 @@ sub change_offset_from_id {
                          SELECT committed_at FROM changes WHERE change_id = ?
                    )
                    GROUP BY c.change_id, c.change, c.project, c.note, c.planned_at,
-                         c.planner_name, c.planner_email, c.committed_at
+                         c.planner_name, c.planner_email, c.committed_at, c.script_hash
                    ORDER BY c.committed_at $dir
               )
          ) WHERE rnum = ?
@@ -429,7 +429,7 @@ sub are_deployed_changes {
         push @qs => 'change_id IN (' . join(', ' => ('?') x 250) . ')';
         $i -= 250;
     }
-    push @qs => 'change_id IN (' . join(', ' => ('?') x @_) . ')';
+    push @qs => 'change_id IN (' . join(', ' => ('?') x $i) . ')' if $i > 0;
     my $expr = join ' OR ', @qs;
     @{ $self->dbh->selectcol_arrayref(
         "SELECT change_id FROM changes WHERE $expr",
@@ -724,7 +724,7 @@ sub _script {
     my %vars = $self->variables;
 
     return join "\n" => (
-        'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF',
+        'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF VERIFY OFF',
         'WHENEVER OSERROR EXIT 9;',
         'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
         (map {; (my $v = $vars{$_}) =~ s/"/""/g; qq{DEFINE $_="$v"} } sort keys %vars),
@@ -809,7 +809,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2020 iovation Inc.
+Copyright (c) 2012-2021 iovation Inc., David E. Wheeler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

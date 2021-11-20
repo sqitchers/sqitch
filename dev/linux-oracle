@@ -1,7 +1,0 @@
-#!/bin/bash
-
-set -e
-
-# TODO: Set up Oracle.
-# sudo apt-get update -qq
-# sudo apt-get -qq install build-essential libarchive-tools libaio-dev

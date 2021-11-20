@@ -26,6 +26,7 @@ can_ok $CLASS, qw(
     options
     configure
     log_only
+    lock_timeout
     execute
     deploy_variables
     revert_variables
@@ -53,6 +54,7 @@ is_deeply [$CLASS->options], [qw(
     set-deploy|e=s%
     set-revert|r=s%
     log-only
+    lock-timeout=i
     y
 )], 'Options should be correct';
 
@@ -98,11 +100,12 @@ is_deeply $CLASS->configure($config, {
 }, 'Should have set option';
 
 is_deeply $CLASS->configure($config, {
-    y           => 1,
-    set_deploy  => { foo => 'bar' },
-    log_only    => 1,
-    verify      => 1,
-    mode        => 'tag',
+    y            => 1,
+    set_deploy   => { foo => 'bar' },
+    log_only     => 1,
+    lock_timeout => 30,
+    verify       => 1,
+    mode         => 'tag',
 }), {
     mode             => 'tag',
     no_prompt        => 1,
@@ -110,9 +113,10 @@ is_deeply $CLASS->configure($config, {
     deploy_variables => { foo => 'bar' },
     verify           => 1,
     log_only         => 1,
+    lock_timeout     => 30,
     _params          => [],
     _cx              => [],
-}, 'Should have mode, deploy_variables, verify, no_prompt, and log_only';
+}, 'Should have mode, deploy_variables, verify, no_prompt, log_only, & lock_timeout';
 
 is_deeply $CLASS->configure($config, {
     y           => 0,
@@ -507,15 +511,28 @@ foo 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
 bar 2012-07-16T17:25:07Z Barack Obama <potus@whitehouse.gov>
 };
 
-throws_ok { $checkout->execute('master') } 'App::Sqitch::X',
+throws_ok { $checkout->execute('main') } 'App::Sqitch::X',
     'Should get an error for plans without a common change';
 is $@->ident, 'checkout',
     'The no common change error ident should be "checkout"';
 is $@->message, __x(
     'Branch {branch} has no changes in common with current branch {current}',
-    branch  => 'master',
+    branch  => 'main',
     current => $probed,
 ), 'The no common change error message should be correct';
+
+# Show usage when no branch name specified.
+my @args;
+$mock_cmd->mock(usage => sub { @args = @_; die 'USAGE' });
+throws_ok { $checkout->execute } qr/USAGE/,
+    'No branch arg should yield usage';
+is_deeply \@args, [$checkout], 'No args should be passed to usage';
+
+@args = ();
+throws_ok { $checkout->execute('') } qr/USAGE/,
+    'Empty branch arg should yield usage';
+is_deeply \@args, [$checkout], 'No args should be passed to usage';
+$mock_cmd->unmock('usage');
 
 # Mock the engine interface.
 my $mock_engine = Test::MockModule->new('App::Sqitch::Engine::sqlite');
@@ -543,6 +560,7 @@ $captured = file(qw(t sql sqitch.plan))->slurp;
 # Checkout with options.
 isa_ok $checkout = $CLASS->new(
     log_only         => 1,
+    lock_timeout     => 30,
     verify           => 1,
     sqitch           => $sqitch,
     mode             => 'tag',
@@ -550,13 +568,13 @@ isa_ok $checkout = $CLASS->new(
     revert_variables => { hey => 'there' },
 ), $CLASS, 'Object with to and variables';
 
-ok $checkout->execute('master'), 'Checkout master';
+ok $checkout->execute('main'), 'Checkout main';
 is_deeply \@probe_args, [$client, qw(rev-parse --abbrev-ref HEAD)],
     'The proper args should again have been passed to rev-parse';
-is_deeply \@capture_args, [$client, 'show', 'master:' . $checkout->default_target->plan_file ],
-
-    'Should have requested the plan file contents as of master';
-is_deeply \@run_args, [$client, qw(checkout master)], 'Should have checked out other branch';
+is_deeply \@capture_args, [$client, 'show', 'main:'
+    . File::Spec->catfile(File::Spec->curdir, $checkout->default_target->plan_file)
+], 'Should have requested the plan file contents as of main';
+is_deeply \@run_args, [$client, qw(checkout main)], 'Should have checked out other branch';
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
 is_deeply +MockOutput->get_info, [[__x(
@@ -578,6 +596,7 @@ is_deeply \@dep_changes, [qw(roles users thingíes)],
 
 ok $target->engine->with_verify, 'Engine should verify';
 ok $target->engine->log_only, 'The engine should be set to log_only';
+is $target->engine->lock_timeout, 30, 'The lock timeout should be set to 30';
 is @vars, 2, 'Variables should have been passed to the engine twice';
 is_deeply { @{ $vars[0] } }, { hey => 'there' },
     'The revert vars should have been passed first';
@@ -586,7 +605,7 @@ is_deeply { @{ $vars[1] } }, { foo => 'bar', one => 1 },
 
 # Try passing a target.
 @vars = ();
-ok $checkout->execute('master', 'db:sqlite:foo'), 'Checkout master with target';
+ok $checkout->execute('main', 'db:sqlite:foo'), 'Checkout main with target';
 is $target->name, 'db:sqlite:foo', 'Target should be passed to engine';
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
@@ -604,12 +623,14 @@ isa_ok $checkout = $CLASS->new(
 
 $mock_engine->mock(revert => sub { hurl { ident => 'revert', message => 'foo', exitval => 1 } });
 @dep_args = @rev_args = @vars = ();
-ok $checkout->execute('master'), 'Checkout master again';
+ok $checkout->execute('main'), 'Checkout main again';
 is $target->name, 'db:sqlite:hello', 'Target should be passed to engine';
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
 # Did it deploy?
 ok !$target->engine->log_only, 'The engine should not be set to log_only';
+is $target->engine->lock_timeout, App::Sqitch::Engine::default_lock_timeout(),
+    'The lock timeout should be set to the default';
 ok !$target->engine->with_verify, 'The engine should not be set with_verfy';
 is_deeply \@dep_args, [undef, 'tag'],
     'undef, "tag", and 1 should be passed to the engine deploy again';
@@ -622,7 +643,7 @@ is_deeply { @{ $vars[1] } }, { foo => 'bar', one => 1 },
     'The deploy vars should again have been next';
 
 # Should get a warning for two targets.
-ok $checkout->execute('master', 'db:sqlite:'), 'Checkout master again with target';
+ok $checkout->execute('main', 'db:sqlite:'), 'Checkout main again with target';
 is $target->name, 'db:sqlite:hello', 'Target should be passed to engine';
 is_deeply +MockOutput->get_warn, [[__x(
     'Too many targets specified; connecting to {target}',
@@ -630,7 +651,7 @@ is_deeply +MockOutput->get_warn, [[__x(
 )]], 'Should have warning about two targets';
 
 # Make sure we get an exception for unknown args.
-throws_ok { $checkout->execute(qw(master greg)) } 'App::Sqitch::X',
+throws_ok { $checkout->execute(qw(main greg)) } 'App::Sqitch::X',
     'Should get an exception for unknown arg';
 is $@->ident, 'checkout', 'Unknow arg ident should be "checkout"';
 is $@->message, __nx(
@@ -640,7 +661,7 @@ is $@->message, __nx(
     arg => 'greg',
 ), 'Should get an exeption for two unknown arg';
 
-throws_ok { $checkout->execute(qw(master greg widgets)) } 'App::Sqitch::X',
+throws_ok { $checkout->execute(qw(main greg widgets)) } 'App::Sqitch::X',
     'Should get an exception for unknown args';
 is $@->ident, 'checkout', 'Unknow args ident should be "checkout"';
 is $@->message, __nx(
@@ -657,7 +678,7 @@ for my $spec (
     [ unknown => bless { } => __PACKAGE__ ],
 ) {
     $mock_engine->mock(revert => sub { die $spec->[1] });
-    throws_ok { $checkout->execute('master') } ref $spec->[1],
+    throws_ok { $checkout->execute('main') } ref $spec->[1],
         "Should rethrow $spec->[0] exception";
 }
 

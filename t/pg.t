@@ -1,5 +1,22 @@
 #!/usr/bin/perl -w
 
+# There are two ways to test against a live Postgres database. If there is an
+# instance on the local host trusting all local socket connections and the
+# default postgres user, the test will connect, create the database it needs,
+# run the tests, and then drop the database.
+#
+# Alternatively, provide the URL to connect to a Postgres database in the
+# SQITCH_TEST_PG_URI environment variable. this is a standard URI::db URI, and
+# should look something like this:
+#
+#     export SQITCH_TEST_PG_URI=db:pg://postgres:password@localhost:5432/sqitchtest
+#
+# It should use the C locale (`ALTER DATABASE $db SET lc_messages = 'C'`) to
+# ensure proper sorting while testing. Sqitch will connect to this database and
+# create two schemas to run the tests in, `sqitch` and `__sqitchtest`, and will
+# drop them when the tests complete.
+#
+
 use strict;
 use warnings;
 use 5.010;
@@ -240,11 +257,11 @@ is $dt->time_zone->name, 'UTC', 'DateTime TZ should be set';
 # Test _psql_major_version.
 for my $spec (
     ['11beta3', 11],
-    ['11.3', 11],
-    ['10', 10],
-    ['9.6.3', 9],
-    ['8.4.2', 8],
-    ['9.0.19', 9],
+    ['11.3',    11],
+    ['10',      10],
+    ['9.6.3',    9],
+    ['8.4.2',    8],
+    ['9.0.19',   9],
 ) {
     $mock_sqitch->mock(probe => "psql (PostgreSQL) $spec->[0]");
     is $pg->_psql_major_version, $spec->[1],
@@ -258,6 +275,12 @@ $config->replace('core.engine' => 'pg');
 $sqitch = App::Sqitch->new(config => $config);
 $target = App::Sqitch::Target->new( sqitch => $sqitch );
 $pg     = $CLASS->new(sqitch => $sqitch, target => $target);
+
+$uri = URI->new(
+    $ENV{SQITCH_TEST_PG_URI}
+    || 'db:pg://' . ($ENV{PGUSER} || 'postgres') . "\@/template1"
+);
+
 my $dbh;
 my $db = '__sqitchtest__' . $$;
 END {
@@ -267,43 +290,46 @@ END {
         $h->disconnect if $h->{Type} eq 'db' && $h->{Active} && $h ne $dbh;
     });
 
-    $dbh->do("DROP DATABASE $db") if $dbh->{Active};
+    # Drop the database or schema.
+    if ($dbh->{Active}) {
+        if ($ENV{SQITCH_TEST_PG_URI}) {
+            $dbh->do('SET client_min_messages = warning');
+            $dbh->do("DROP SCHEMA $_ CASCADE") for qw(sqitch __sqitchtest);
+        } else {
+            $dbh->do("DROP DATABASE $db");
+        }
+    }
 }
-
-my $pguser = $ENV{PGUSER} || 'postgres';
 
 my $err = try {
     $pg->_capture('--version');
     $pg->use_driver;
-    $dbh = DBI->connect('dbi:Pg:dbname=template1', $pguser, '', {
-        PrintError => 0,
-        RaiseError => 1,
-        AutoCommit => 1,
+    $dbh = DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {
+        PrintError     => 0,
+        RaiseError     => 1,
+        AutoCommit     => 1,
+        pg_lc_messages => 'C',
     });
-    $dbh->do($_) for (
-        "CREATE DATABASE $db",
-        "ALTER DATABASE $db SET lc_messages = 'C'",
-    );
+    unless ($ENV{SQITCH_TEST_PG_URI}) {
+        $dbh->do("CREATE DATABASE $db");
+        $uri->dbname($db);
+    }
     undef;
 } catch {
     eval { $_->message } || $_;
 };
 
 DBIEngineTest->run(
-    class         => $CLASS,
-    version_query => 'SELECT version()',
-    target_params => [
-        uri => URI::db->new("db:pg://$pguser\@/$db"),
-    ],
-    alt_target_params => [
-        registry => '__sqitchtest',
-        uri => URI::db->new("db:pg://$pguser\@/$db"),
-    ],
+    class             => $CLASS,
+    version_query     => 'SELECT version()',
+    target_params     => [ uri => $uri ],
+    alt_target_params => [ registry => '__sqitchtest', uri => $uri ],
     skip_unless       => sub {
         my $self = shift;
         die $err if $err;
         # Make sure we have psql and can connect to the database.
-        $self->sqitch->probe( $self->client, '--version' );
+        my $version = $self->sqitch->capture( $self->client, '--version' );
+        say "# Detected $version";
         $self->_capture('--command' => 'SELECT version()');
     },
     engine_err_regex  => qr/^ERROR:  /,
@@ -316,6 +342,11 @@ DBIEngineTest->run(
         # Make sure the sqitch schema is the first in the search path.
         is $dbh->selectcol_arrayref('SELECT current_schema')->[0],
             '__sqitchtest', 'The Sqitch schema should be the current schema';
+    },
+    lock_sql => {
+        is_locked => q{SELECT 1 FROM pg_locks WHERE locktype = 'advisory' AND objid = 75474063 AND objsubid = 1},
+        try_lock  => 'SELECT pg_try_advisory_lock(75474063)',
+        free_lock => 'SELECT pg_advisory_unlock_all()',
     },
 );
 

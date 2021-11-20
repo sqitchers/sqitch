@@ -59,11 +59,32 @@ has _exaplus => (
         my $uri  = $self->uri;
         my @ret  = ( $self->client );
 
+        # Collect the cquery params and convert keys to uppercase.
+        require URI::QueryParam;
+        my $qry  = $uri->query_form_hash;
+        for my $key (keys %{ $qry }) {
+            my $ukey = uc $key;
+            next if $key eq $ukey;
+
+            # Move value to uppercase key.
+            my $val = delete $qry->{$key};
+            if (!exists $qry->{$ukey}) {
+                # Store under uppercase key.
+                $qry->{$ukey} = $val;
+            } else {
+                # Push the value(s) onto upercase key array value.
+                $qry->{$ukey} = [$qry->{$ukey}] if ref $qry->{$ukey} ne 'ARRAY';
+                push @{ $qry->{$ukey} } => ref $val eq 'ARRAY' ? @{ $val } : $val;
+            }
+        }
+
         for my $spec (
             [ u => $self->username ],
             [ p => $self->password ],
             [ c => $uri->host && $uri->_port ? $uri->host . ':' . $uri->_port : undef ],
-            [ profile => $uri->host ? undef : $uri->dbname ]
+            [ profile => $uri->host ? undef : $uri->dbname ],
+            [ jdbcparam => ($qry->{SSLCERTIFICATE} || '') eq 'SSL_VERIFY_NONE' ? 'validateservercertificate=0' : undef ],
+            [ jdbcparam => $qry->{AUTHMETHOD}  ? "authmethod=$qry->{AUTHMETHOD}" : undef ],
         ) {
             push @ret, "-$spec->[0]" => $spec->[1] if $spec->[1];
         }
@@ -200,11 +221,11 @@ sub change_offset_from_id {
 
     my $change = $self->dbh->selectrow_hashref(qq{
         SELECT id, name, project, note, "timestamp", planner_name, planner_email,
-               tags
+               tags, script_hash
           FROM (
             SELECT c.change_id AS id, c.change AS name, c.project, c.note,
                    $tscol AS "timestamp", c.planner_name, c.planner_email,
-                   $tagcol AS tags, c.committed_at
+                   $tagcol AS tags, c.committed_at, c.script_hash
               FROM changes   c
               LEFT JOIN tags t ON c.change_id = t.change_id
              WHERE c.project = ?
@@ -212,7 +233,7 @@ sub change_offset_from_id {
                    SELECT committed_at FROM changes WHERE change_id = ?
              )
              GROUP BY c.change_id, c.change, c.project, c.note, c.planned_at,
-                   c.planner_name, c.planner_email, c.committed_at
+                   c.planner_name, c.planner_email, c.committed_at, c.script_hash
           ) changes
         ORDER BY changes.committed_at $dir
          LIMIT 1 $offset_expr
@@ -289,23 +310,6 @@ sub is_deployed_tag {
         'SELECT 1 FROM tags WHERE tag_id = ?',
         undef, $tag->id
     )->[0];
-}
-
-sub are_deployed_changes {
-    my $self = shift;
-    my @qs;
-    my $i = @_;
-    while ($i > 250) {
-        push @qs => 'change_id IN (' . join(', ' => ('?') x 250) . ')';
-        $i -= 250;
-    }
-    push @qs => 'change_id IN (' . join(', ' => ('?') x @_) . ')';
-    my $expr = join ' OR ', @qs;
-    @{ $self->dbh->selectcol_arrayref(
-        "SELECT change_id FROM changes WHERE $expr",
-        undef,
-        map { $_->id } @_,
-    ) };
 }
 
 sub _registry_variable {
@@ -564,7 +568,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2020 iovation Inc.
+Copyright (c) 2012-2021 iovation Inc., David E. Wheeler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

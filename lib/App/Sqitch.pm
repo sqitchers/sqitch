@@ -87,7 +87,8 @@ has user_name => (
             );
             if (ISWIN) {
                 try { require Win32API::Net } || return $sysname;
-                Win32API::Net::UserGetInfo( "", $sysname, 10, my $info = {} );
+                # https://stackoverflow.com/q/12081246/79202
+                Win32API::Net::UserGetInfo( $ENV{LOGONSERVER}, $sysname, 10, my $info = {} );
                 return $sysname unless $info->{fullName};
                 require Encode::Locale;
                 return Encode::decode( locale => $info->{fullName} );
@@ -905,7 +906,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2020 iovation Inc.
+Copyright (c) 2012-2021 iovation Inc., David E. Wheeler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
