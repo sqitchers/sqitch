@@ -95,7 +95,7 @@ is_deeply $CLASS->configure($config, {
     variables    => { foo => 'bar' },
     _params      => [],
     _cx          => [],
-}, 'Should have mode, verify, set, log-only, & loock-timeout options';
+}, 'Should have mode, verify, set, log-only, & lock-timeout options';
 
 CONFIG: {
     my $config = TestConfig->new(

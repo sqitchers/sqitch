@@ -274,7 +274,7 @@ sub try_lock {
 # until timeout.
 sub wait_lock {
     my $self = shift;
-    # Asyncronouslly request a lock with an indefinite wait.
+    # Asynchronously request a lock with an indefinite wait.
     my $dbh = $self->dbh;
     $dbh->do(
         'SELECT pg_advisory_lock(75474063)',

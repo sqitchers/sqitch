@@ -1,6 +1,6 @@
-# This workflow is intended to be the default to check for compatability across
+# This workflow is intended to be the default to check for compatibility across
 # operating systems without much overhead. It uses the latest version of Perl on
-# the latest versions of Ubunti, macOS, and Windows. Think of it as a quick
+# the latest versions of Ubuntu, macOS, and Windows. Think of it as a quick
 # check for working branches.
 name: 💿 OS
 on: [push, pull_request]

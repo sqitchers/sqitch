@@ -265,7 +265,7 @@ ok $revert->execute('@alpha'), 'Execute to "@alpha"';
 ok $target->engine->no_prompt, 'Engine should be no_prompt';
 ok !$target->engine->log_only, 'Engine should not be log_only';
 is $target->engine->lock_timeout, App::Sqitch::Engine::default_lock_timeout(),
-    'The engine should have the default lock_timeou';
+    'The engine should have the default lock_timeout';
 is_deeply \@args, ['@alpha'],
     '"@alpha" should be passed to the engine';
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';

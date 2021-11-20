@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 #
 # To test against a live Firebird database, you must set the
-# SQITCH_TEST_FIREBIRD_URI environment variable. this is a stanard URI::db URI,
+# SQITCH_TEST_FIREBIRD_URI environment variable. this is a standard URI::db URI,
 # and should look something like this:
 #
 #     export SQITCH_TEST_FIREBIRD_URI=db:firebird://sysdba:password@localhost//path/to/test.db
