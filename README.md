@@ -1,4 +1,4 @@
-App/Sqitch version v1.2.0
+App/Sqitch version v1.2.1-dev
 =========================
 
 | Release           | Coverage          | Database                             ||
