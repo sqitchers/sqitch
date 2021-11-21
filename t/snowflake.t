@@ -506,6 +506,8 @@ is $snow->_char2ts($now), $now->as_string(format => 'iso'),
 ##############################################################################
 # Can we do live tests?
 my $dbh;
+my $id = do { my @s = (0..9,'a'..'z'); join "", map $s[rand @s], 1..8 };
+my ($reg1, $reg2) = map { $_ . $id } qw(sqitch_ __sqitchtest_);
 END {
     return unless $dbh;
     $dbh->{Driver}->visit_child_handles(sub {
@@ -515,10 +517,7 @@ END {
 
     $dbh->{RaiseError} = 0;
     $dbh->{PrintError} = 1;
-    $dbh->do($_) for (
-        'DROP SCHEMA IF EXISTS sqitch CASCADE',
-        'DROP SCHEMA IF EXISTS __sqitchtest CASCADE',
-    );
+    $dbh->do("DROP SCHEMA IF EXISTS $_ CASCADE") for ($reg1, $reg2);
 }
 
 $uri = URI->new(
@@ -542,8 +541,8 @@ my $err = try {
 DBIEngineTest->run(
     class             => $CLASS,
     version_query     => q{SELECT 'Snowflake ' || CURRENT_VERSION()},
-    target_params     => [ uri => $uri ],
-    alt_target_params => [ uri => $uri, registry => '__sqitchtest' ],
+    target_params     => [ uri => $uri, registry => $reg1 ],
+    alt_target_params => [ uri => $uri, registry => $reg2 ],
     skip_unless       => sub {
         my $self = shift;
         die $err if $err;
@@ -555,13 +554,13 @@ DBIEngineTest->run(
     engine_err_regex  => qr/\bSQL\s+compilation\s+error:/,
     init_error        => __x(
         'Sqitch schema "{schema}" already exists',
-        schema => '__sqitchtest',
+        schema => $reg2,
     ),
     test_dbh => sub {
         my $dbh = shift;
         # Make sure the sqitch schema is the first in the search path.
         is $dbh->selectcol_arrayref('SELECT current_schema()')->[0],
-            '__SQITCHTEST', 'The Sqitch schema should be the current schema';
+            uc($reg2), 'The Sqitch schema should be the current schema';
     },
     add_second_format => 'dateadd(second, 1, %s)',
 
