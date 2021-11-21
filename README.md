@@ -150,33 +150,33 @@ SOFTWARE.
 
   [CPAN]:      https://img.shields.io/cpan/v/App-Sqitch?label=%F0%9F%93%9A%20CPAN
   [📚]:        https://metacpan.org/dist/App-Sqitch "Latest version on CPAN"
-  [OSes]:      https://github.com/sqitchers/sqitch/actions/workflows/os.yml/badge.svg?branch=main
+  [OSes]:      https://github.com/sqitchers/sqitch/actions/workflows/os.yml/badge.svg
   [💿]:        https://github.com/sqitchers/sqitch/actions/workflows/os.yml "Tested on Linux, macOS, and Windows"
-  [Exasol]:    https://github.com/sqitchers/sqitch/actions/workflows/exasol.yml/badge.svg?branch=main
+  [Exasol]:    https://github.com/sqitchers/sqitch/actions/workflows/exasol.yml/badge.svg
   [☀️]:         https://github.com/sqitchers/sqitch/actions/workflows/exasol.yml "Tested with Exasol 7.0–7.1"
-  [Oracle]:    https://github.com/sqitchers/sqitch/actions/workflows/oracle.yml/badge.svg?branch=main
+  [Oracle]:    https://github.com/sqitchers/sqitch/actions/workflows/oracle.yml/badge.svg
   [🔮]:        https://github.com/sqitchers/sqitch/actions/workflows/oracle.yml "Tested with Oracle 11, 18, and 21"
   [Docker]:    https://img.shields.io/docker/v/sqitch/sqitch?label=%F0%9F%90%B3%20Docker&sort=semver
   [🐳]:        https://hub.docker.com/r/sqitch/sqitch "Latest version on Docker Hub"
-  [Perl]:      https://github.com/sqitchers/sqitch/actions/workflows/perl.yml/badge.svg?branch=main
+  [Perl]:      https://github.com/sqitchers/sqitch/actions/workflows/perl.yml/badge.svg
   [🧅]:        https://github.com/sqitchers/sqitch/actions/workflows/perl.yml "Tested with Perl 5.12–5.34"
-  [Firebird]:  https://github.com/sqitchers/sqitch/actions/workflows/firebird.yml/badge.svg?branch=main
+  [Firebird]:  https://github.com/sqitchers/sqitch/actions/workflows/firebird.yml/badge.svg
   [🔥]:        https://github.com/sqitchers/sqitch/actions/workflows/firebird.yml "Tested with Firebird 2.5, 3, and 4"
-  [Snowflake]: https://github.com/sqitchers/sqitch/actions/workflows/snowflake.yml/badge.svg?branch=main
+  [Snowflake]: https://github.com/sqitchers/sqitch/actions/workflows/snowflake.yml/badge.svg
   [❄️]:         https://github.com/sqitchers/sqitch/actions/workflows/snowflake.yml "Tested with Snowflake"
   [Homebrew]:  https://img.shields.io/github/v/tag/sqitchers/homebrew-sqitch?label=%F0%9F%8D%BA%20Homebrew&sort=semver
   [🍺]:        https://github.com/sqitchers/homebrew-sqitch#readme "Latest Homebrew Tap version"
-  [Coverage]:  https://img.shields.io/coveralls/github/sqitchers/sqitch/main?label=%F0%9F%93%88%20Coverage
+  [Coverage]:  https://img.shields.io/coveralls/github/sqitchers/sqitch?label=%F0%9F%93%88%20Coverage
   [📈]:        https://coveralls.io/r/sqitchers/sqitch "Test Coverage"
-  [MySQL]:     https://github.com/sqitchers/sqitch/actions/workflows/mysql.yml/badge.svg?branch=main
+  [MySQL]:     https://github.com/sqitchers/sqitch/actions/workflows/mysql.yml/badge.svg
   [🐬]:        https://github.com/sqitchers/sqitch/actions/workflows/mysql.yml "Tested with MySQL 5.5–8 and MariaDB 10.0–10.6"
-  [SQLite]:    https://github.com/sqitchers/sqitch/actions/workflows/sqlite.yml/badge.svg?branch=main
+  [SQLite]:    https://github.com/sqitchers/sqitch/actions/workflows/sqlite.yml/badge.svg
   [💡]:        https://github.com/sqitchers/sqitch/actions/workflows/sqlite.yml "Tested with SQLite 3.7–3.36"
   [Debian]:    https://img.shields.io/debian/v/sqitch?label=%F0%9F%8D%A5%20Debian
   [🍥]:        https://packages.debian.org/stable/sqitch "Latest version on Debian"
-  [Postgres]:  https://github.com/sqitchers/sqitch/actions/workflows/pg.yml/badge.svg?branch=main
+  [Postgres]:  https://github.com/sqitchers/sqitch/actions/workflows/pg.yml/badge.svg
   [🐘]:        https://github.com/sqitchers/sqitch/actions/workflows/pg.yml "Tested with PostgreSQL 9.3–14"
-  [Vertica]:   https://github.com/sqitchers/sqitch/actions/workflows/vertica.yml/badge.svg?branch=main
+  [Vertica]:   https://github.com/sqitchers/sqitch/actions/workflows/vertica.yml/badge.svg
   [🔺]:        https://github.com/sqitchers/sqitch/actions/workflows/vertica.yml "Tested with Vertica 7.1–11.0"
 
   [Sqitch]: https://sqitch.org/
