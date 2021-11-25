@@ -47,11 +47,7 @@ jobs:
         with:
           path: local
           key: perl-${{ steps.perl.outputs.perl-hash }}
-      - name: Download cpanfile
-        uses: carlosperate/download-file-action@v1.0.3
-        with:
-          file-url: https://fastapi.metacpan.org/source/DWHEELER/App-Sqitch-v1.1.0/dist/cpanfile
-      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends --cpanfile cpanfile
+      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends --cpanfile dist/cpanfile
       - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends DBD::mysql
       - name: prove
         env:
