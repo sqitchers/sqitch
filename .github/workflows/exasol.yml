@@ -14,16 +14,15 @@ jobs:
         include:
           - { version: '7.1', image: 'latest-7.1', port: 8563 }
           - { version: '7.0', image: 'latest-7.0', port: 8563 }
-          - { version: '6.2', image: 'latest-6.2', port: 8888 }
-          - { version: '6.1', image: 'latest-6.1', port: 8888 }
-          - { version: '6.0', image: '6.0.16-d1',  port: 8888 }
+          # - { version: '6.2', image: 'latest-6.2', port: 8888 }
+          # - { version: '6.1', image: 'latest-6.1', port: 8888 }
+          # - { version: '6.0', image: '6.0.16-d1',  port: 8888 }
     name: ☀️ Exasol ${{ matrix.version }}
     runs-on: ubuntu-latest
     services:
       exasol:
         image: exasol/docker-db:${{ matrix.image }}
-        ports:
-          - 8563:${{ matrix.port }}
+        ports: [ "${{ matrix.port }}" ]
         options: --privileged
     steps:
       - uses: actions/checkout@v2
@@ -48,5 +47,5 @@ jobs:
         env:
           PERL5LIB: "${{ github.workspace }}/local/lib/perl5"
           LIVE_EXASOL_REQUIRED: true
-          SQITCH_TEST_EXASOL_URI: db:exasol://sys:exasol@127.0.0.1:8563/?Driver=Exasol;SSLCertificate=SSL_VERIFY_NONE
+          SQITCH_TEST_EXASOL_URI: db:exasol://sys:exasol@127.0.0.1:${{ job.services.exasol.ports[matrix.port] }}/?Driver=Exasol;SSLCertificate=SSL_VERIFY_NONE
         run: prove -lvr t/exasol.t
