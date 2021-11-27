@@ -1,6 +1,10 @@
 Revision history for Perl extension App::Sqitch
 
 1.2.1
+     - Updated all the live engine tests, aside from Oracle, to test with
+       unique registry names, so as to avoid conflicts when multiple
+       instances are being tested at once. Thanks to Slaven Rezić for the
+       report (#597).
 
 1.2.0  2021-11-20T22:45:00Z
      - Fixed partitioned search for deployed changes on Oracle and Exasol to

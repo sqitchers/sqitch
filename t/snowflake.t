@@ -506,7 +506,7 @@ is $snow->_char2ts($now), $now->as_string(format => 'iso'),
 ##############################################################################
 # Can we do live tests?
 my $dbh;
-my $id = do { my @s = (0..9,'a'..'z'); join "", map $s[rand @s], 1..8 };
+my $id = DBIEngineTest->randstr;
 my ($reg1, $reg2) = map { $_ . $id } qw(sqitch_ __sqitchtest_);
 END {
     return unless $dbh;

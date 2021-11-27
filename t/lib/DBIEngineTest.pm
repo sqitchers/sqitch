@@ -15,6 +15,11 @@ use File::Temp 'tempdir';
 # Just die on warnings.
 use Carp; BEGIN { $SIG{__WARN__} = \&Carp::confess }
 
+sub randstr {
+    my @s = (0..9,'a'..'z');
+    join "", map $s[rand @s], 1..8;
+}
+
 sub run {
     my ( $self, %p ) = @_;
 

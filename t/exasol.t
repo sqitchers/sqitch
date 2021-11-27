@@ -372,6 +372,8 @@ is_deeply [$exa->_regex_expr('corn', 'Obama')],
 ##############################################################################
 # Can we do live tests?
 my $dbh;
+my $id = DBIEngineTest->randstr;
+my ($reg1, $reg2) = map { $_ . $id } qw(sqitch sqitchtest);
 END {
     return unless $dbh;
     $dbh->{Driver}->visit_child_handles(sub {
@@ -381,10 +383,7 @@ END {
 
     $dbh->{RaiseError} = 0;
     $dbh->{PrintError} = 1;
-    $dbh->do($_) for (
-        'DROP SCHEMA sqitch CASCADE',
-        'DROP SCHEMA sqitchtest CASCADE',
-    );
+    $dbh->do("DROP SCHEMA $_ CASCADE") for ($reg1, $reg2);
 }
 
 $uri = URI->new(
@@ -406,8 +405,8 @@ my $err = try {
 
 DBIEngineTest->run(
     class             => $CLASS,
-    target_params     => [ uri => $uri ],
-    alt_target_params => [ uri => $uri, registry => 'sqitchtest' ],
+    target_params     => [ uri => $uri, registry => $reg1 ],
+    alt_target_params => [ uri => $uri, registry => $reg2 ],
     skip_unless       => sub {
         my $self = shift;
         die $err if $err;
@@ -418,14 +417,14 @@ DBIEngineTest->run(
     engine_err_regex  => qr/\[EXASOL\]\[EXASolution driver\]syntax error/,
     init_error        => __x(
         'Sqitch already initialized',
-        schema => 'sqitchtest',
+        schema => $reg2,
     ),
     add_second_format => q{%s + interval '1' second},
     test_dbh => sub {
         my $dbh = shift;
         # Make sure the sqitch schema is the first in the search path.
         is $dbh->selectcol_arrayref('SELECT current_schema')->[0],
-            'SQITCHTEST', 'The Sqitch schema should be the current schema';
+            uc($reg2), 'The Sqitch schema should be the current schema';
     },
 );
 
