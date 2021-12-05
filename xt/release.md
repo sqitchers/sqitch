@@ -80,6 +80,7 @@ to get it out there!
 *   Merge `develop` into the `main` branch:
 
     ``` sh
+    git checkout main
     git merge --no-ff -m "Merge develop for v$VERSION" develop
     git push
     ```
@@ -129,28 +130,32 @@ then make the updates.
     perl -i -pe "s/^(VERSION)=.+/\$1=$VERSION/" build
     ```
 
-*   Edit the `README.md` to add the new version to the list of tags. It should
-    also be listed as using the `latest` tag.
-
 *   Commit and push the changes:
 
     ``` sh
-    git commit -am "Upgrade Sqitch to v$VERSION'
+    git commit -am "Upgrade Sqitch to v$VERSION"
     git push
     ```
 
-*   Watch the [CI/CD action] to make sure the build finishes and publishes the new
-    Docker image [on Docker Hub].
+*   Watch the [CI/CD action] to make sure the build finishes successfully. Once
+    it does, tag the commit and push it, appending an extra `.0`:
 
-*   Test the new version with Docker. This command should should show a usage
-    statement for the new version:
+    ``` sh
+    git tag -sm "Tag v$VERSION.0" v$VERSION.0
+    git push --tags
+    ```
+
+*   Watch the [CI/CD action] again, to be sure it publishes the new image [on
+    Docker Hub]. Then test the new version with Docker. This command should
+    should show a usage statement for the new version:
 
     ``` sh
     docker run -it --rm sqitch/sqitch:v$VERSION
     ```
 
 *   Log into Docker Hub and update the description of the [repository page] with
-    the new release tag. Find the credentials in the shared 1Password vault.
+    the new release tag. It should also be listed as using the `latest` tag.
+    Find the Docker Hub credentials in the shared 1Password vault.
 
 Homebrew
 --------
@@ -173,8 +178,14 @@ Update the Sqitch Homebrew tap with the new version.
 
     ``` sh
     git commit -am "Upgrade to v$VERSION"
-    git tag v$VERSION -sm "Tag v$VERSION"
     git push
+    ```
+
+*   Watch the [CI Action] to make sure the build completes successfully, and fix
+    any issues that arise. Once tests pass, tag the release:
+
+    ``` sh
+    git tag v$VERSION.0 -sm "Tag v$VERSION.0"
     git push --tags
     ```
 
@@ -225,3 +236,4 @@ start work on the next release. Good luck!
   [on Docker Hub]: https://hub.docker.com/r/sqitch/sqitch
   [repository page]: https://hub.docker.com/repository/docker/sqitch/sqitch
   [homebrew-sqitch]: https://github.com/sqitchers/homebrew-sqitch
+  [CI Action]: https://github.com/sqitchers/homebrew-sqitch/actions/workflows/ci.yml
