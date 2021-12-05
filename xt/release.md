@@ -59,11 +59,16 @@ First, update the sources so that everything is up-to-date.
 *   Add any new dependencies to `dist/sqitch.spec` and add a new entry to the
     top of the `%changelog` section for the new version.
 
-*   Update the version in `dist.ini` and `dist/sqitch.spec`, and make sure
-    its the same in `Changes`. Timestamp the entry in `Changes`.
+*   Update the version in the following files and make sure its the same in
+    `Changes`.
 
-*   Merge all the changes into `develop` and makes sure that all of the
-    [workflow actions] pass.
+    *   `dist.ini`
+    *   `dist/sqitch.spec`
+    *   `README.md`
+    *   `po/App-Sqitch.pot`
+
+*   Timestamp the entry in `Changes`, merge all the changes into `develop`, and
+    makes sure that all of the [workflow actions] pass.
 
 Release
 -------

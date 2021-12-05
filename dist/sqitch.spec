@@ -1,5 +1,5 @@
 Name:           sqitch
-Version:        1.2.1-dev
+Version:        1.2.1
 Release:        1%{?dist}
 Summary:        Sensible database change management
 License:        MIT
@@ -308,8 +308,11 @@ also be installed.
 # No additional files required.
 
 %changelog
+* Sun Dec 5 2021 David E. Wheeler <david@justatheory.com> 1.2.1-1
+- Upgrade to v1.2.1.
+
 * Sat Nov 20 2021 David E. Wheeler <david@justatheory.com> 1.2.0-1
-- Upgrade to v1.3.0.
+- Upgrade to v1.2.0.
 - Added the Algorithm::Backoff::Exponential requirement.
 
 * Sun May 17 2020 David E. Wheeler <david.wheeler@iovation.com> 1.1.0-1
