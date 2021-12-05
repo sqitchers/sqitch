@@ -12,17 +12,17 @@ jobs:
     strategy:
       matrix:
         include:
-          - { version: '7.1', image: 'latest-7.1', params: ';SSLCertificate=SSL_VERIFY_NONE' }
-          - { version: '7.0', image: 'latest-7.0', params: ';SSLCertificate=SSL_VERIFY_NONE' }
-          # - { version: '6.2', image: 'latest-6.2', params: '' }
-          # - { version: '6.1', image: 'latest-6.1', params: '' }
-          # - { version: '6.0', image: '6.0.16-d1',  params: '' }
+          - { version: '7.1', image: 'latest-7.1', port: 8563 }
+          - { version: '7.0', image: 'latest-7.0', port: 8563 }
+          # - { version: '6.2', image: 'latest-6.2', port: 8888 }
+          # - { version: '6.1', image: 'latest-6.1', port: 8888 }
+          # - { version: '6.0', image: '6.0.16-d1',  port: 8888 }
     name: ☀️ Exasol ${{ matrix.version }}
     runs-on: ubuntu-latest
     services:
       exasol:
         image: exasol/docker-db:${{ matrix.image }}
-        ports: [ 8563 ]
+        ports: [ "${{ matrix.port }}" ]
         options: --privileged
     steps:
       - uses: actions/checkout@v2
@@ -37,15 +37,11 @@ jobs:
         with:
           path: local
           key: perl-${{ steps.perl.outputs.perl-hash }}
-      - name: Download cpanfile
-        uses: carlosperate/download-file-action@v1.0.3
-        with:
-          file-url: https://fastapi.metacpan.org/source/DWHEELER/App-Sqitch-v1.1.0/dist/cpanfile
-      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends --cpanfile cpanfile
+      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends --cpanfile dist/cpanfile
       - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends DBD::ODBC
       - name: prove
         env:
           PERL5LIB: "${{ github.workspace }}/local/lib/perl5"
           LIVE_EXASOL_REQUIRED: true
-          SQITCH_TEST_EXASOL_URI: db:exasol://sys:exasol@127.0.0.1:${{ job.services.exasol.ports[8563] }}/?Driver=Exasol${{ matrix.params }}
+          SQITCH_TEST_EXASOL_URI: db:exasol://sys:exasol@127.0.0.1:${{ job.services.exasol.ports[matrix.port] }}/?Driver=Exasol;SSLCertificate=SSL_VERIFY_NONE
         run: prove -lvr t/exasol.t

@@ -36,6 +36,10 @@ jobs:
       run: |
         echo "user $CPAN_USERNAME" > ~/.pause
         echo "password $CPAN_PASSWORD" >> ~/.pause
+    - name: Set Local Git User and Email
+      run: |
+        git config --global user.name "sqitch-github-actions[bot]"
+        git config --global user.name "sqitch-github-actions[bot]@users.noreply.github.com"
     - name: Build and Release on CPAN
       id: cpan
       env:

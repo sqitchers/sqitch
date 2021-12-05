@@ -59,11 +59,16 @@ First, update the sources so that everything is up-to-date.
 *   Add any new dependencies to `dist/sqitch.spec` and add a new entry to the
     top of the `%changelog` section for the new version.
 
-*   Update the version in `dist.ini` and `dist/sqitch.spec`, and make sure
-    its the same in `Changes`. Timestamp the entry in `Changes`.
+*   Update the version in the following files and make sure its the same in
+    `Changes`.
 
-*   Merge all the changes into `develop` and makes sure that all of the
-    [workflow actions] pass.
+    *   `dist.ini`
+    *   `dist/sqitch.spec`
+    *   `README.md`
+    *   `po/App-Sqitch.pot`
+
+*   Timestamp the entry in `Changes`, merge all the changes into `develop`, and
+    makes sure that all of the [workflow actions] pass.
 
 Release
 -------
@@ -72,8 +77,15 @@ The complete set of changes should now be in the `develop` branch and
 ready-to-go, fully tested and with no expectation for further changes. It's time
 to get it out there!
 
-*   Merge `develop` into the `main` branch, once again ensure all the [workflow
-    actions] pass, and then tag it for release:
+*   Merge `develop` into the `main` branch:
+
+    ``` sh
+    git merge --no-ff -m "Merge develop for v$VERSION" develop
+    git push
+    ```
+
+*   Once again, ensure all the [workflow actions] pass, and then tag it for
+    release:
 
     ``` sh
     git tag v$VERSION -sm "Tag v$VERSION"
@@ -114,7 +126,7 @@ then make the updates.
 
     ``` sh
     git checkout main
-    perl -i -pe "s/(VERSION=).+/\$1=$VERSION/"
+    perl -i -pe "s/^(VERSION)=.+/\$1=$VERSION/" build
     ```
 
 *   Edit the `README.md` to add the new version to the list of tags. It should
@@ -161,7 +173,7 @@ Update the Sqitch Homebrew tap with the new version.
 
     ``` sh
     git commit -am "Upgrade to v$VERSION"
-    git tag v1.2.0 -sm "Tag v$VERSION"
+    git tag v$VERSION -sm "Tag v$VERSION"
     git push
     git push --tags
     ```
@@ -181,6 +193,26 @@ Update the Sqitch Homebrew tap with the new version.
     brew update
     brew upgrade
     ```
+
+Finishing Up
+------------
+
+Time to get things started for the next version. Switch back to the `develop`
+branch, merge `main`, and change the version to a pre-release version. For
+example, if you've just released `v1.2.0`, change the version to `v1.2.1-dev`.
+
+``` sh
+git checkout develop
+git merge main
+perl -i -pe 's/^(version\s*=).+/$1 v1.2.1-dev/' dist.ini
+perl -i -pe 's{(App/Sqitch version).+}{$1 v1.2.1-dev}' README.md
+perl -i -pe 's/(Project-Id-Version: App-Sqitch)[^\\n]+/$1 v1.2.1-dev/' po/App-Sqitch.pot
+perl -i -pe 's/(Version:\s*).+/${1}1.2.1-dev/' dist/sqitch.spec
+```
+
+Also add a line for the new version (without the pre-release part) to the top of
+the `Changes` file. Then commit and push the changes and you're done! Time to
+start work on the next release. Good luck!
 
   [workflow actions]: https://github.com/sqitchers/sqitch/actions
   [Release action]: https://github.com/sqitchers/sqitch/actions/workflows/release.yml

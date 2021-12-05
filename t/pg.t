@@ -282,7 +282,9 @@ $uri = URI->new(
 );
 
 my $dbh;
-my $db = '__sqitchtest__' . $$;
+my $id = DBIEngineTest->randstr;
+my ($db, $reg1, $reg2) = map { $_ . $id } qw(__sqitchtest__ sqitch __sqitchtest);
+
 END {
     return unless $dbh;
     $dbh->{Driver}->visit_child_handles(sub {
@@ -294,7 +296,7 @@ END {
     if ($dbh->{Active}) {
         if ($ENV{SQITCH_TEST_PG_URI}) {
             $dbh->do('SET client_min_messages = warning');
-            $dbh->do("DROP SCHEMA $_ CASCADE") for qw(sqitch __sqitchtest);
+            $dbh->do("DROP SCHEMA $_ CASCADE") for $reg1, $reg2;
         } else {
             $dbh->do("DROP DATABASE $db");
         }
@@ -322,8 +324,8 @@ my $err = try {
 DBIEngineTest->run(
     class             => $CLASS,
     version_query     => 'SELECT version()',
-    target_params     => [ uri => $uri ],
-    alt_target_params => [ registry => '__sqitchtest', uri => $uri ],
+    target_params     => [ uri => $uri, registry => $reg1 ],
+    alt_target_params => [ uri => $uri, registry => $reg2 ],
     skip_unless       => sub {
         my $self = shift;
         die $err if $err;
@@ -335,13 +337,13 @@ DBIEngineTest->run(
     engine_err_regex  => qr/^ERROR:  /,
     init_error        => __x(
         'Sqitch schema "{schema}" already exists',
-        schema => '__sqitchtest',
+        schema => $reg2,
     ),
     test_dbh => sub {
         my $dbh = shift;
         # Make sure the sqitch schema is the first in the search path.
         is $dbh->selectcol_arrayref('SELECT current_schema')->[0],
-            '__sqitchtest', 'The Sqitch schema should be the current schema';
+            $reg2, 'The Sqitch schema should be the current schema';
     },
     lock_sql => {
         is_locked => q{SELECT 1 FROM pg_locks WHERE locktype = 'advisory' AND objid = 75474063 AND objsubid = 1},

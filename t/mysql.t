@@ -427,10 +427,8 @@ is_deeply [$mysql->_regex_expr('corn', 'Obama$')],
 ##############################################################################
 # Can we do live tests?
 my $dbh;
-
-my $db = '__sqitchtest__' . $$;
-my $reg1 = '__metasqitch' . $$;
-my $reg2 = '__sqitchtest' . $$;
+my $id = DBIEngineTest->randstr;
+my ($db, $reg1, $reg2) = map { $_ . $id } qw(__sqitchtest__ __metasqitch __sqitchtest);
 
 END {
     return unless $dbh;

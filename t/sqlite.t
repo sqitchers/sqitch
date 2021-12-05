@@ -182,7 +182,9 @@ is $sqlite->registry_destination, $sqlite->registry_uri->as_string,
 ##############################################################################
 # Test _read().
 $config->replace('core.engine' => 'sqlite');
-my $db_name = $tmp_dir->file('sqitch.db');
+
+my $id = DBIEngineTest->randstr;
+my $db_name = $tmp_dir->file("sqitch$id.db");
 $target = App::Sqitch::Target->new(
     sqitch => $sqitch,
     uri    => URI->new("db:sqlite:$db_name")
@@ -328,7 +330,8 @@ $mock_sqitch->mock(capture => sub { return ( "\n",$sqlite_version) });
 $mock_sqitch->unmock_all;
 
 ##############################################################################
-my $alt_db = $db_name->dir->file('sqitchtest.db');
+my $alt_db = $db_name->dir->file("sqitchtest$id.db");
+my ($reg1, $reg2) = map { $_ . $id } qw(sqitch sqitchtest);
 # Can we do live tests?
 END {
     my %drivers = DBI->installed_drivers;
@@ -343,10 +346,13 @@ END {
 DBIEngineTest->run(
     class         => $CLASS,
     version_query => q{select 'SQLite ' || sqlite_version()},
-    target_params => [ uri => URI->new("db:sqlite:$db_name") ],
+    target_params => [
+        uri => URI->new("db:sqlite:$db_name"),
+        registry => $reg1,
+    ],
     alt_target_params => [
-        registry => 'sqitchtest',
         uri      => URI->new("db:sqlite:$db_name"),
+        registry => $reg2,
     ],
     skip_unless    => sub {
         my $self = shift;

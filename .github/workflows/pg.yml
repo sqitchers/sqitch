@@ -25,17 +25,13 @@ jobs:
         with:
           path: local
           key: perl-${{ steps.perl.outputs.perl-hash }}
-      - name: Download cpanfile
-        uses: carlosperate/download-file-action@v1.0.3
-        with:
-          file-url: https://fastapi.metacpan.org/source/DWHEELER/App-Sqitch-v1.1.0/dist/cpanfile
-      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends --cpanfile cpanfile
+      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends --cpanfile dist/cpanfile
         # DBD::Pg always build against the Debian packaged client, alas, so go
         # ahead and let it be cached. If can figure out how to install the
         # version-specific client (https://github.com/bucardo/dbdpg/issues/84),
         # use cpm install --global to install DBD::Pg for a version-specific
         # build each time.
-      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends DBD::Pg Algorithm::Backoff::Exponential
+      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends DBD::Pg
       - name: Install Postgres
         env: { PERL5LIB: "${{ github.workspace }}/local/lib/perl5" }
         run: .github/ubuntu/pg.sh ${{ matrix.pg }}

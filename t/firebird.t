@@ -281,13 +281,15 @@ is $dt->time_zone->name, 'UTC', 'DateTime TZ should be set';
 
 # Can we do live tests?
 my ($data_dir, $fb_version, @cleanup) = ($tmpdir);
+my $id = DBIEngineTest->randstr;
+my ($reg1, $reg2) = map { $_ . $id } qw(__sqitchtest__ __metasqitch);
 my $err = try {
     return unless $have_fb_driver;
     if ($uri->dbname) {
         $data_dir = dirname $uri->dbname; # Assumes local OS semantics.
     } else {
         # Assume we're running locally and create the database.
-        my $dbpath = catfile($tmpdir, '__sqitchtest__');
+        my $dbpath = catfile($tmpdir, $reg1);
         $data_dir = $tmpdir;
         $uri->dbname($dbpath);
         DBD::Firebird->create_database({
@@ -309,7 +311,7 @@ my $err = try {
         SELECT rdb$get_context('SYSTEM', 'ENGINE_VERSION')
           FROM rdb$database
       })->[0];
-    push @cleanup => map { catfile $data_dir, $_ } qw(__sqitchtest __metasqitch);
+    push @cleanup => map { catfile $data_dir, $_ } $reg1, $reg2;
     return undef;
 } catch {
     eval { $_->message } || $_;
@@ -341,8 +343,8 @@ END {
 
 DBIEngineTest->run(
     class             => $CLASS,
-    target_params     => [ uri => $uri, registry => catfile($data_dir, '__metasqitch') ],
-    alt_target_params => [ uri => $uri, registry => catfile($data_dir, '__sqitchtest') ],
+    target_params     => [ uri => $uri, registry => catfile($data_dir, $reg1) ],
+    alt_target_params => [ uri => $uri, registry => catfile($data_dir, $reg2) ],
     skip_unless => sub {
         my $self = shift;
         die $err if $err;
@@ -362,7 +364,7 @@ DBIEngineTest->run(
     engine_err_regex  => qr/\QDynamic SQL Error\E/xms,
     init_error        => __x(
         'Sqitch database {database} already initialized',
-        database => catfile($data_dir, '__sqitchtest'),
+        database => catfile($data_dir, $reg2),
     ),
     add_second_format => q{dateadd(1 second to %s)},
     test_dbh => sub {
@@ -374,7 +376,7 @@ DBIEngineTest->run(
                 SELECT rdb$get_context('SYSTEM', 'DB_NAME')
                   FROM rdb$database
             })->[0],
-            catfile($data_dir, '__sqitchtest'),
+            catfile($data_dir, $reg2),
             'The Sqitch db should be the current db'
         );
     },
