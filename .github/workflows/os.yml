@@ -3,7 +3,10 @@
 # the latest versions of Ubuntu, macOS, and Windows. Think of it as a quick
 # check for working branches.
 name: 💿 OS
-on: [push, pull_request]
+on:
+  push:
+    branches: ['*']
+  pull_request:
 jobs:
   OS:
     strategy:
