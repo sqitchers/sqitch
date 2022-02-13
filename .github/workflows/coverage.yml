@@ -1,12 +1,13 @@
 # This workflow creates the services and installs the clients in order to run
 # coverage tests. Each engine must be accessible for a complete coverage report.
-# It runs for pushes and pull requests on the main and develop branches.
+# It runs for pushes and pull requests on the `main`, `develop`, and `**cover**`
+# branches.
 name: 📈 Coverage
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, "**cover**"]
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop, "**cover**"]
 jobs:
   Snowflake:
     name: 📈 Coverage
