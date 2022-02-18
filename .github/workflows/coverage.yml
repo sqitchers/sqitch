@@ -52,7 +52,7 @@ jobs:
           .github/ubuntu/all-apt-prereqs.sh
           .github/ubuntu/exasol.sh
           .github/ubuntu/firebird.sh
-          # .github/ubuntu/mysql.sh
+          .github/ubuntu/mysql.sh
           .github/ubuntu/oracle.sh
           .github/ubuntu/pg.sh
           .github/ubuntu/snowflake.sh
