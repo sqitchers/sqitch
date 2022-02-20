@@ -66,6 +66,7 @@ has dbh => (
     is      => 'rw',
     isa     => DBH,
     lazy    => 1,
+    clearer => '_clear_dbh',
     default => sub {
         my $self = shift;
         my $uri  = $self->registry_uri;
@@ -343,6 +344,13 @@ sub run_upgrade {
     my @cmd    = $self->isql;
     $cmd[-1]   = $self->connection_string($uri);
     my $sqitch = $self->sqitch;
+    unless ($uri->host) {
+        # Only one connection allowed when using an embedded database (Engine 12
+        # provider). So disconnect so that the upgrade can connect and succeed,
+        # and clear the disconnected handle so that the next call to ->dbh will
+        # reconnect.
+        $self->dbh->disconnect; $self->_clear_dbh;
+    }
     $sqitch->run( @cmd, '-input' => $sqitch->quote_shell($file) );
 }
 

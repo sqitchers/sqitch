@@ -282,14 +282,14 @@ is $dt->time_zone->name, 'UTC', 'DateTime TZ should be set';
 # Can we do live tests?
 my ($data_dir, $fb_version, @cleanup) = ($tmpdir);
 my $id = DBIEngineTest->randstr;
-my ($reg1, $reg2) = map { $_ . $id } qw(__sqitchtest__ __metasqitch);
+my ($reg1, $reg2) = map { $_ . $id } qw(__sqitchreg_ __metasqitch_);
 my $err = try {
     return unless $have_fb_driver;
     if ($uri->dbname) {
         $data_dir = dirname $uri->dbname; # Assumes local OS semantics.
     } else {
         # Assume we're running locally and create the database.
-        my $dbpath = catfile($tmpdir, $reg1);
+        my $dbpath = catfile($tmpdir, "__sqitchtest__$id");
         $data_dir = $tmpdir;
         $uri->dbname($dbpath);
         DBD::Firebird->create_database({
@@ -299,8 +299,10 @@ my $err = try {
             character_set => 'UTF8',
             page_size     => 16384,
         });
+        # We created this database, we need to clean it up.
         @cleanup = ($dbpath);
     }
+
     # Try to connect.
     my $dbh = DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {
         PrintError => 0,
@@ -310,7 +312,9 @@ my $err = try {
     $fb_version = $dbh->selectcol_arrayref(q{
         SELECT rdb$get_context('SYSTEM', 'ENGINE_VERSION')
           FROM rdb$database
-      })->[0];
+    })->[0];
+
+    # We will need to clean up the registry DBs we create.
     push @cleanup => map { catfile $data_dir, $_ } $reg1, $reg2;
     return undef;
 } catch {
@@ -320,6 +324,7 @@ my $err = try {
 END {
     return if $ENV{CI}; # No need to clean up in CI environment.
     foreach my $dbname (@cleanup) {
+        next unless -e $dbname;
         $uri->dbname($dbname);
         my $dsn = $uri->dbi_dsn . q{;ib_dialect=3;ib_charset=UTF8};
         my $dbh = DBI->connect($dsn, $uri->user, $uri->password, {
