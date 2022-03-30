@@ -210,7 +210,7 @@ sqitch database. In this case, we should end up with two databases:
 
 The Sqitch registry database.
 
-=item * F<flipr_test.b>
+=item * F<flipr_test.db>
 
 The database Sqitch manages.
 
