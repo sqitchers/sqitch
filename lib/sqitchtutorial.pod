@@ -1204,10 +1204,6 @@ Ah, that looks a bit better. Let's have a look at the plan:
   %project=flipr
   %uri=https://github.com/sqitchers/sqitch-intro/
 
-  %syntax-version=1.0.0
-  %project=flipr
-  %uri=https://github.com/sqitchers/sqitch-intro/
-
   appschema 2013-12-30T23:19:45Z Marge N. O’Vera <marge@example.com> # Add schema for all flipr objects.
   users [appschema] 2013-12-30T23:49:00Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
   insert_user [users appschema] 2013-12-30T23:57:36Z Marge N. O’Vera <marge@example.com> # Creates a function to insert a user.
