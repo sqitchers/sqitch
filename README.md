@@ -7,10 +7,20 @@ App/Sqitch version v1.2.2-dev
 | [![Docker]][🐳]   | [![Perl]][🧅]     | [![Firebird]][🔥] | [![Snowflake]][❄️] |
 | [![Homebrew]][🍺] | [![Coverage]][📈] | [![MySQL]][🐬]    | [![SQLite]][💡]   |
 | [![Debian]][🍥]   |                   | [![Postgres]][🐘] | [![Vertica]][🔺]  |
+|                   |                   | [![Yugabyte]][🚀] |                  |
 
-[Sqitch] is a database change management application. It currently supports
-PostgreSQL 8.4+, SQLite 3.7.11+, MySQL 5.0+, Oracle 10g+, Firebird 2.0+, Vertica
-6.0+, Exasol 6.0+ and Snowflake.
+[Sqitch] is a database change management application. It currently supports:
+
+*   [PostgreSQL] 8.4+
+*   [YugabyteDB] 2.6+
+*   [SQLite][lite] 3.7.11+
+*   [MySQL][my] 5.0+
+*   [MariaDB] 10.0+
+*   [Oracle][orcl] 10g+,
+*   [Firebird][bird] 2.0+
+*   [Vertica][vert] 6.0+
+*   [Exasol][exa] 6.0+
+*   [Snowflake][flake]
 
 What makes it different from your typical migration approaches? A few things:
 
@@ -24,7 +34,7 @@ What makes it different from your typical migration approaches? A few things:
 
     Changes are implemented as scripts native to your selected database engine.
     Writing a [PostgreSQL] application? Write SQL scripts for [`psql`]. Writing
-    an [Oracle]-backed app? Write SQL scripts for [SQL\*Plus].
+    an [Oracle][orcl]-backed app? Write SQL scripts for [SQL\*Plus].
 
 *   Dependency resolution
 
@@ -176,13 +186,23 @@ SOFTWARE.
   [🍥]:        https://packages.debian.org/stable/sqitch "Latest version on Debian"
   [Postgres]:  https://github.com/sqitchers/sqitch/actions/workflows/pg.yml/badge.svg
   [🐘]:        https://github.com/sqitchers/sqitch/actions/workflows/pg.yml "Tested with PostgreSQL 9.3–14"
+  [Yugabyte]:  https://github.com/sqitchers/sqitch/actions/workflows/yugabyte.yml/badge.svg
+  [🚀]:        https://github.com/sqitchers/sqitch/actions/workflows/yugabyte.yml "Tested with YugabyteDB 2.6–2.13"
   [Vertica]:   https://github.com/sqitchers/sqitch/actions/workflows/vertica.yml/badge.svg
   [🔺]:        https://github.com/sqitchers/sqitch/actions/workflows/vertica.yml "Tested with Vertica 7.1–11.0"
 
   [Sqitch]: https://sqitch.org/
   [PostgreSQL]: https://postgresql.org/
+  [YugabyteDB]: https://www.yugabyte.com/yugabytedb/
+  [lite]: https://sqlite.org/
+  [my]: https://dev.mysql.com/
+  [MariaDB]: https://mariadb.org
   [`psql`]: https://www.postgresql.org/docs/current/static/app-psql.html
-  [Oracle]: https://www.oracle.com/database/
+  [orcl]: https://www.oracle.com/database/
+  [bird]: https://www.firebirdsql.org/
+  [vert]: https://www.vertica.com/
+  [exa]: https://www.exasol.com/
+  [flake]: https://www.snowflake.net/
   [SQL\*Plus]: https://www.orafaq.com/wiki/SQL*Plus
   [Merkle tree]: https://en.wikipedia.org/wiki/Merkle_tree "Wikipedia: “Merkle tree”"
   [gitmerkle]: https://stackoverflow.com/a/18589734/

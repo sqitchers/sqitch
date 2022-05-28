@@ -520,19 +520,19 @@ DBIEngineTest->run(
             like $sql_mode, qr/\b\Q$mode\E\b/i, "sql_mode should include $mode";
         }
     },
-    lock_sql => {
-        is_locked  => q{SELECT is_used_lock('sqitch working')},
-        try_lock   => q{SELECT get_lock('sqitch working', 0)},
-        wait_time  => 1, # get_lock() does not support sub-second precision, apparently.
-        async_free => 1,
-        free_lock  => 'SELECT ' . ($dbh ? do {
-            # MySQL 5.5-5.6 and Maria 10.0-10.4 prefer release_lock(), while
-            # 5.7+ and 10.5+ prefer release_all_locks().
-            $dbh->selectrow_arrayref('SELECT version()')->[0] =~ /^(?:5\.[56]|10\.[0-4])/
-                ? q{release_lock('sqitch working')}
-                : 'release_all_locks()'
-        } : ''),
-    },
+        lock_sql => sub { return {
+            is_locked  => q{SELECT is_used_lock('sqitch working')},
+            try_lock   => q{SELECT get_lock('sqitch working', 0)},
+            wait_time  => 1, # get_lock() does not support sub-second precision, apparently.
+            async_free => 1,
+            free_lock  => 'SELECT ' . ($dbh ? do {
+                # MySQL 5.5-5.6 and Maria 10.0-10.4 prefer release_lock(), while
+                # 5.7+ and 10.5+ prefer release_all_locks().
+                $dbh->selectrow_arrayref('SELECT version()')->[0] =~ /^(?:5\.[56]|10\.[0-4])/
+                    ? q{release_lock('sqitch working')}
+                    : 'release_all_locks()'
+            } : ''),
+        } },
 );
 
 done_testing;

@@ -11,6 +11,7 @@ use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::Plan::Change;
 use List::Util qw(first);
 use App::Sqitch::Types qw(DBH ArrayRef);
+use Type::Utils qw(enum);
 use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
@@ -101,6 +102,13 @@ sub name   { 'PostgreSQL' }
 sub driver { 'DBD::Pg 2.0' }
 sub default_client { 'psql' }
 
+has _provider => (
+    is      => 'rw',
+    isa     => enum([qw( postgres yugabyte )]),
+    default => 'postgres',
+    lazy    => 1,
+);
+
 has dbh => (
     is      => 'rw',
     isa     => DBH,
@@ -135,6 +143,12 @@ has dbh => (
                         # https://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
                         $dbh->set_err(undef, undef) if $dbh->err;
                     };
+                    # Determine the provider. Yugabyte says this is the right way to do it.
+                    # https://yugabyte-db.slack.com/archives/CG0KQF0GG/p1653762283847589
+                    my $v = $dbh->selectcol_arrayref(
+                        q{SELECT split_part(version(), ' ', 2)}
+                    )->[0] // '';
+                    $self->_provider('yugabyte') if $v =~ /-YB-/;
                     return;
                 },
             },
@@ -167,6 +181,10 @@ sub _char2ts { $_[1]->as_string(format => 'iso') }
 
 sub _listagg_format {
     q{ARRAY(SELECT * FROM UNNEST( array_agg(%s) ) a WHERE a IS NOT NULL)}
+    
+    # Consider dropping 8.4 and passing the sort by column to ensure that list
+    # is always in a well-defined order:
+    # q{ARRAY(SELECT * FROM UNNEST( array_agg(%s ORDER BY %s) ) a WHERE a IS NOT NULL)}
 }
 
 sub _regex_op { '~' }
@@ -259,7 +277,10 @@ sub begin_work {
 
     # Start transaction and lock changes to allow only one change at a time.
     $dbh->begin_work;
-    $dbh->do('LOCK TABLE changes IN EXCLUSIVE MODE');
+    $dbh->do('LOCK TABLE changes IN EXCLUSIVE MODE')
+        unless $self->_provider eq 'yugabyte';
+        # Yugabyte does not yet support EXCLUSIVE MODE.
+        # https://docs.yugabyte.com/preview/api/ysql/the-sql-language/statements/txn_lock/#lockmode-1
     return $self;
 }
 
@@ -274,6 +295,14 @@ sub try_lock {
 # until timeout.
 sub wait_lock {
     my $self = shift;
+
+    # Yugabyte and Cockroach do not support advisory locks.
+    # https://github.com/yugabyte/yugabyte-db/issues/3642
+    # https://github.com/cockroachdb/cockroach/issues/13546
+    # Use pessimistic locking when it becomes available.
+    # https://github.com/yugabyte/yugabyte-db/issues/5680
+    return 1 if $self->_provider ne 'postgres';
+
     # Asynchronously request a lock with an indefinite wait.
     my $dbh = $self->dbh;
     $dbh->do(
@@ -478,7 +507,7 @@ App::Sqitch::Engine::pg - Sqitch PostgreSQL Engine
 =head1 Description
 
 App::Sqitch::Engine::pg provides the PostgreSQL storage engine for Sqitch. It
-supports PostgreSQL 8.4.0 and higher as well as Postgres-XC 1.2 and higher.
+supports PostgreSQL 8.4.0 and higher, Postgres-XC 1.2 and higher, and YugabyteDB.
 
 =head1 Interface
 

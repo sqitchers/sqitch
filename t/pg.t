@@ -345,10 +345,14 @@ DBIEngineTest->run(
         is $dbh->selectcol_arrayref('SELECT current_schema')->[0],
             $reg2, 'The Sqitch schema should be the current schema';
     },
-    lock_sql => {
-        is_locked => q{SELECT 1 FROM pg_locks WHERE locktype = 'advisory' AND objid = 75474063 AND objsubid = 1},
-        try_lock  => 'SELECT pg_try_advisory_lock(75474063)',
-        free_lock => 'SELECT pg_advisory_unlock_all()',
+    lock_sql => sub {
+        my $engine = shift;
+        return {
+            is_locked => q{SELECT 1 FROM pg_locks WHERE locktype = 'advisory' AND objid = 75474063 AND objsubid = 1},
+            try_lock  => 'SELECT pg_try_advisory_lock(75474063)',
+            free_lock => 'SELECT pg_advisory_unlock_all()',
+        } if $engine->_provider ne 'yugabyte';
+        return undef;
     },
 );
 

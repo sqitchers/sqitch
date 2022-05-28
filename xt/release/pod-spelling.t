@@ -121,3 +121,4 @@ VM
 XC
 yay
 Yay
+YugabyteDB

@@ -1,20 +1,29 @@
 # This workflow tests Sqitch's PostgreSQL engine on all supported versions of
-# Postgres. It runs for pushes and pull requests on the `main`, `develop`,
+# YugabyteDB. It runs for pushes and pull requests on the `main`, `develop`,
 # `**postgres**`, `**yugabyte**`, and `**engine**` branches.
-name: 🐘 Postgres
+name: 💫 YugabyteDB
 on:
   push:
     branches: [main, develop, "**engine**", "**postgres**", "**yugabyte**" ]
   pull_request:
     branches: [main, develop, "**engine**", "**postgres**", "**yugabyte**" ]
 jobs:
-  Postgres:
+  Yugabyte:
     strategy:
       matrix:
-        pg: [14, 13, 12, 11, 10, 9.6, 9.5, 9.4, 9.3] #, 9.2, 9.1, 9.0, 8.4] https://github.com/bucardo/dbdpg/issues/84
-    name: 🐘 Postgres ${{ matrix.pg }}
+        include:
+          - { version: '2.13', tag: 2.13.2.0-b135 }
+          - { version: '2.12', tag: 2.12.5.0-b24  }
+          - { version: '2.8',  tag: 2.8.6.0-b12   }
+          - { version: '2.6',  tag: 2.6.18.0-b3   }
+    name: 💫 YugabyteDB ${{ matrix.version }}
     runs-on: ubuntu-latest
     steps:
+      - name: Setup YugabyteDB cluster
+        id: yugabyte
+        uses: yugabyte/yugabyte-db-action@master
+        with:
+          yb_image_tag: "${{ matrix.tag }}"
       - uses: actions/checkout@v2
       - name: Setup Perl
         id: perl
@@ -26,18 +35,10 @@ jobs:
           path: local
           key: perl-${{ steps.perl.outputs.perl-hash }}
       - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends --cpanfile dist/cpanfile
-        # DBD::Pg always build against the Debian packaged client, alas, so go
-        # ahead and let it be cached. If can figure out how to install the
-        # version-specific client (https://github.com/bucardo/dbdpg/issues/84),
-        # use cpm install --global to install DBD::Pg for a version-specific
-        # build each time.
       - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends DBD::Pg
-      - name: Install Postgres
-        env: { PERL5LIB: "${{ github.workspace }}/local/lib/perl5" }
-        run: .github/ubuntu/pg.sh ${{ matrix.pg }}
       - name: prove
         env:
           PERL5LIB: "${{ github.workspace }}/local/lib/perl5"
           LIVE_PG_REQUIRED: true
-          SQITCH_TEST_PG_URI: db:pg://postgres@/postgres
+          SQITCH_TEST_PG_URI: db:pg://yugabyte@localhost:${{ steps.yugabyte.outputs.ysql_port }}/
         run: prove -lvr t/pg.t
