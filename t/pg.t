@@ -142,8 +142,8 @@ is_deeply [$pg->psql], [
 @std_opts], 'psql command should be configured from URI config';
 
 ##############################################################################
-# Test _run(), _capture(), and _spool().
-can_ok $pg, qw(_run _capture _spool);
+# Test _run(), _capture(), _spool(), and _probe().
+can_ok $pg, qw(_run _capture _spool _probe);
 my $mock_sqitch = Test::MockModule->new('App::Sqitch');
 my (@run, $exp_pass);
 $mock_sqitch->mock(run => sub {
@@ -181,6 +181,18 @@ $mock_sqitch->mock(spool => sub {
     }
 });
 
+my @probe;
+$mock_sqitch->mock(probe => sub {
+    local $Test::Builder::Level = $Test::Builder::Level + 2;
+    shift;
+    @probe = @_;
+    if (defined $exp_pass) {
+        is $ENV{PGPASSWORD}, $exp_pass, qq{PGPASSWORD should be "$exp_pass"};
+    } else {
+        ok !exists $ENV{PGPASSWORD}, 'PGPASSWORD should not exist';
+    }
+});
+
 $target->uri->password('s3cr3t');
 $exp_pass = 's3cr3t';
 ok $pg->_run(qw(foo bar baz)), 'Call _run';
@@ -194,6 +206,9 @@ is_deeply \@spool, ['FH', $pg->psql],
 ok $pg->_capture(qw(foo bar baz)), 'Call _capture';
 is_deeply \@capture, [$pg->psql, qw(foo bar baz)],
     'Command should be passed to capture()';
+
+ok $pg->_probe(qw(hi there)), 'Call _probe';
+is_deeply \@probe, [$pg->psql, qw(hi there)];
 
 # Without password.
 $target = App::Sqitch::Target->new( sqitch => $sqitch );
@@ -211,6 +226,9 @@ is_deeply \@spool, ['FH', $pg->psql],
 ok $pg->_capture(qw(foo bar baz)), 'Call _capture again';
 is_deeply \@capture, [$pg->psql, qw(foo bar baz)],
     'Command should be passed to capture() again';
+
+ok $pg->_probe(qw(go there)), 'Call _probe again';
+is_deeply \@probe, [$pg->psql, qw(go there)];
 
 ##############################################################################
 # Test file and handle running.
@@ -268,6 +286,9 @@ for my $spec (
         "Should find major version $spec->[1] in $spec->[0]";
 }
 $mock_sqitch->unmock('probe');
+
+# Test _no_column_error
+ok !$pg->_no_column_error, 'Should not have no column error';
 
 ##############################################################################
 # Can we do live tests?
