@@ -2,12 +2,13 @@
 
 use strict;
 use warnings;
-use Test::More tests => 189;
-#use Test::More 'no_plan';
+use Test::More tests => 208;
+# use Test::More 'no_plan';
 use Test::MockModule 0.17;
 use Path::Class;
 use Test::Exception;
 use Test::NoWarnings;
+use Test::Exit;
 use Capture::Tiny 0.12 qw(:all);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X 'hurl';
@@ -133,17 +134,25 @@ GO: {
     is $sqitch->user_email, 'michelle@whitehouse.gov',
         'Should have read user email from environment';
 
+    # Mock outputs.
+    my $sqitch_mock = Test::MockModule->new($CLASS);
+    my @vented;
+    $sqitch_mock->mock(vent => sub { shift; push @vented => @_ });
+    my $traced;
+    $sqitch_mock->mock(trace => sub { $traced = $_[1]; });
+    my @infoed;
+    $sqitch_mock->mock(info => sub { shift; push @infoed => @_ });
+    my @emitted;
+    $sqitch_mock->mock(emit => sub { shift; push @emitted => @_ });
+
     # Now make it die.
     sub puke { App::Sqitch::X->new(@_) } # Ensures we have trace frames.
     my $ex = puke(ident => 'ohai', message => 'OMGWTF!');
     $mock->mock(execute => sub { die $ex });
-    my $sqitch_mock = Test::MockModule->new($CLASS);
-    my @vented;
-    $sqitch_mock->mock(vent => sub { push @vented => $_[1]; });
-    my $traced;
-    $sqitch_mock->mock(trace => sub { $traced = $_[1]; });
     is $sqitch->go, 2, 'Go should return 2 on Sqitch exception';
     is_deeply \@vented, ['OMGWTF!'], 'The error should have been vented';
+    is_deeply \@infoed, [], 'Should have no info output';
+    is_deeply \@emitted, [], 'Should have no emitted output';
     is $traced, $ex->stack_trace->as_string,
         'The stack trace should have been sent to trace';
 
@@ -154,14 +163,29 @@ GO: {
     is $sqitch->go, 4, 'Go should return exitval on another exception';
     is_deeply \@vented, ['OUCH!', $ex->stack_trace->as_string],
         'Both the message and the trace should have been vented';
+    is_deeply \@infoed, [], 'Should still have no info output';
+    is_deeply \@emitted, [], 'Should still have no emitted output';
+    is $traced, undef, 'Nothing should have been traced';
+
+    # Make it die with a non-fatal exception (error code 1)
+    @vented = ();
+    $traced = undef;
+    $ex = puke( message => 'OOPS!', exitval => 1 );
+    is $sqitch->go, 1, 'Go should return exitval on non-fatal exception';
+    is_deeply \@vented, [], 'Should not have vented';
+    is_deeply \@infoed, ['OOPS!'], 'Should have sent the message to message';
+    is_deeply \@emitted, [], 'Should still have no emitted output';
     is $traced, undef, 'Nothing should have been traced';
 
     # Make it die without an exception object.
     $ex = 'LOLZ';
-    @vented = ();
+    @vented = @infoed = ();
     is $sqitch->go, 2, 'Go should return 2 on a third Sqitch exception';
     is @vented, 1, 'Should have one thing vented';
     like $vented[0], qr/^LOLZ\b/, 'And it should include our message';
+    is_deeply \@infoed, [], 'Should again have no info output';
+    is_deeply \@emitted, [], 'Should still have no emitted output';
+    is $traced, undef, 'Nothing should have been traced';
 }
 
 ##############################################################################
@@ -212,12 +236,16 @@ PAGER_PROGRAM: {
     # Ignore warnings while loading IO::Pager.
     { local $SIG{__WARN__} = sub {}; require IO::Pager }
 
-    # Mock the IO::Pager constructor.
-    my $mock_pager = Test::MockModule->new('IO::Pager');
-    $mock_pager->mock(new => sub { return bless => {} => 'IO::Pager' });
-
     # No pager if no TTY.
     my $pager_class = -t *STDOUT ? 'IO::Pager' : 'IO::Handle';
+
+    # Mock the IO::Pager constructor.
+    my $mock_pager = Test::MockModule->new($pager_class);
+    $mock_pager->mock(new => sub { return bless => {} => $pager_class });
+    my (@said, @printed);
+    $mock_pager->mock(say => sub { shift; @said = @_ });
+    $mock_pager->mock(print => sub { shift; @printed = @_ });
+
     {
         local $ENV{SQITCH_PAGER};
         local $ENV{PAGER} = "morez";
@@ -225,6 +253,10 @@ PAGER_PROGRAM: {
         is $sqitch->pager_program, "morez",
             "pager program should be picked up from PAGER when SQITCH_PAGER and core.pager are not set";
         isa_ok $sqitch->pager, $pager_class, 'morez pager';
+        lives_ok { $sqitch->page(qw(foo bar)) } 'Should be able to page';
+        is_deeply \@said, [qw(foo bar)], 'Should have paged with say()';
+        lives_ok { $sqitch->page_literal(qw(foo bar)) } 'Should be able to page literal';
+        is_deeply \@printed, [qw(foo bar)], 'Should have paged with print()';
     }
 
     {
@@ -673,3 +705,11 @@ for my $lang (qw(en fr)) {
     ok utf8::valid($text), 'Localied string should be valid UTF-8';
     ok utf8::is_utf8($text), 'Localied string should be decoded';
 }
+
+##############################################################################
+# Test interactivity.
+lives_ok { $CLASS->_is_interactive } '_is_interactive should not die';
+lives_ok { $CLASS->_is_unattended } '_is_unattended should not die';
+
+# Test utilities.
+is $CLASS->_bn(__FILE__), 'base.t', '_bn should work';

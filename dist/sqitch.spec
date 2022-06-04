@@ -65,6 +65,7 @@ BuildRequires:  perl(Term::ANSIColor) >= 2.02
 BuildRequires:  perl(Test::Deep)
 BuildRequires:  perl(Test::Dir)
 BuildRequires:  perl(Test::Exception)
+BuildRequires:  perl(Test::Exit)
 BuildRequires:  perl(Test::File)
 BuildRequires:  perl(Test::File::Contents) >= 0.20
 BuildRequires:  perl(Test::MockModule) >= 0.17
