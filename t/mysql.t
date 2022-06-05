@@ -17,6 +17,7 @@ use Test::MockModule;
 use Path::Class;
 use Try::Tiny;
 use Test::Exception;
+use List::MoreUtils qw(firstidx);
 use Locale::TextDomain qw(App-Sqitch);
 use File::Temp 'tempdir';
 use lib 't/lib';
@@ -108,10 +109,11 @@ ENV: {
 }
 
 ##############################################################################
-# Make sure config settings override defaults.
+# Make sure config settings override defaults and the password is set or removed
+# as appropriate.
 $config->update(
     'engine.mysql.client'   => '/path/to/mysql',
-    'engine.mysql.target'   => 'db:mysql://foo.com/widgets',
+    'engine.mysql.target'   => 'db:mysql://me:pwd@foo.com/widgets',
     'engine.mysql.registry' => 'meta',
 );
 my $mysql_version = 'mysql  Ver 15.1 Distrib 10.0.15-MariaDB';
@@ -123,20 +125,23 @@ $target = App::Sqitch::Target->new(sqitch => $sqitch);
 ok $mysql = $CLASS->new(sqitch => $sqitch, target => $target),
     'Create another mysql';
 is $mysql->client, '/path/to/mysql', 'client should be as configured';
-is $mysql->uri->as_string, 'db:mysql://foo.com/widgets',
+is $mysql->uri->as_string, 'db:mysql://me:pwd@foo.com/widgets',
     'URI should be as configured';
-is $mysql->target->name, $mysql->uri->as_string, 'target name should be the URI';
-is $mysql->destination, $mysql->uri->as_string, 'destination should be the URI';
+is $mysql->target->name, 'db:mysql://me:@foo.com/widgets',
+    'target name should be the URI without the password';
+is $mysql->destination, 'db:mysql://me:@foo.com/widgets',
+    'destination should be the URI without the password';
 is $mysql->registry, 'meta', 'registry should be as configured';
-is $mysql->registry_uri->as_string, 'db:mysql://foo.com/meta',
+is $mysql->registry_uri->as_string, 'db:mysql://me:pwd@foo.com/meta',
     'Sqitch DB URI should be the same as uri but with DB name "meta"';
-is $mysql->registry_destination, $mysql->registry_uri->as_string,
-    'registry_destination should be the sqitch DB URL';
+is $mysql->registry_destination, 'db:mysql://me:@foo.com/meta',
+    'registry_destination should be the sqitch DB URL without the password';
 is_deeply [$mysql->mysql], [
     '/path/to/mysql',
-    '--user', $sqitch->sysuser,
+    '--user',     'me',
     '--database', 'widgets',
     '--host',     'foo.com',
+    '--password=pwd',
     @std_opts
 ], 'mysql command should be configured';
 
@@ -423,6 +428,105 @@ is_deeply [$mysql->_limit_offset()], [[], []],
 is_deeply [$mysql->_regex_expr('corn', 'Obama$')],
     ['corn REGEXP ?', 'Obama$'],
     'Should use REGEXP for regex expr';
+
+##############################################################################
+# Test unexpeted datbase error in initialized() and _cid().
+MOCKDBH: {
+    my $mock = Test::MockModule->new($CLASS);
+    $mock->mock(dbh => sub { die 'OW' });
+    throws_ok { $mysql->initialized } qr/OW/,
+        'initialized() should rethrow unexpected DB error';
+    throws_ok { $mysql->_cid } qr/OW/,
+        '_cid should rethrow unexpected DB error';
+}
+
+##############################################################################
+# Test _prepare_to_log().
+PREPLOG: {
+    my $mock = Test::MockModule->new($CLASS);
+    my $fracsec;
+    $mock->mock(_fractional_seconds => sub { $fracsec });
+
+    # Start with fractional seconds detected.
+    $fracsec = 1;
+    is $mysql, $mysql->_prepare_to_log('atable', undef),
+        'Should just get self when fractional seconds supported';
+
+    # Now try with fractional seconds unsupported by the database.
+    $fracsec = 0;
+
+    # Need to mock the database handle.
+    my $dbh = DBI->connect('dbi:Mem:', undef, undef, {});
+    $mock->mock(dbh => $dbh);
+    my $mock_dbh = Test::MockModule->new(ref $dbh, no_auto => 1);
+    my @prepared;
+    $mock_dbh->mock(prepare => sub { shift; @prepared = @_ });
+    my @results = ([1], [0]);
+    $mock_dbh->mock(selectcol_arrayref => sub { shift @results });
+
+    # Mock sleep, too.
+    my $mock_thr = Test::MockModule->new('Time::HiRes');
+    my @slept;
+    $mock_thr->mock(sleep => sub { push @slept, shift } );
+
+    # We need to pass in a real change.
+    my $plan = App::Sqitch::Plan->new(
+        sqitch => $sqitch,
+        target => $target,
+        'project' => 'mysql',
+    );
+    my $change = App::Sqitch::Plan::Change->new(
+        name => 'mysql_test',
+        plan => $plan,
+    );
+
+    # Make sure it sleeps once.
+    lives_ok { $mysql->_prepare_to_log('atable', $change) }
+        'Should get no error from _prepare_to_log';
+
+    # Check the stuff that was passed.
+    is_deeply \@prepared, [qq{
+        SELECT UNIX_TIMESTAMP(committed_at) >= UNIX_TIMESTAMP()
+          FROM atable
+         WHERE project = ?
+         ORDER BY committed_at DESC
+         LIMIT 1
+    }], 'Should have prepared the statement comparing times';
+    is_deeply \@results, [], 'Results should have been returned';
+    is_deeply \@slept, [0.1], 'Should have slept once';
+}
+
+##############################################################################
+# Test run_upgrade().
+UPGRADE: {
+    my $mock = Test::MockModule->new($CLASS);
+    my $fracsec;
+    $mock->mock(_fractional_seconds => sub { $fracsec });
+    $mock->mock(dbh => { mysql_serverversion => 50400 });
+
+    # Mock run.
+    my @run;
+    $mock_sqitch->mock(run => sub { shift; @run = @_ });
+
+    # Assemble the expected command.
+    my @cmd = $mysql->mysql;
+    $cmd[1 + firstidx { $_ eq '--database' } @cmd ] = $mysql->registry;
+    my $fn = file($INC{'App/Sqitch/Engine/mysql.pm'})->dir->file('mysql.sql');
+
+    # Test with fractional seconds supported.
+    $fracsec = 1;
+    ok $mysql->run_upgrade($fn), 'Run the upgrade';
+    is_deeply \@run, [@cmd, $mysql->_source($fn)],
+        'It should have run the unchanged file';
+
+    # Now disable fractional seconds.
+    $fracsec = 0;
+    ok $mysql->run_upgrade($fn), 'Run the upgrade again';
+    my $source = pop @run;
+    is_deeply \@run, [@cmd, '--execute'], 'It should have run';
+    $source =~ s/^source\s+//;
+    $mock_sqitch->unmock_all;
+}
 
 ##############################################################################
 # Can we do live tests?
