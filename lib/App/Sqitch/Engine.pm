@@ -1068,7 +1068,6 @@ sub _timeout {
         return 0 if $secs < 0;
         sleep $secs;
     }
-    return 0;
 }
 
 sub try_lock { 1 }
