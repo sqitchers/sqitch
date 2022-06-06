@@ -289,8 +289,47 @@ for my $spec (
 }
 $mock_sqitch->unmock('probe');
 
-# Test _no_column_error
-ok !$pg->_no_column_error, 'Should not have no column error';
+##############################################################################
+# Test table error methods.
+DBI: {
+    local *DBI::state;
+    ok !$pg->_no_table_error, 'Should have no table error';
+    ok !$pg->_no_column_error, 'Should have no column error';
+
+    $DBI::state = '42703';
+    ok !$pg->_no_table_error, 'Should again have no table error';
+    ok $pg->_no_column_error, 'Should now have no column error';
+
+    # Need to mock DBH for table errors.
+    my $dbh = DBI->connect('dbi:Mem:', undef, undef, {});
+    my $mock_engine = Test::MockModule->new($CLASS);
+    $mock_engine->mock(dbh => $dbh);
+    my $mock_dbd = Test::MockModule->new(ref $dbh, no_auto => 1);
+    $mock_dbd->mock(quote => sub { qq{'$_[1]'} });
+    my @done;
+    $mock_dbd->mock(do => sub { shift; @done = @_ });
+
+    # Should just work when on 8.4.
+    $DBI::state = '42P01';
+    $dbh->{pg_server_version} = 80400;
+    ok $pg->_no_table_error, 'Should now have table error';
+    ok !$pg->_no_column_error, 'Still should have no column error';
+    is_deeply \@done, [], 'No SQL should have been run';
+
+    # On 9.0 and later, we should send warnings to the log.
+    $dbh->{pg_server_version} = 90000;
+    ok $pg->_no_table_error, 'Should again have table error';
+    ok !$pg->_no_column_error, 'Still should have no column error';
+    is_deeply \@done, [sprintf q{DO $$
+        BEGIN
+            SET LOCAL client_min_messages = 'ERROR';
+            RAISE WARNING USING ERRCODE = 'undefined_table', MESSAGE = %s, DETAIL = %s;
+        END;
+    $$}, map { "'$_'" }
+        __ 'Sqitch registry not initialized',
+        __ 'Because the "changes" table does not exist, Sqitch will now initialize the database to create its registry tables.',
+    ], 'Should have sent an error to the log';
+}
 
 ##############################################################################
 # Test _run_registry_file.

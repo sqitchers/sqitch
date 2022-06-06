@@ -244,7 +244,7 @@ is_deeply \@run, [$vta->vsql, '--file', 'foo/bar.sql'],
 $mock_sqitch->unmock_all;
 
 ##############################################################################
-# Test DateTime formatting stuff.
+# Test DateTime formatting and other database stuff.
 ok my $ts2char = $CLASS->can('_ts2char_format'), "$CLASS->can('_ts2char_format')";
 is sprintf($ts2char->(), 'foo'),
     q{to_char(foo AT TIME ZONE 'UTC', '"year":YYYY:"month":MM:"day":DD:"hour":HH24:"minute":MI:"second":SS:"time_zone":"UTC"')},
@@ -261,6 +261,23 @@ is $dt->hour,   15, 'DateTime hour should be set';
 is $dt->minute,  7, 'DateTime minute should be set';
 is $dt->second,  1, 'DateTime second should be set';
 is $dt->time_zone->name, 'UTC', 'DateTime TZ should be set';
+is $vta->_listagg_format, undef, 'Should have no listagg format';
+
+##############################################################################
+# Test table error methods.
+DBI: {
+    local *DBI::state;
+    ok !$vta->_no_table_error, 'Should have no table error';
+    ok !$vta->_no_column_error, 'Should have no column error';
+
+    $DBI::state = '42V01';
+    ok $vta->_no_table_error, 'Should now have table error';
+    ok !$vta->_no_column_error, 'Still should have no column error';
+
+    $DBI::state = '42703';
+    ok !$vta->_no_table_error, 'Should again have no table error';
+    ok $vta->_no_column_error, 'Should now have no column error';
+}
 
 ##############################################################################
 # Can we do live tests?

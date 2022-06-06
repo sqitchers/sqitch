@@ -437,6 +437,13 @@ sub _dt($) {
 sub _no_table_error  {
     return 0 unless $DBI::state && $DBI::state eq '42P01'; # undefined_table
     my $dbh = shift->dbh;
+    return 1 unless $dbh->{pg_server_version} >= 90000;
+
+    # Try to avoid confusion for people monitoring the Postgres error log by
+    # sending a warning to the log immediately after the missing relation error
+    # to tell log watchers that Sqitch is aware of the issue and will next
+    # initialize the database. Hopefully this will reduce confusion and
+    # unnecessary time trouble shooting an error that Sqitch handles.
     my @msg = map { $dbh->quote($_) } (
         __ 'Sqitch registry not initialized',
         __ 'Because the "changes" table does not exist, Sqitch will now initialize the database to create its registry tables.',
@@ -446,7 +453,7 @@ sub _no_table_error  {
             SET LOCAL client_min_messages = 'ERROR';
             RAISE WARNING USING ERRCODE = 'undefined_table', MESSAGE = %s, DETAIL = %s;
         END;
-    $$}, @msg) if $dbh->{pg_server_version} >= 90000;
+    $$}, @msg);
     return 1;
 }
 
