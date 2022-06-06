@@ -13,6 +13,7 @@ use 5.010;
 use Test::More;
 use App::Sqitch;
 use App::Sqitch::Target;
+use Test::File::Contents;
 use Test::MockModule;
 use Path::Class;
 use Try::Tiny;
@@ -501,12 +502,20 @@ PREPLOG: {
 UPGRADE: {
     my $mock = Test::MockModule->new($CLASS);
     my $fracsec;
+    my $version = 50500;
     $mock->mock(_fractional_seconds => sub { $fracsec });
-    $mock->mock(dbh => { mysql_serverversion => 50400 });
+    $mock->mock(dbh =>  sub { { mysql_serverversion => $version } });
 
     # Mock run.
     my @run;
     $mock_sqitch->mock(run => sub { shift; @run = @_ });
+
+    # Mock File::Temp so we hang on to the file.
+    my $mock_ft = Test::MockModule->new('File::Temp');
+    my $tmp_fh;
+    my $ft_new;
+    $mock_ft->mock(new => sub { $tmp_fh = 'File::Temp'->$ft_new() });
+    $ft_new = $mock_ft->original('new');
 
     # Assemble the expected command.
     my @cmd = $mysql->mysql;
@@ -516,15 +525,38 @@ UPGRADE: {
     # Test with fractional seconds supported.
     $fracsec = 1;
     ok $mysql->run_upgrade($fn), 'Run the upgrade';
+    is $tmp_fh, undef, 'Should not have created a temp file';
     is_deeply \@run, [@cmd, $mysql->_source($fn)],
         'It should have run the unchanged file';
 
     # Now disable fractional seconds.
     $fracsec = 0;
     ok $mysql->run_upgrade($fn), 'Run the upgrade again';
-    my $source = pop @run;
-    is_deeply \@run, [@cmd, '--execute'], 'It should have run';
-    $source =~ s/^source\s+//;
+    ok $tmp_fh, 'Should have created a temp file';
+    is_deeply \@run, [@cmd, $mysql->_source($tmp_fh)],
+        'It should have run the temp file';
+
+    # Make sure the file was changed to remove precision from datetimes.
+    file_contents_unlike $tmp_fh, qr/DATETIME\(\d+\)/,
+        'Should have removed datetime precision';
+    file_contents_like $tmp_fh, qr/-- ## BEGIN 5\.5/,
+        'Should not have removed MySQL 5.5-requiring block BEGIN';
+    file_contents_like $tmp_fh, qr/-- ## END 5\.5/,
+        'Should not have removed MySQL 5.5-requiring block END';
+
+    # Now try MySQL 5.4.
+    $version = 50400;
+    $tmp_fh = undef;
+    ok $mysql->run_upgrade($fn), 'Run the upgrade on 5.4';
+    ok $tmp_fh, 'Should have created another temp file';
+    is_deeply \@run, [@cmd, $mysql->_source($tmp_fh)],
+        'It should have the new temp file';
+
+    file_contents_unlike $tmp_fh, qr/-- ## BEGIN 5\.5/,
+        'Should have removed MySQL 5.5-requiring block BEGIN';
+    file_contents_unlike $tmp_fh, qr/-- ## END 5\.5/,
+        'Should have removed MySQL 5.5-requiring block END';
+
     $mock_sqitch->unmock_all;
 }
 
