@@ -23,12 +23,14 @@ use 5.010;
 use Test::More 0.94;
 use Test::MockModule;
 use Test::Exception;
+use Test::File::Contents;
 use Locale::TextDomain qw(App-Sqitch);
 use Capture::Tiny 0.12 qw(:all);
 use Try::Tiny;
 use App::Sqitch;
 use App::Sqitch::Target;
 use App::Sqitch::Plan;
+use Path::Class;
 use lib 't/lib';
 use DBIEngineTest;
 use TestConfig;
@@ -289,6 +291,121 @@ $mock_sqitch->unmock('probe');
 
 # Test _no_column_error
 ok !$pg->_no_column_error, 'Should not have no column error';
+
+##############################################################################
+# Test _run_registry_file.
+RUNREG: {
+    # Mock I/O used by _run_registry_file.
+    my $mock_engine = Test::MockModule->new($CLASS);
+    my (@probed, @prob_ret);
+    $mock_engine->mock(_probe => sub {
+        shift;
+        push @probed, \@_;
+        shift @prob_ret;
+    });
+    my $psql_maj;
+    $mock_engine->mock(_psql_major_version => sub { $psql_maj });
+    my @ran;
+    $mock_engine->mock(_run => sub { shift; push @ran, \@_ });
+
+    # Mock up the database handle.
+    my $dbh = DBI->connect('dbi:Mem:', undef, undef, {});
+    $mock_engine->mock(dbh => $dbh );
+    my $mock_dbd = Test::MockModule->new(ref $dbh, no_auto => 1);
+    my @done;
+    $mock_dbd->mock(do => sub { shift; push @done, \@_; 1 });
+    my @sra_args;
+    $mock_dbd->mock(selectrow_array => sub {
+        shift;
+        push @sra_args, [@_];
+        return (qq{"$_[-1]"});
+    });
+
+    # Mock File::Temp so we hang on to the file.
+    my $mock_ft = Test::MockModule->new('File::Temp');
+    my $tmp_fh;
+    my $ft_new;
+    $mock_ft->mock(new => sub { $tmp_fh = 'File::Temp'->$ft_new() });
+    $ft_new = $mock_ft->original('new');
+
+    # Find the SQL file.
+    my $ddl = file($INC{'App/Sqitch/Engine/pg.pm'})->dir->file('pg.sql');
+
+    # The XC query.
+    my $xc_query = q{
+        SELECT count(*)
+          FROM pg_catalog.pg_proc p
+          JOIN pg_catalog.pg_namespace n ON p.pronamespace = n.oid
+         WHERE nspname = 'pg_catalog'
+           AND proname = 'pgxc_version';
+    };
+
+    # Start with a recent version and no XC.
+    $psql_maj = 11;
+    @prob_ret = (110000, 0);
+    my $registry = $pg->registry;
+    ok $pg->_run_registry_file($ddl), 'Run the registry file';
+    is_deeply \@probed, [
+        ['-c', 'SHOW server_version_num'],
+        ['-c', $xc_query],
+    ], 'Should have fetched the server version and checked for XC';
+    is_deeply \@ran, [[
+        '--file' => $ddl,
+        '--set'  => "registry=$registry",
+        '--set'  => "tableopts=",
+    ]], 'Shoud have deployed the original SQL file';
+    is_deeply \@done, [['SET search_path = ?', undef, $registry]],
+        'The registry should have been added to the search path';
+    is_deeply \@sra_args, [], 'Should not have have called selectrow_array';
+    is $tmp_fh, undef, 'Should have no temp file handle';
+
+    # Reset and try Postgres 9.2 server
+    @probed = @ran = @done = ();
+    $psql_maj = 11;
+    @prob_ret = (90200, 1);
+    ok $pg->_run_registry_file($ddl), 'Run the registry file again';
+    is_deeply \@probed, [
+        ['-c', 'SHOW server_version_num'],
+        ['-c', $xc_query],
+    ], 'Should have again fetched the server version and checked for XC';
+    isnt $tmp_fh, undef, 'Should now have a temp file handle';
+    is_deeply \@ran, [[
+        '--file' => $tmp_fh,
+        '--set'  => "tableopts= DISTRIBUTE BY REPLICATION",
+    ]], 'Shoud have deployed the temp SQL file';
+    is_deeply \@sra_args, [], 'Still hould not have have called selectrow_array';
+    is_deeply \@done, [['SET search_path = ?', undef, $registry]],
+        'The registry should have been added to the search path again';
+
+    # Make sure the file was changed to remove SCHEMA IF NOT EXISTS.
+    file_contents_like $tmp_fh, qr/\QCREATE SCHEMA :"registry";/,
+        'Should have removed IF NOT EXISTS from CREATE SCHEMA';
+
+    # Reset and try with Server 11 and psql 8.x.
+    @probed = @ran = @done = ();
+    $psql_maj = 8;
+    $tmp_fh = undef;
+    @prob_ret = (110000, 0);
+    ok $pg->_run_registry_file($ddl), 'Run the registry file again';
+    is_deeply \@probed, [
+        ['-c', 'SHOW server_version_num'],
+        ['-c', $xc_query],
+    ], 'Should have again fetched the server version and checked for XC';
+    isnt $tmp_fh, undef, 'Should now have a temp file handle';
+    is_deeply \@ran, [[
+        '--file' => $tmp_fh,
+        '--set'  => "tableopts=",
+    ]], 'Shoud have deployed the temp SQL file';
+    is_deeply \@sra_args, [['SELECT quote_ident(?)', undef, $registry]],
+        'Should have have called quote_ident via selectrow_array';
+    is_deeply \@done, [['SET search_path = ?', undef, qq{"$registry"}]],
+        'The registry should have been added to the search path again';
+
+    file_contents_like $tmp_fh, qr/\QCREATE SCHEMA IF NOT EXISTS "$registry";/,
+        'Should not have removed IF NOT EXISTS from CREATE SCHEMA';
+    file_contents_unlike $tmp_fh, qr/:"registry"/,
+        'Should have removed the :"registry" variable';
+}
 
 ##############################################################################
 # Can we do live tests?

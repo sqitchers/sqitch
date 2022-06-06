@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 720;
+use Test::More tests => 721;
 # use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -367,7 +367,6 @@ my $plan = $target->plan;
 # timestamps.
 my $mock_dt = Test::MockModule->new('App::Sqitch::DateTime');
 $mock_dt->mock(now => $now);
-
 
 for my $spec (
     [ 'no change' => [] ],
@@ -3416,6 +3415,12 @@ is_deeply +MockOutput->get_info, [[__x(
     secs => $engine->lock_timeout,
 )]], 'Should have notified user of waiting for lock';
 is_deeply $engine->seen, ['wait_lock'], 'wait_lock should have been called';
+
+##############################################################################
+# Test planned_deployed_common_ancestor_id.
+is $engine->planned_deployed_common_ancestor_id,
+    '0539182819c1f0cb50dc4558f4f80b1a538a01b2',
+    'Test planned_deployed_common_ancestor_id';
 
 ##############################################################################
 # Test default implementations.
