@@ -151,8 +151,8 @@ is_deeply [$vta->vsql], [
 ], 'vsql command should be configured from URI config';
 
 ##############################################################################
-# Test _run(), _capture(), and _spool().
-can_ok $vta, qw(_run _capture _spool);
+# Test _run(), _capture(), _spool(), and _prob()
+can_ok $vta, qw(_run _capture _spool _probe);
 my $mock_sqitch = Test::MockModule->new('App::Sqitch');
 my (@run, $exp_pass);
 $mock_sqitch->mock(run => sub {
@@ -190,6 +190,18 @@ $mock_sqitch->mock(spool => sub {
     }
 });
 
+my @probe;
+$mock_sqitch->mock(probe => sub {
+    local $Test::Builder::Level = $Test::Builder::Level + 2;
+    shift;
+    @probe = @_;
+    if (defined $exp_pass) {
+        is $ENV{VSQL_PASSWORD}, $exp_pass, qq{VSQL_PASSWORD should be "$exp_pass"};
+    } else {
+        ok !exists $ENV{VSQL_PASSWORD}, 'VSQL_PASSWORD should not exist';
+    }
+});
+
 $exp_pass = 's3cr3t';
 $target->uri->password($exp_pass);
 ok $vta->_run(qw(foo bar baz)), 'Call _run';
@@ -203,6 +215,9 @@ is_deeply \@spool, ['FH', $vta->vsql],
 ok $vta->_capture(qw(foo bar baz)), 'Call _capture';
 is_deeply \@capture, [$vta->vsql, qw(foo bar baz)],
     'Command should be passed to capture()';
+
+ok $vta->_probe(qw(hi there)), 'Call _probe';
+is_deeply \@probe, [$vta->vsql, qw(hi there)];
 
 # Without password.
 $target = App::Sqitch::Target->new( sqitch => $sqitch );
@@ -220,6 +235,9 @@ is_deeply \@spool, ['FH', $vta->vsql],
 ok $vta->_capture(qw(foo bar baz)), 'Call _capture again';
 is_deeply \@capture, [$vta->vsql, qw(foo bar baz)],
     'Command should be passed to capture() again';
+
+ok $vta->_probe(qw(go there)), 'Call _probe';
+is_deeply \@probe, [$vta->vsql, qw(go there)];
 
 ##############################################################################
 # Test file and handle running.
@@ -277,6 +295,24 @@ DBI: {
     $DBI::state = '42703';
     ok !$vta->_no_table_error, 'Should again have no table error';
     ok $vta->_no_column_error, 'Should now have no column error';
+}
+
+##############################################################################
+# Test current state error handling.
+CS: {
+    my $mock_engine = Test::MockModule->new($CLASS);
+    $mock_engine->mock(_select_state => sub { die 'OW' });
+    throws_ok { $vta->current_state } qr/OW/,
+        "current_state should propagate an error when it's not a column error";
+}
+
+##############################################################################
+# Test _cid error handling.
+CID: {
+    my $mock_engine = Test::MockModule->new($CLASS);
+    $mock_engine->mock(dbh => sub { die 'OH NO' });
+    throws_ok { $vta->_cid } qr/OH NO/,
+        "_cid should propagate an error when it's not a table or column error";
 }
 
 ##############################################################################
