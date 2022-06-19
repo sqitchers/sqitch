@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 705;
+use Test::More tests => 721;
 # use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -349,6 +349,9 @@ for my $abs (qw(
     registered_projects
     change_offset_from_id
     change_id_offset_from_id
+    wait_lock
+    registry_version
+    _update_script_hashes
 )) {
     throws_ok { $engine->$abs } qr/\Q$CLASS has not implemented $abs()/,
         "Should get an unimplemented exception from $abs()"
@@ -360,11 +363,10 @@ can_ok $engine, '_load_changes';
 my $now = App::Sqitch::DateTime->now;
 my $plan = $target->plan;
 
-# Mock App::Sqitch::DateTime so that dbchange tags all have the same
+# Mock App::Sqitch::DateTime so that change tags all have the same
 # timestamps.
 my $mock_dt = Test::MockModule->new('App::Sqitch::DateTime');
 $mock_dt->mock(now => $now);
-
 
 for my $spec (
     [ 'no change' => [] ],
@@ -829,7 +831,27 @@ is_deeply +MockOutput->get_info_literal, [[
 ]], 'Output should reflect logged reversion';
 is_deeply +MockOutput->get_info, [[__ 'ok']],
     'Output should acknowldge revert success';
+
+# Have the log throw an error.
+$die = 'log_revert_change';
+throws_ok { $engine->revert_change($change) }
+    'App::Sqitch::X', 'Should die on unknown revert logging error';
+is $@->ident, 'revert', 'Sould have revert ident error';
+is $@->message, 'Revert failed','Should get revert failure error message';
+is_deeply $engine->seen, [
+    ['begin_work'],
+    ['finish_work'],
+], 'Log failure should not have seen log_rever_change';
+is_deeply +MockOutput->get_info_literal, [[
+    '  - foo ..', '..', ' '
+]], 'Output should reflect reversion';
+is_deeply +MockOutput->get_info, [[__ 'not ok']],
+    'Output should acknowldge success failure';
+is_deeply +MockOutput->get_vent, [
+    ['AAAH!'],
+], 'The logging error should have been vented';
 $record_work = 0;
+$die = '';
 
 ##############################################################################
 # Test earliest_change() and latest_change().
@@ -1091,7 +1113,7 @@ is_deeply +MockOutput->get_info, [
 # Start with widgets.
 $latest_change_id = $changes[2]->id;
 throws_ok { $engine->deploy('@alpha') } 'App::Sqitch::X',
-    'Should fail changeing older change';
+    'Should fail deploying older change';
 is $@->ident, 'deploy', 'Should be a "deploy" error';
 is $@->message,  __ 'Cannot deploy to an earlier change; use "revert" instead',
     'It should suggest using "revert"';
@@ -1883,7 +1905,7 @@ my @dbchanges;
 } @changes[0..3];
 
 MockOutput->ask_yes_no_returns(1);
-ok $engine->revert, 'Revert all changes';
+is $engine->revert, $engine, 'Revert all changes';
 is_deeply $engine->seen, [
     [lock_destination => []],
     [deployed_changes => undef],
@@ -3393,6 +3415,20 @@ is_deeply +MockOutput->get_info, [[__x(
     secs => $engine->lock_timeout,
 )]], 'Should have notified user of waiting for lock';
 is_deeply $engine->seen, ['wait_lock'], 'wait_lock should have been called';
+
+##############################################################################
+# Test planned_deployed_common_ancestor_id.
+is $engine->planned_deployed_common_ancestor_id,
+    '0539182819c1f0cb50dc4558f4f80b1a538a01b2',
+    'Test planned_deployed_common_ancestor_id';
+
+##############################################################################
+# Test default implementations.
+is $engine->key, 'whu', 'Should have key';
+is $engine->driver, $engine->key, 'Driver should be the same as engine';
+ok $CLASS->try_lock, 'Default try_lock should return true by default';
+is $CLASS->begin_work, $CLASS, 'Default begin_work should return self';
+is $CLASS->finish_work, $CLASS, 'Default finish_work should return self';
 
 __END__
 diag $_->format_name_with_tags for @changes;

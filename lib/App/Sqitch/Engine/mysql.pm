@@ -431,7 +431,6 @@ sub run_verify {
 
 sub run_upgrade {
     my ($self, $file) = @_;
-    my $dbh = $self->dbh;
     my @cmd = $self->mysql;
     $cmd[1 + firstidx { $_ eq '--database' } @cmd ] = $self->registry;
     return $self->sqitch->run( @cmd, $self->_source($file) )
@@ -441,7 +440,8 @@ sub run_upgrade {
     (my $sql = scalar $file->slurp) =~ s{DATETIME\(\d+\)}{DATETIME}g;
 
     # Strip out 5.5 stuff on earlier versions.
-    $sql =~ s/-- ## BEGIN 5[.]5.+?-- ## END 5[.]5//ms if $dbh->{mysql_serverversion} < 50500;
+    $sql =~ s/-- ## BEGIN 5[.]5.+?-- ## END 5[.]5//ms
+        if $self->dbh->{mysql_serverversion} < 50500;
 
     # Write out a temp file and execute it.
     require File::Temp;

@@ -97,6 +97,7 @@ on 'test' => sub {
   requires "Test::Deep" => "0";
   requires "Test::Dir" => "0";
   requires "Test::Exception" => "0";
+  requires "Test::Exit" => "0";
   requires "Test::File" => "0";
   requires "Test::File::Contents" => "0.20";
   requires "Test::MockModule" => "0.17";

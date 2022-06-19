@@ -264,15 +264,13 @@ sub _parse_core_opts {
 
     # Handle version request.
     if ( delete $opts{version} ) {
-        require File::Basename;
-        my $fn = File::Basename::basename($0);
-        print $fn, ' (', __PACKAGE__, ') ', __PACKAGE__->VERSION, "\n";
+        $self->emit( _bn($0), ' (', __PACKAGE__, ') ', __PACKAGE__->VERSION );
         exit;
     }
 
     # Handle --etc-path.
     if ( $opts{etc_path} ) {
-        say App::Sqitch::Config->class->system_dir;
+        $self->emit( App::Sqitch::Config->class->system_dir );
         exit;
     }
 

@@ -6,6 +6,7 @@ use utf8;
 use Test::More;
 use Test::MockModule;
 use Test::Exception;
+use Test::Exit;
 use Capture::Tiny 0.12 ':all';
 use Locale::TextDomain qw(App-Sqitch);
 use lib 't/lib';
@@ -132,6 +133,24 @@ HELP: {
     ok $CLASS->_parse_core_opts(['--man']), 'Ask for man';
     is_deeply \@args, [ $CLASS, 'sqitch', '-exitval', 0, '-verbose', 2 ],
         'Should have been manned';
+}
+
+# Make sure we get the version and etc path.
+EXITING: {
+    my $mocker = Test::MockModule->new($CLASS);
+    my @emit;
+    $mocker->mock(emit => sub { shift; push @emit => @_ });
+    $mocker->mock(VERSION => sub { '1.2.3-testing' });
+    exits_ok { $CLASS->_parse_core_opts(['--version']) }
+        'Should have exited on --version';
+    is_deeply \@emit, ['options.t', ' (', $CLASS, ') ', '1.2.3-testing'],
+        'Should have emitted the version';
+
+    @emit = ();
+    exits_ok { $CLASS->_parse_core_opts(['--etc-path']) }
+        'Should have exited on --etc-path';
+    is_deeply \@emit, [App::Sqitch::Config->system_dir],
+        'Should have emitted the etc path';
 }
 
 # Silence warnings.
