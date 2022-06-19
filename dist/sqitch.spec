@@ -81,7 +81,7 @@ BuildRequires:  perl(Type::Tiny::XS) >= 0.010
 BuildRequires:  perl(Type::Utils)
 BuildRequires:  perl(Types::Standard)
 BuildRequires:  perl(URI)
-BuildRequires:  perl(URI::db) >= 0.19
+BuildRequires:  perl(URI::db) >= 0.20
 BuildRequires:  perl(User::pwent)
 BuildRequires:  perl(utf8)
 BuildRequires:  perl(warnings)
@@ -138,7 +138,7 @@ Requires:       perl(Type::Tiny::XS) >= 0.010
 Requires:       perl(Type::Utils)
 Requires:       perl(Types::Standard)
 Requires:       perl(URI)
-Requires:       perl(URI::db) >= 0.19
+Requires:       perl(URI::db) >= 0.20
 Requires:       perl(User::pwent)
 Requires:       perl(utf8)
 Requires:       perl(warnings)
@@ -184,7 +184,7 @@ rm -rf $RPM_BUILD_ROOT
 %config %{etcdir}/*
 
 %package pg
-Summary:        Sensible database change management for PostgreSQL
+Summary:        Sensible database change management for PostgreSQL, YugabyteDB, and CockroachDB
 Group:          Development/Libraries
 Requires:       sqitch >= %{version}
 Requires:       postgresql >= 8.4.0

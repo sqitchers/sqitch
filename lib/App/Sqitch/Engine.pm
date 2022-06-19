@@ -9,7 +9,7 @@ use Locale::TextDomain qw(App-Sqitch);
 use Path::Class qw(file);
 use App::Sqitch::X qw(hurl);
 use List::Util qw(first max);
-use URI::db 0.19;
+use URI::db 0.20;
 use App::Sqitch::Types qw(Str Int Num Sqitch Plan Bool HashRef URI Maybe Target);
 use namespace::autoclean;
 use constant registry_release => '1.1';

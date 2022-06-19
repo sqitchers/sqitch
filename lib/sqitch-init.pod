@@ -53,6 +53,8 @@ include:
 
 =item * C<snowflake> - L<Snowflake|https://www.snowflake.net/>
 
+=item * C<cockroach> - L<CockroachDB|https://www.cockroachlabs.com/product/>
+
 =back
 
 =item C<--top-dir>

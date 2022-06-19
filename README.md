@@ -1,18 +1,19 @@
 App/Sqitch version v1.2.2-dev
 =========================
 
-| Release           | Coverage          | Database                             ||
-|-------------------|-------------------|-------------------|-------------------|
-| [![CPAN]][📚]     | [![OSes]][💿]     | [![Exasol]][☀️]    | [![Oracle]][🔮]   |
-| [![Docker]][🐳]   | [![Perl]][🧅]     | [![Firebird]][🔥] | [![Snowflake]][❄️] |
-| [![Homebrew]][🍺] | [![Coverage]][📈] | [![MySQL]][🐬]    | [![SQLite]][💡]   |
-| [![Debian]][🍥]   |                   | [![Postgres]][🐘] | [![Vertica]][🔺]  |
-|                   |                   | [![Yugabyte]][🚀] |                  |
+| Release           | Coverage          | Database                              ||
+|-------------------|-------------------|-------------------|--------------------|
+| [![CPAN]][📚]     | [![OSes]][💿]     | [![Exasol]][☀️]    | [![Oracle]][🔮]    |
+| [![Docker]][🐳]   | [![Perl]][🧅]     | [![Firebird]][🔥] | [![Snowflake]][❄️]  |
+| [![Homebrew]][🍺] | [![Coverage]][📈] | [![MySQL]][🐬]    | [![SQLite]][💡]    |
+| [![Debian]][🍥]   |                   | [![Postgres]][🐘] | [![Vertica]][🔺]   |
+|                   |                   | [![Yugabyte]][💫] | [![Cockroach]][🪳] |
 
 [Sqitch] is a database change management application. It currently supports:
 
 *   [PostgreSQL] 8.4+
 *   [YugabyteDB] 2.6+
+*   [CockroachDB] 21+
 *   [SQLite][lite] 3.7.11+
 *   [MySQL][my] 5.0+
 *   [MariaDB] 10.0+
@@ -60,7 +61,7 @@ What makes it different from your typical migration approaches? A few things:
 
 Want to learn more? The best place to start is in the tutorials:
 
-*   [Introduction to Sqitch on PostgreSQL](lib/sqitchtutorial.pod)
+*   [Introduction to Sqitch on PostgreSQL, YugabyteDB, and CockroachDB](lib/sqitchtutorial.pod)
 *   [Introduction to Sqitch on SQLite](lib/sqitchtutorial-sqlite.pod)
 *   [Introduction to Sqitch on Oracle](lib/sqitchtutorial-oracle.pod)
 *   [Introduction to Sqitch on MySQL](lib/sqitchtutorial-mysql.pod)
@@ -112,7 +113,7 @@ naming the feature:
 The feature names generally correspond to the supported engines. The currently
 supported features are:
 
-*   `--with postgres`:  Support for managing PostgreSQL databases
+*   `--with postgres`:  Support for managing Postgres, Yugabyte, and Cockroach databases
 *   `--with sqlite`:    Support for managing SQLite databases
 *   `--with mysql`:     Support for managing MySQL databases
 *   `--with firebird`:  Support for managing Firebird databases
@@ -187,13 +188,16 @@ SOFTWARE.
   [Postgres]:  https://github.com/sqitchers/sqitch/actions/workflows/pg.yml/badge.svg
   [🐘]:        https://github.com/sqitchers/sqitch/actions/workflows/pg.yml "Tested with PostgreSQL 9.3–14"
   [Yugabyte]:  https://github.com/sqitchers/sqitch/actions/workflows/yugabyte.yml/badge.svg
-  [🚀]:        https://github.com/sqitchers/sqitch/actions/workflows/yugabyte.yml "Tested with YugabyteDB 2.6–2.13"
+  [💫]:        https://github.com/sqitchers/sqitch/actions/workflows/yugabyte.yml "Tested with YugabyteDB 2.6–2.13"
   [Vertica]:   https://github.com/sqitchers/sqitch/actions/workflows/vertica.yml/badge.svg
   [🔺]:        https://github.com/sqitchers/sqitch/actions/workflows/vertica.yml "Tested with Vertica 7.1–11.0"
+  [Cockroach]: https://github.com/sqitchers/sqitch/actions/workflows/cockroach.yml/badge.svg
+  [🪳]:        https://github.com/sqitchers/sqitch/actions/workflows/cockroach.yml "Tested with CockroachDB v21-22"
 
   [Sqitch]: https://sqitch.org/
   [PostgreSQL]: https://postgresql.org/
   [YugabyteDB]: https://www.yugabyte.com/yugabytedb/
+  [CockroachDB]: https://www.cockroachlabs.com/product/
   [lite]: https://sqlite.org/
   [my]: https://dev.mysql.com/
   [MariaDB]: https://mariadb.org

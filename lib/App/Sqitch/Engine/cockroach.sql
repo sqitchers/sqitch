@@ -1,16 +1,14 @@
-BEGIN;
-
 SET client_min_messages = warning;
 CREATE SCHEMA IF NOT EXISTS :"registry";
 
-COMMENT ON SCHEMA :"registry" IS 'Sqitch database deployment metadata v1.0.';
+COMMENT ON SCHEMA :"registry" IS 'Sqitch database deployment metadata v1.1.';
 
 CREATE TABLE :"registry".releases (
     version         REAL        PRIMARY KEY,
     installed_at    TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
     installer_name  TEXT        NOT NULL,
     installer_email TEXT        NOT NULL
-):tableopts;
+);
 
 COMMENT ON TABLE  :"registry".releases                 IS 'Sqitch registry releases.';
 COMMENT ON COLUMN :"registry".releases.version         IS 'Version of the Sqitch registry.';
@@ -24,7 +22,7 @@ CREATE TABLE :"registry".projects (
     created_at      TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
     creator_name    TEXT        NOT NULL,
     creator_email   TEXT        NOT NULL
-):tableopts;
+);
 
 COMMENT ON TABLE  :"registry".projects                IS 'Sqitch projects deployed to this database.';
 COMMENT ON COLUMN :"registry".projects.project        IS 'Unique Name of a project.';
@@ -35,6 +33,7 @@ COMMENT ON COLUMN :"registry".projects.creator_email  IS 'Email address of the u
 
 CREATE TABLE :"registry".changes (
     change_id       TEXT        PRIMARY KEY,
+    script_hash     TEXT            NULL,
     change          TEXT        NOT NULL,
     project         TEXT        NOT NULL REFERENCES :"registry".projects(project) ON UPDATE CASCADE,
     note            TEXT        NOT NULL DEFAULT '',
@@ -43,11 +42,13 @@ CREATE TABLE :"registry".changes (
     committer_email TEXT        NOT NULL,
     planned_at      TIMESTAMPTZ NOT NULL,
     planner_name    TEXT        NOT NULL,
-    planner_email   TEXT        NOT NULL
-):tableopts;
+    planner_email   TEXT        NOT NULL,
+    UNIQUE(project, script_hash)
+);
 
 COMMENT ON TABLE  :"registry".changes                 IS 'Tracks the changes currently deployed to the database.';
 COMMENT ON COLUMN :"registry".changes.change_id       IS 'Change primary key.';
+COMMENT ON COLUMN :"registry".changes.script_hash     IS 'Deploy script SHA-1 hash.';
 COMMENT ON COLUMN :"registry".changes.change          IS 'Name of a deployed change.';
 COMMENT ON COLUMN :"registry".changes.project         IS 'Name of the Sqitch project to which the change belongs.';
 COMMENT ON COLUMN :"registry".changes.note            IS 'Description of the change.';
@@ -71,7 +72,7 @@ CREATE TABLE :"registry".tags (
     planner_name    TEXT        NOT NULL,
     planner_email   TEXT        NOT NULL,
     UNIQUE(project, tag)
-):tableopts;
+);
 
 COMMENT ON TABLE  :"registry".tags                 IS 'Tracks the tags currently applied to the database.';
 COMMENT ON COLUMN :"registry".tags.tag_id          IS 'Tag primary key.';
@@ -90,12 +91,12 @@ CREATE TABLE :"registry".dependencies (
     change_id       TEXT        NOT NULL REFERENCES :"registry".changes(change_id) ON UPDATE CASCADE ON DELETE CASCADE,
     type            TEXT        NOT NULL,
     dependency      TEXT        NOT NULL,
-    dependency_id   TEXT            NULL REFERENCES :"registry".changes(change_id) ON UPDATE CASCADE CHECK (
+    dependency_id   TEXT            NULL REFERENCES :"registry".changes(change_id) ON UPDATE CASCADE CONSTRAINT dependencies_check CHECK (
             (type = 'require'  AND dependency_id IS NOT NULL)
          OR (type = 'conflict' AND dependency_id IS NULL)
     ),
     PRIMARY KEY (change_id, dependency)
-):tableopts;
+);
 
 COMMENT ON TABLE  :"registry".dependencies               IS 'Tracks the currently satisfied dependencies.';
 COMMENT ON COLUMN :"registry".dependencies.change_id     IS 'ID of the depending change.';
@@ -104,7 +105,9 @@ COMMENT ON COLUMN :"registry".dependencies.dependency    IS 'Dependency name.';
 COMMENT ON COLUMN :"registry".dependencies.dependency_id IS 'Change ID the dependency resolves to.';
 
 CREATE TABLE :"registry".events (
-    event           TEXT        NOT NULL CHECK (event IN ('deploy', 'revert', 'fail')),
+    event           TEXT        NOT NULL CONSTRAINT events_event_check CHECK (
+        event IN ('deploy', 'revert', 'fail', 'merge')
+    ),
     change_id       TEXT        NOT NULL,
     change          TEXT        NOT NULL,
     project         TEXT        NOT NULL REFERENCES :"registry".projects(project) ON UPDATE CASCADE,
@@ -119,7 +122,7 @@ CREATE TABLE :"registry".events (
     planner_name    TEXT        NOT NULL,
     planner_email   TEXT        NOT NULL,
     PRIMARY KEY (change_id, committed_at)
-):tableopts;
+);
 
 COMMENT ON TABLE  :"registry".events                 IS 'Contains full history of all deployment events.';
 COMMENT ON COLUMN :"registry".events.event           IS 'Type of event.';
@@ -136,5 +139,3 @@ COMMENT ON COLUMN :"registry".events.committer_email IS 'Email address of the us
 COMMENT ON COLUMN :"registry".events.planned_at      IS 'Date the event was added to the plan.';
 COMMENT ON COLUMN :"registry".events.planner_name    IS 'Name of the user who planed the change.';
 COMMENT ON COLUMN :"registry".events.planner_email   IS 'Email address of the user who plan planned the change.';
-
-COMMIT;

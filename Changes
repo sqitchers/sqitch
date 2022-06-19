@@ -8,6 +8,11 @@ Revision history for Perl extension App::Sqitch
      - Tweaked the Postgres engine to support Yugabyte. The only unsupported
        features are explicit locks, so users need to manually ensure that only
        one instance of Sqitch is updating the cluster at a time.
+     - Added support for CockroachDB. Almost exactly the same as for Postgres,
+       so the new App::Sqitch::Engine::cockroach class extends
+       App::Sqitch::Engine::pg to make a few changes. The SQL files with
+       the registry DDL varies in a few ways, so they're separate.
+     - Now require URI::db v0.20 for Cockroach and Yugabyte URI support.
 
 1.2.1  2021-12-05T19:59:45Z
      - Updated all the live engine tests, aside from Oracle, to test with

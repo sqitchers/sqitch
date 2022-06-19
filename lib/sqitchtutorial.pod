@@ -17,7 +17,9 @@ changes remain in sync and in the proper order.
 We'll start by creating a new project from scratch, a fictional antisocial
 networking site called Flipr. All examples use L<Git|https://git-scm.com/> as
 the VCS and L<PostgreSQL|https://www.postgresql.org/> as the storage engine,
-but for the most part you can substitute other VCSes and database engines in
+though L<YugabyteDB|https://www.yugabyte.com/yugabytedb/> and
+L<CockroachDB|https://www.cockroachlabs.com/product/> should work just as well.
+For the most part you can substitute other VCSes and database engines in
 the examples as appropriate.
 
 If you'd like to manage an SQLite database, see L<sqitchtutorial-sqlite>.
@@ -79,7 +81,11 @@ Good, it picked up on the fact that we're creating changes for the PostgreSQL
 engine, thanks to the C<--engine pg> option, and saved it to the file.
 Furthermore, it wrote a commented-out C<[engine "pg"]> section with all the
 available PostgreSQL engine-specific settings commented out and ready to be
-edited as appropriate.
+edited as appropriate. This configuration will also fork for
+L<YugabyteDB|https://www.yugabyte.com/yugabytedb/> databases, too. For
+L<CockroachDB|https://www.cockroachlabs.com/product/>, use
+C<--engine cockroach>, instead, and replace any instance of C<pg> with
+C<cockroach> in the rest of this document.
 
 By default, Sqitch will read F<sqitch.conf> in the current directory for
 settings. But it will also read F<~/.sqitch/sqitch.conf> for user-specific
@@ -160,7 +166,16 @@ to deploy to:
   > createdb flipr_test
 
 Now we tell Sqitch where to send the change via a
-L<database URI|https://github.com/libwww-perl/uri-db/>:
+L<database URI|https://github.com/libwww-perl/uri-db/>. The examples here
+use C<db:pg:flipr_test>, assuming a passwordless connection on a local
+socket. If you need to specify a username and hostname, it would be more
+like C<db:pg://postgres@localhost/flipr_test>. For YugabyteDB, you might
+also need the port, as in C<db:pg://postgres@localhost:5433/flipr_test>.
+For CockroachDB, use C<db:cockroach:>, as in
+C<db:cockroach://root@localhost:26257/flipr_test>.
+
+Sticking with simply C<db:pg:flipr_test> for these examples, we use the
+C<deploy> command to deploy the change:
 
   > sqitch deploy db:pg:flipr_test
   Adding registry tables to db:pg:flipr_test

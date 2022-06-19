@@ -1,5 +1,3 @@
-BEGIN;
-
 SET client_min_messages = warning;
 
 CREATE TABLE :"registry".releases (
@@ -7,7 +5,7 @@ CREATE TABLE :"registry".releases (
     installed_at    TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
     installer_name  TEXT        NOT NULL,
     installer_email TEXT        NOT NULL
-):tableopts;
+);
 
 COMMENT ON TABLE  :"registry".releases                 IS 'Sqitch registry releases.';
 COMMENT ON COLUMN :"registry".releases.version         IS 'Version of the Sqitch registry.';
@@ -21,10 +19,10 @@ UPDATE :"registry".changes SET script_hash = change_id;
 COMMENT ON COLUMN :"registry".changes.script_hash IS 'Deploy script SHA-1 hash.';
 
 -- Allow "merge" events.
-ALTER TABLE :"registry".events DROP CONSTRAINT events_event_check;
+-- Stricly speaking the `IF EXISTS` should not be required here, but funkyness
+-- in Cockroach schema changes require it.
+ALTER TABLE :"registry".events DROP CONSTRAINT IF EXISTS events_event_check;
 ALTER TABLE :"registry".events ADD  CONSTRAINT events_event_check
       CHECK (event IN ('deploy', 'revert', 'fail', 'merge'));
 
 COMMENT ON SCHEMA :"registry" IS 'Sqitch database deployment metadata v1.0.';
-
-COMMIT;

@@ -33,11 +33,10 @@ follows:
 
 =over
 
-=item PostgreSQL
+=item PostgreSQL, YugabyteDB, CockroachDB
 
-The Postgres engine uses the C<PGUSER> environment variable, if set.
-Otherwise, it uses the system username.
-
+The Postgres, Yugabyte, and Cockroach engines use the C<PGUSER> environment
+variable, if set. Otherwise, it uses the system username.
 
 =item MySQL
 
@@ -199,9 +198,9 @@ the feature. Here's how the database engines supported by Sqitch shake out:
 
 =over
 
-=item PostgreSQL
+=item PostgreSQL, YugabyteDB, CockroachDB
 
-PostgreSQL will use a
+PostgreSQL, YugabyteDB, and CockroachDB will use a
 L<F<.pgpass> file|https://www.postgresql.org/docs/current/static/libpq-pgpass.html> in the
 user's home directory to or referenced by the C<$PGPASSFILE> environment
 variable. This file must limit access only to the current user (C<0600>) and
@@ -331,7 +330,7 @@ you may wish to use instead. However, their behaviors may not be consistent:
 
 =over
 
-=item PostgreSQL
+=item PostgreSQL, YugabyteDB, CockroachDB
 
 C<$PGPASSWORD>
 

@@ -13,7 +13,7 @@ use File::Copy ();
 __PACKAGE__->add_property($_) for qw(etcdir installed_etcdir);
 
 # List one more more engines to include in a bundle install.
-# --with postgres --with msyql
+# --with postgres --with mysql
 __PACKAGE__->add_property(with => []);
 
 # Set dual_life to true to force dual-life modules such as Pod::Simple to be

@@ -81,7 +81,7 @@ my @std_opts = (
     '--set' => 'registry=sqitch',
 );
 my $sysuser = $sqitch->sysuser;
-is_deeply [$pg->psql], [$client, @std_opts],
+is_deeply [$pg->psql], [$client, '--dbname', 'port=5432', @std_opts],
     'psql command should be conninfo, and std opts-only';
 
 isa_ok $pg = $CLASS->new(sqitch => $sqitch, target => $target), $CLASS;
@@ -89,9 +89,10 @@ ok $pg->set_variables(foo => 'baz', whu => 'hi there', yo => 'stellar'),
     'Set some variables';
 is_deeply [$pg->psql], [
     $client,
-    '--set' => 'foo=baz',
-    '--set' => 'whu=hi there',
-    '--set' => 'yo=stellar',
+    '--dbname' => 'port=5432',
+    '--set'    => 'foo=baz',
+    '--set'    => 'whu=hi there',
+    '--set'    => 'yo=stellar',
     @std_opts,
 ], 'Variables should be passed to psql via --set';
 
@@ -140,7 +141,7 @@ is $pg->registry, 'meta', 'registry should be as configured';
 is_deeply [$pg->psql], [
     '/path/to/psql',
     '--dbname',
-    "dbname=try host=localhost connect_timeout=5 sslmode=disable",
+    "dbname=try host=localhost port=5432 connect_timeout=5 sslmode=disable",
 @std_opts], 'psql command should be configured from URI config';
 
 ##############################################################################
@@ -257,7 +258,7 @@ $mock_sqitch->unmock_all;
 ##############################################################################
 # Test DateTime formatting stuff.
 ok my $ts2char = $CLASS->can('_ts2char_format'), "$CLASS->can('_ts2char_format')";
-is sprintf($ts2char->(), 'foo'),
+is sprintf($ts2char->($pg), 'foo'),
     q{to_char(foo AT TIME ZONE 'UTC', '"year":YYYY:"month":MM:"day":DD:"hour":HH24:"minute":MI:"second":SS:"time_zone":"UTC"')},
     '_ts2char_format should work';
 
@@ -290,7 +291,7 @@ for my $spec (
 $mock_sqitch->unmock('probe');
 
 ##############################################################################
-# Test table error methods.
+# Test table error and listagg methods.
 DBI: {
     local *DBI::state;
     ok !$pg->_no_table_error, 'Should have no table error';
@@ -329,6 +330,30 @@ DBI: {
         __ 'Sqitch registry not initialized',
         __ 'Because the "changes" table does not exist, Sqitch will now initialize the database to create its registry tables.',
     ], 'Should have sent an error to the log';
+
+    # Test _listagg_format.
+    $dbh->{pg_server_version} = 110000;
+    is $pg->_listagg_format, q{array_remove(array_agg(%1$s ORDER BY %1$s), NULL)},
+        'Should use array_remove and ORDER BY in listagg_format on v11';
+
+    $dbh->{pg_server_version} = 90300;
+    is $pg->_listagg_format, q{array_remove(array_agg(%1$s ORDER BY %1$s), NULL)},
+        'Should use array_remove and ORDER BY in listagg_format on v9.3';
+
+    $dbh->{pg_server_version} = 90200;
+    is $pg->_listagg_format,
+        q{ARRAY(SELECT * FROM UNNEST( array_agg(%1$s ORDER BY %1$s) ) a WHERE a IS NOT NULL)},
+        'Should use ORDER BY in listagg_format on v9.2';
+
+    $dbh->{pg_server_version} = 80400;
+    is $pg->_listagg_format,
+        q{ARRAY(SELECT * FROM UNNEST( array_agg(%1$s ORDER BY %1$s) ) a WHERE a IS NOT NULL)},
+        'Should use ORDER BY in listagg_format on v8.4';
+
+    $dbh->{pg_server_version} = 80300;
+    is $pg->_listagg_format,
+        q{ARRAY(SELECT * FROM UNNEST( array_agg(%s) ) a WHERE a IS NOT NULL)},
+        'Should not use ORDER BY in listagg_format on v8.3';
 }
 
 ##############################################################################

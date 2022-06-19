@@ -61,7 +61,7 @@ has _psql => (
             [ user   => $self->username ],
             [ dbname => $uri->dbname    ],
             [ host   => $uri->host      ],
-            [ port   => $uri->_port     ],
+            [ port   => $uri->port      ],
             map { [ $_ => $query_params{$_} ] }
                 sort keys %query_params,
         ) {
@@ -180,11 +180,16 @@ sub _ts_default { 'clock_timestamp()' }
 sub _char2ts { $_[1]->as_string(format => 'iso') }
 
 sub _listagg_format {
-    q{ARRAY(SELECT * FROM UNNEST( array_agg(%s) ) a WHERE a IS NOT NULL)}
-    
-    # Consider dropping 8.4 and passing the sort by column to ensure that list
-    # is always in a well-defined order:
-    # q{ARRAY(SELECT * FROM UNNEST( array_agg(%s ORDER BY %s) ) a WHERE a IS NOT NULL)}
+    my $dbh = shift->dbh;
+    # Since 9.3, we can use array_remove().
+    return q{array_remove(array_agg(%1$s ORDER BY %1$s), NULL)}
+        if $dbh->{pg_server_version} >= 90300;
+
+    # Since 8.4 we can use ORDER BY.
+    return q{ARRAY(SELECT * FROM UNNEST( array_agg(%1$s ORDER BY %1$s) ) a WHERE a IS NOT NULL)}
+        if $dbh->{pg_server_version} >= 80400;
+
+    return q{ARRAY(SELECT * FROM UNNEST( array_agg(%s) ) a WHERE a IS NOT NULL)};
 }
 
 sub _regex_op { '~' }
@@ -207,7 +212,7 @@ sub initialize {
         'Sqitch schema "{schema}" already exists',
         schema => $self->registry
     ) if $self->initialized;
-    $self->_run_registry_file( file(__FILE__)->dir->file('pg.sql') );
+    $self->_run_registry_file( file(__FILE__)->dir->file($self->key . '.sql') );
     $self->_register_release;
 }
 
@@ -278,7 +283,7 @@ sub begin_work {
     # Start transaction and lock changes to allow only one change at a time.
     $dbh->begin_work;
     $dbh->do('LOCK TABLE changes IN EXCLUSIVE MODE')
-        unless $self->_provider eq 'yugabyte';
+        if $self->_provider eq 'postgres';
         # Yugabyte does not yet support EXCLUSIVE MODE.
         # https://docs.yugabyte.com/preview/api/ysql/the-sql-language/statements/txn_lock/#lockmode-1
     return $self;
@@ -296,9 +301,8 @@ sub try_lock {
 sub wait_lock {
     my $self = shift;
 
-    # Yugabyte and Cockroach do not support advisory locks.
+    # Yugabyte does not support advisory locks.
     # https://github.com/yugabyte/yugabyte-db/issues/3642
-    # https://github.com/cockroachdb/cockroach/issues/13546
     # Use pessimistic locking when it becomes available.
     # https://github.com/yugabyte/yugabyte-db/issues/5680
     return 1 if $self->_provider ne 'postgres';
@@ -368,7 +372,7 @@ sub log_new_tags {
                  , planner_email
             )
             SELECT tid, tg, proj, chid, n, name, email, at, pname, pemail FROM ( VALUES
-        } . join( ",\n                ", ( q{(?, ?, ?, ?, ?, ?, ?, ?::timestamptz, ?, ?)} ) x @tags )
+        } . join( ",\n                ", ( q{(?::text, ?::text, ?::text, ?::text, ?::text, ?::text, ?::text, ?::timestamptz, ?::text, ?::text)} ) x @tags )
         . q{
             ) i(tid, tg, proj, chid, n, name, email, at, pname, pemail)
               LEFT JOIN tags ON i.tid = tags.tag_id

@@ -10,9 +10,37 @@ sqitch - Sensible database change management
 
 =head1 Description
 
-Sqitch is a database change management application. What makes it different
-from your typical L<migration|Module::Build::DB>-L<style|DBIx::Migration>
-approaches? A few things:
+Sqitch is a database change management application. It currently supports:
+
+=over
+
+=item * L<PostgreSQL|https://postgresql.org/> 8.4+
+
+=item * L<YugabyteDB|https://www.yugabyte.com/yugabytedb/> 2.6+
+
+=item * L<CockroachDB|https://www.cockroachlabs.com/product/> 21+
+
+=item * L<SQLite|https://sqlite.org/> 3.7.11+
+
+=item * L<MySQL|https://dev.mysql.com/> 5.0+
+
+=item * L<MariaDB|https://mariadb.org> 10.0+
+
+=item * L<Oracle|https://www.oracle.com/database/> 10g+,
+
+=item * L<Firebird|https://www.firebirdsql.org/> 2.0+
+
+=item * L<Vertica|https://www.vertica.com/> 6.0+
+
+=item * L<Exasol|https://www.exasol.com/> 6.0+
+
+=item * L<Snowflake|https://www.snowflake.net/>
+
+=back
+
+What makes it different from your typical
+L<migration|Module::Build::DB>-L<style|DBIx::Migration> approaches? A few
+things:
 
 =over
 
@@ -97,7 +125,7 @@ of a database with Sqitch.
 
 =over
 
-=item * L<PostgreSQL Tutorial|sqitchtutorial>
+=item * L<PostgreSQL, YugabyteDB, CockroachDB Tutorial|sqitchtutorial>
 
 =item * L<SQLite Tutorial|sqitchtutorial-sqlite>
 

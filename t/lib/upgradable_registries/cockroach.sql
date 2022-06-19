@@ -1,5 +1,3 @@
-BEGIN;
-
 SET client_min_messages = warning;
 CREATE SCHEMA IF NOT EXISTS :"registry";
 
@@ -10,7 +8,7 @@ CREATE TABLE :"registry".releases (
     installed_at    TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
     installer_name  TEXT        NOT NULL,
     installer_email TEXT        NOT NULL
-):tableopts;
+);
 
 COMMENT ON TABLE  :"registry".releases                 IS 'Sqitch registry releases.';
 COMMENT ON COLUMN :"registry".releases.version         IS 'Version of the Sqitch registry.';
@@ -24,7 +22,7 @@ CREATE TABLE :"registry".projects (
     created_at      TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
     creator_name    TEXT        NOT NULL,
     creator_email   TEXT        NOT NULL
-):tableopts;
+);
 
 COMMENT ON TABLE  :"registry".projects                IS 'Sqitch projects deployed to this database.';
 COMMENT ON COLUMN :"registry".projects.project        IS 'Unique Name of a project.';
@@ -44,7 +42,7 @@ CREATE TABLE :"registry".changes (
     planned_at      TIMESTAMPTZ NOT NULL,
     planner_name    TEXT        NOT NULL,
     planner_email   TEXT        NOT NULL
-):tableopts;
+);
 
 COMMENT ON TABLE  :"registry".changes                 IS 'Tracks the changes currently deployed to the database.';
 COMMENT ON COLUMN :"registry".changes.change_id       IS 'Change primary key.';
@@ -71,7 +69,7 @@ CREATE TABLE :"registry".tags (
     planner_name    TEXT        NOT NULL,
     planner_email   TEXT        NOT NULL,
     UNIQUE(project, tag)
-):tableopts;
+);
 
 COMMENT ON TABLE  :"registry".tags                 IS 'Tracks the tags currently applied to the database.';
 COMMENT ON COLUMN :"registry".tags.tag_id          IS 'Tag primary key.';
@@ -95,7 +93,7 @@ CREATE TABLE :"registry".dependencies (
          OR (type = 'conflict' AND dependency_id IS NULL)
     ),
     PRIMARY KEY (change_id, dependency)
-):tableopts;
+);
 
 COMMENT ON TABLE  :"registry".dependencies               IS 'Tracks the currently satisfied dependencies.';
 COMMENT ON COLUMN :"registry".dependencies.change_id     IS 'ID of the depending change.';
@@ -119,7 +117,7 @@ CREATE TABLE :"registry".events (
     planner_name    TEXT        NOT NULL,
     planner_email   TEXT        NOT NULL,
     PRIMARY KEY (change_id, committed_at)
-):tableopts;
+);
 
 COMMENT ON TABLE  :"registry".events                 IS 'Contains full history of all deployment events.';
 COMMENT ON COLUMN :"registry".events.event           IS 'Type of event.';
@@ -136,5 +134,3 @@ COMMENT ON COLUMN :"registry".events.committer_email IS 'Email address of the us
 COMMENT ON COLUMN :"registry".events.planned_at      IS 'Date the event was added to the plan.';
 COMMENT ON COLUMN :"registry".events.planner_name    IS 'Name of the user who planed the change.';
 COMMENT ON COLUMN :"registry".events.planner_email   IS 'Email address of the user who plan planned the change.';
-
-COMMIT;

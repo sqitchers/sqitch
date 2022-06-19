@@ -1,0 +1,37 @@
+# This workflow tests Sqitch's Cockroach engine on all supported versions of
+# Postgres. It runs for pushes and pull requests on the `main`, `develop`,
+# `**cockroach**`, and `**engine**` branches.
+name: 🪳 CockroachDB
+on:
+  push:
+    branches: [main, develop, "**engine**", "**cockroach**" ]
+  pull_request:
+    branches: [main, develop, "**engine**", "**cockroach**" ]
+jobs:
+  Cockroach:
+    strategy:
+      matrix:
+        version: ['22.1', '21.2']
+    name: 🪳 Cockroach ${{ matrix.version }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start CockroachDB
+        run: docker run -d -p 26257:26257 cockroachdb/cockroach:latest-v${{ matrix.version }} start-single-node --insecure
+      - uses: actions/checkout@v2
+      - name: Setup Perl
+        id: perl
+        uses: shogo82148/actions-setup-perl@v1
+        with: { perl-version: latest }
+      - name: Cache CPAN Modules
+        uses: actions/cache@v2
+        with:
+          path: local
+          key: perl-${{ steps.perl.outputs.perl-hash }}
+      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends --cpanfile dist/cpanfile
+      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends DBD::Pg
+      - name: prove
+        env:
+          PERL5LIB: "${{ github.workspace }}/local/lib/perl5"
+          LIVE_COCKROACH_REQUIRED: true
+          SQITCH_TEST_COCKROACH_URI: db:cockroach://root@localhost:26257/
+        run: prove -lvr t/cockroach.t
