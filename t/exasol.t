@@ -326,7 +326,8 @@ is $exa->_char2ts($dt), '2017-11-06 10:47:35',
 
 ##############################################################################
 # Test SQL helpers.
-is $exa->_listagg_format, q{GROUP_CONCAT(%s SEPARATOR ' ')}, 'Should have _listagg_format';
+is $exa->_listagg_format, q{GROUP_CONCAT(%1$s ORDER BY %1$s SEPARATOR ' ')},
+    'Should have _listagg_format';
 is $exa->_ts_default, 'current_timestamp', 'Should have _ts_default';
 is $exa->_regex_op, 'REGEXP_LIKE', 'Should have _regex_op';
 is $exa->_simple_from, ' FROM dual', 'Should have _simple_from';

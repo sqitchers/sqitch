@@ -22,7 +22,7 @@ Sqitch is a database change management application. It currently supports:
 
 =item * L<SQLite|https://sqlite.org/> 3.7.11+
 
-=item * L<MySQL|https://dev.mysql.com/> 5.0+
+=item * L<MySQL|https://dev.mysql.com/> 5.1+
 
 =item * L<MariaDB|https://mariadb.org> 10.0+
 

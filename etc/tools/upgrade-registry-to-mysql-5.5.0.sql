@@ -3,7 +3,7 @@
 -- it to emulate CHECK constraints. It will then also be available for use in
 -- verify scripts, as described in sqitchtutorial-mysql. If you have an
 -- existing Sqitch registry that was upgraded from an earlier version of MySQL
--- to 5.5.0 or highher, you'll need to run this script to update it, like so:
+-- to 5.5.0 or higher, you'll need to run this script to update it, like so:
 
 --      mysql -u root sqitch --execute "source `sqitch --etc`/tools/upgrade-registry-to-mysql-5.5.0.sql'
 

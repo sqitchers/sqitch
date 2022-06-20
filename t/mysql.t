@@ -366,7 +366,8 @@ is $dt->time_zone->name, 'UTC', 'DateTime TZ should be set';
 
 ##############################################################################
 # Test SQL helpers.
-is $mysql->_listagg_format, q{GROUP_CONCAT(%s SEPARATOR ' ')}, 'Should have _listagg_format';
+is $mysql->_listagg_format, q{GROUP_CONCAT(%1$s ORDER BY %1$s SEPARATOR ' ')},
+    'Should have _listagg_format';
 is $mysql->_regex_op, 'REGEXP', 'Should have _regex_op';
 is $mysql->_simple_from, '', 'Should have _simple_from';
 is $mysql->_limit_default, '18446744073709551615', 'Should have _limit_default';
@@ -598,8 +599,8 @@ my $err = try {
             unless $dbh->{mysql_serverversion} >= 50300;
     }
     else {
-        die "MySQL >= 50000 required; this is $dbh->{mysql_serverversion}\n"
-            unless $dbh->{mysql_serverversion} >= 50000;
+        die "MySQL >= 50100 required; this is $dbh->{mysql_serverversion}\n"
+            unless $dbh->{mysql_serverversion} >= 50100;
     }
 
     $dbh->do("CREATE DATABASE $db");

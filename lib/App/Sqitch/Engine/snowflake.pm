@@ -277,7 +277,7 @@ sub _verbose_opts {
 # * Scalar variables like the array constructor can't be used in WHERE clauses
 #   https://support.snowflake.net/s/case/5000Z000010wX7yQAE/
 sub _listagg_format {
-    return q{listagg(%s, ' ')};
+    return q{listagg(%1$s, ' ') WITHIN GROUP (ORDER BY %1$s)};
 }
 
 sub _ts_default { 'current_timestamp' }

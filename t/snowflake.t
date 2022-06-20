@@ -336,7 +336,8 @@ is_deeply [$snow->snowsql], [qw(
 
 ##############################################################################
 # Test SQL helpers.
-is $snow->_listagg_format, q{listagg(%s, ' ')}, 'Should have _listagg_format';
+is $snow->_listagg_format, q{listagg(%1$s, ' ') WITHIN GROUP (ORDER BY %1$s)},
+    'Should have _listagg_format';
 is $snow->_ts_default, 'current_timestamp', 'Should have _ts_default';
 is $snow->_regex_op, 'REGEXP', 'Should have _regex_op';
 is $snow->_simple_from, ' FROM dual', 'Should have _simple_from';

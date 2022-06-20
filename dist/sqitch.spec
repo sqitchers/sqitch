@@ -238,7 +238,7 @@ package bundles the Sqitch Oracle support.
 Summary:        Sensible database change management for MySQL
 Group:          Development/Libraries
 Requires:       sqitch >= %{version}
-Requires:       mysql >= 5.0.0
+Requires:       mysql >= 5.1.0
 Requires:       perl(DBI)
 Requires:       perl(DBD::mysql) >= 4.018
 Requires:       perl(MySQL::Config)

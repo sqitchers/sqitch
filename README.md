@@ -15,7 +15,7 @@ App/Sqitch version v1.2.2-dev
 *   [YugabyteDB] 2.6+
 *   [CockroachDB] 21+
 *   [SQLite][lite] 3.7.11+
-*   [MySQL][my] 5.0+
+*   [MySQL][my] 5.1+
 *   [MariaDB] 10.0+
 *   [Oracle][orcl] 10g+,
 *   [Firebird][bird] 2.0+

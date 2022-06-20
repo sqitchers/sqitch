@@ -13,6 +13,10 @@ Revision history for Perl extension App::Sqitch
        App::Sqitch::Engine::pg to make a few changes. The SQL files with
        the registry DDL varies in a few ways, so they're separate.
      - Now require URI::db v0.20 for Cockroach and Yugabyte URI support.
+     - Dropped support for MySQL 5.0.
+     - Added explicit sorting for aggregated lists (such as the tags associated
+       with a commit) to the MySQL, Exasol, Snowflake, and Postgres (8.4 and
+       higher) engines.
 
 1.2.1  2021-12-05T19:59:45Z
      - Updated all the live engine tests, aside from Oracle, to test with

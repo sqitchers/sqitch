@@ -188,6 +188,8 @@ sub _ts2char_format {
 }
 
 sub _listagg_format {
+    # The order of the concatenated elements is arbitrary.
+    # https://www.sqlite.org/lang_aggfunc.html
     return q{group_concat(%s, ' ')};
 }
 

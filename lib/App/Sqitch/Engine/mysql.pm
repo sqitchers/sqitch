@@ -121,7 +121,7 @@ has dbh => (
         # Make sure we support this version.
         my ($dbms, $vnum, $vstr) = $dbh->{mysql_serverinfo} =~ /mariadb/i
             ? ('MariaDB', 50300, '5.3')
-            : ('MySQL',   50000, '5.0.0');
+            : ('MySQL',   50100, '5.1.0');
         hurl mysql => __x(
             'Sqitch requires {rdbms} {want_version} or higher; this is {have_version}',
             rdbms        => $dbms,
@@ -348,7 +348,7 @@ sub _regex_op { 'REGEXP' }
 sub _limit_default { '18446744073709551615' }
 
 sub _listagg_format {
-    return q{GROUP_CONCAT(%s SEPARATOR ' ')};
+    return q{GROUP_CONCAT(%1$s ORDER BY %1$s SEPARATOR ' ')};
 }
 
 sub _prepare_to_log {

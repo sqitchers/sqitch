@@ -181,7 +181,7 @@ sub _ts2char_format {
 sub _ts_default { 'current_timestamp' }
 
 sub _listagg_format {
-    return q{GROUP_CONCAT(%s SEPARATOR ' ')};
+    return q{GROUP_CONCAT(%1$s ORDER BY %1$s SEPARATOR ' ')};
 }
 
 sub _regex_op { 'REGEXP_LIKE' }
