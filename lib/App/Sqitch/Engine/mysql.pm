@@ -251,23 +251,29 @@ sub _quote_idents {
 
 sub _version_query { 'SELECT CAST(ROUND(MAX(version), 1) AS CHAR) FROM releases' }
 
-sub initialized {
-    my $self = shift;
+has initialized => (
+    is      => 'ro',
+    isa     => Bool,
+    lazy    => 1,
+    writer  => '_set_initialized',
+    default => sub {
+        my $self = shift;
 
-    # Try to connect.
-    my $dbh = try { $self->dbh } catch {
-        # MySQL error code 1049 (ER_BAD_DB_ERROR): Unknown database '%-.192s'
-        return if $DBI::err && $DBI::err == 1049;
-        die $_;
-    } or return 0;
+        # Try to connect.
+        my $dbh = try { $self->dbh } catch {
+            # MySQL error code 1049 (ER_BAD_DB_ERROR): Unknown database '%-.192s'
+            return if $DBI::err && $DBI::err == 1049;
+            die $_;
+        } or return 0;
 
-    return $dbh->selectcol_arrayref(q{
-        SELECT COUNT(*)
-          FROM information_schema.tables
-         WHERE table_schema = ?
-           AND table_name   = ?
-    }, undef, $self->registry, 'changes')->[0];
-}
+        return $dbh->selectcol_arrayref(q{
+            SELECT COUNT(*)
+            FROM information_schema.tables
+            WHERE table_schema = ?
+            AND table_name   = ?
+        }, undef, $self->registry, 'changes')->[0];
+    }
+);
 
 sub initialize {
     my $self   = shift;
@@ -287,6 +293,7 @@ sub initialize {
 
     # Deploy the registry to the Sqitch database.
     $self->run_upgrade( file(__FILE__)->dir->file('mysql.sql') );
+    $self->_set_initialized(1);
     $self->_register_release;
 }
 
@@ -307,7 +314,10 @@ sub begin_work {
 # Override to try to acquire a lock on the string "sqitch working" without
 # waiting.
 sub try_lock {
-    shift->dbh->selectcol_arrayref(
+    my $self = shift;
+    # Can't create a lock in the registry if it doesn't exist.
+    $self->initialize unless $self->initialized;
+    $self->dbh->selectcol_arrayref(
         q{SELECT get_lock('sqitch working', 0)}
     )->[0]
 }

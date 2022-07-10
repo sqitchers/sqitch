@@ -270,11 +270,13 @@ sub deploy {
 
 sub revert {
     my ( $self, $to ) = @_;
-    $self->lock_destination;
+
+    # Check the registry and, once we know it's there, lock the destination.
     $self->_check_registry;
+    $self->lock_destination;
+
     my $sqitch = $self->sqitch;
     my $plan   = $self->plan;
-
     my @changes;
 
     if (defined $to) {
