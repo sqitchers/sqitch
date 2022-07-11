@@ -45,10 +45,10 @@ What makes it different from your typical migration approaches? A few things:
 
 *   Deployment integrity
 
-    Sqitch manages changes and dependencies via a plan file, and employs a
-    [Merkle tree] pattern similar to [Git][gitmerkle] and [Blockchain] to ensure
+    Sqitch manages changes and dependencies via a plan file. It also employs a
+    [Merkle tree] pattern, similar to [Git][gitmerkle] and [Blockchain], to ensure
     deployment integrity. As such, there is no need to number your changes,
-    although you can if you want. Sqitch doesn't much care how you name your
+    although you can if you want. Sqitch doesn't care how you name your
     changes.
 
 *   Iterative Development
@@ -56,8 +56,7 @@ What makes it different from your typical migration approaches? A few things:
     Up until you [tag] and [release] your project, you can modify your change
     deployment scripts as often as you like. They're not locked in just because
     they've been committed to your VCS. This allows you to take an iterative
-    approach to developing your database schema. Or, better, you can do
-    test-driven database development.
+    or test-driven database development approach.
 
 Want to learn more? The best place to start is in the tutorials:
 
@@ -73,14 +72,14 @@ Want to learn more? The best place to start is in the tutorials:
 There have also been a number of presentations on Sqitch:
 
 * [PDX.pm Presentation]: Slides from "Sane Database Management with Sqitch",
-  presented to the Portland Perl Mongers in January, 2013.
+  presented to the Portland Perl Mongers in January 2013.
 
 * [PDXPUG Presentation]: Movie of "Sane Database Management with Sqitch",
-  presented to the Portland PostgreSQL Users Group in September, 2012.
+  presented to the Portland PostgreSQL Users Group in September 2012.
 
 * [Agile Database Development]: Slides from a three-hour tutorial session on
   using [Git], test-driven development with [pgTAP], and change management with
-  Sqitch, updated in January, 2014.
+  Sqitch, updated in January 2014.
 
 Installation
 ------------
