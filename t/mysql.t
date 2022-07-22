@@ -384,11 +384,15 @@ SECS: {
     is $my51->_ts_default, 'utc_timestamp',
         'Should have _ts_default without fractional seconds on 5.1';
 
-    $dbh->{mysql_serverversion} = 50604;
+    $dbh->{mysql_serverversion} = 50304;
     $dbh->{mysql_serverinfo} = 'Something about MariaDB man';
     my $maria = $CLASS->new(sqitch => $sqitch, target => $target);
     is $maria->_ts_default, 'utc_timestamp',
-        'Should have _ts_default without fractional seconds on mariadb';
+        'Should have _ts_default without fractional seconds on early mariadb';
+
+    $dbh->{mysql_serverversion} = 50305;
+    is $mysql->_ts_default, 'utc_timestamp(6)',
+        'Should have _ts_default with fractional secondson mariadb 5.03.05';
 }
 
 DBI: {

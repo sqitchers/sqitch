@@ -223,8 +223,9 @@ has _fractional_seconds => (
     lazy    => 1,
     default => sub {
         my $dbh = shift->dbh;
-        return $dbh->{mysql_serverinfo} !~ /mariadb/i
-            && $dbh->{mysql_serverversion} >= 50604;
+        return $dbh->{mysql_serverinfo} =~ /mariadb/i
+            ? $dbh->{mysql_serverversion} >= 50305
+            : $dbh->{mysql_serverversion} >= 50604;
     },
 );
 

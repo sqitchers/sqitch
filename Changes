@@ -17,6 +17,8 @@ Revision history for Perl extension App::Sqitch
      - Added explicit sorting for aggregated lists (such as the tags associated
        with a commit) to the MySQL, Exasol, Snowflake, and Postgres (8.4 and
        higher) engines.
+     - Fixed slow deploys on MariaDB thanks to fractional timestamp support
+       added in 5.03.05. Thanks to @rbrigot for the PR (#658)!
 
 1.2.1  2021-12-05T19:59:45Z
      - Updated all the live engine tests, aside from Oracle, to test with
