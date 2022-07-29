@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 721;
+use Test::More tests => 769;
 # use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -94,6 +94,7 @@ ENGINE: {
     sub finish_work        { push @SEEN => ['finish_work'] if $record_work }
     sub log_new_tags       { push @SEEN => [ log_new_tags => $_[1] ]; $_[0] }
     sub _update_script_hashes { push @SEEN => ['_update_script_hashes']; $_[0] }
+    sub upgrade_registry   { push @SEEN => 'upgrade_registry' }
 
     sub seen { [@SEEN] }
     after seen => sub { @SEEN = () };
@@ -955,6 +956,22 @@ is_deeply $engine->seen, [
     ['log_new_tags' => $plan->change_at(1)],
 ], 'Should have updated hashes but not IDs';
 
+# Have current_state return no script hash.
+my $mock_whu = Test::MockModule->new('App::Sqitch::Engine::whu');
+my $state = {change_id => $latest_change_id};
+$mock_whu->mock(current_state => $state);
+ok $engine->_sync_plan, 'Sync the plan with no script hash';
+$mock_whu->unmock('current_state');
+is $plan->position, 1, 'Plan should now be at position 1';
+is $engine->start_at, 'users@alpha', 'start_at should still be users@alpha';
+is_deeply $engine->seen, [
+    'upgrade_registry',
+    ['_update_script_hashes'],
+    ['log_new_tags' => $plan->change_at(1)],
+], 'Should have ugpraded the registry';
+is $state->{script_hash}, $latest_change_id,
+    'The script hash should have been set to the change ID';
+
 ##############################################################################
 # Test deploy.
 can_ok $CLASS, 'deploy';
@@ -1064,6 +1081,7 @@ is_deeply $engine->seen, [
     [lock_destination => []],
     [current_state => undef],
     'initialized',
+    'upgrade_registry',
     'register_project',
     [check_deploy_dependencies => [$plan, 1]],
     [run_file => $changes[0]->deploy_file],
@@ -1123,6 +1141,28 @@ is_deeply $engine->seen, [
     ['log_new_tags' => $changes[2]],
 ], 'Should have called latest_item() and latest_tag()';
 
+# Make sure that it upgrades the registry when deploying on existing changes.
+$latest_change_id = undef;
+my $mock_plan = Test::MockModule->new(ref $plan);
+my $orig_pos_meth;
+my @pos_vals = (1, 1);
+$mock_plan->mock(position => sub { return @pos_vals ? shift @pos_vals : $orig_pos_meth->($_[0]) });
+$orig_pos_meth = $mock_plan->original('position');
+ok $engine->deploy(), 'Deploy to from index 1';
+$mock_plan->unmock('position');
+is $plan->position, 2, 'Plan should be at position 2';
+is_deeply $engine->seen, [
+    [lock_destination => []],
+    [current_state => undef],
+    'upgrade_registry',
+    [check_deploy_dependencies => [$plan, 2]],
+], 'Should have deployed to change 2';
+is_deeply +MockOutput->get_info, [
+    [__x 'Deploying changes to {destination}', destination =>  $engine->destination ],
+    # [__ 'ok'],
+    # [__ 'ok'],
+], 'Should have emitted deploy announcement and successes';
+
 # Make sure we can deploy everything by change.
 $latest_change_id = undef;
 $plan->reset;
@@ -1134,6 +1174,7 @@ is_deeply $engine->seen, [
     [lock_destination => []],
     [current_state => undef],
     'initialized',
+    'upgrade_registry',
     'register_project',
     [check_deploy_dependencies => [$plan, 3]],
     [run_file => $changes[0]->deploy_file],
@@ -1185,6 +1226,7 @@ is_deeply $engine->seen, [
     [lock_destination => []],
     [current_state => undef],
     'initialized',
+    'upgrade_registry',
     'register_project',
     [check_deploy_dependencies => [$plan, 3]],
 ], 'It should have check for initialization';
@@ -1310,7 +1352,6 @@ $plan->add(name => 'curry' );
 
 # Make it die.
 $plan->position(1);
-my $mock_whu = Test::MockModule->new('App::Sqitch::Engine::whu');
 $mock_whu->mock(log_deploy_change => sub { hurl 'ROFL' if $_[1] eq $changes[-1] });
 throws_ok { $engine->_deploy_by_tag($plan, $#changes) } 'App::Sqitch::X',
     'Die in log_deploy_change';
@@ -1679,6 +1720,47 @@ is_deeply +MockOutput->get_vent, [
     ['ROFL'],
     [__x 'Reverting to {change}', change => '@alpha'],
 ], 'Should notifiy user of error and rollback to @alpha';
+
+# Die with a string rather than an exception.
+$plan->position(2);
+$engine->start_at('@alpha');
+$mock_whu->mock(run_file => sub { die 'Oops' if $_[1]->basename eq 'dr_evil.sql' });
+throws_ok { $engine->_deploy_all($plan, $plan->count -1 ) } 'App::Sqitch::X',
+    'Die in _deploy_all on the last change';
+is $@->message, __('Deploy failed'), 'Should once again get final deploy failure message';
+is_deeply $engine->seen, [
+    [log_deploy_change => $changes[3]],
+    [log_deploy_change => $changes[4]],
+    [log_deploy_change => $changes[5]],
+    [log_fail_change => $changes[6]],
+    [log_revert_change => $changes[5]],
+    [log_revert_change => $changes[4]],
+    [log_revert_change => $changes[3]],
+], 'Should have deployed to dr_evil and revered down to @alpha';
+
+is_deeply +MockOutput->get_info_literal, [
+    ['  + lolz ..', '.........', ' '],
+    ['  + tacos ..', '........', ' '],
+    ['  + curry ..', '........', ' '],
+    ['  + dr_evil ..', '......', ' '],
+    ['  - curry ..', '........', ' '],
+    ['  - tacos ..', '........', ' '],
+    ['  - lolz ..', '.........', ' '],
+], 'Should see changes revert back to @alpha';
+is_deeply +MockOutput->get_info, [
+    [__ 'ok' ],
+    [__ 'ok' ],
+    [__ 'ok' ],
+    [__ 'not ok' ],
+    [__ 'ok' ],
+    [__ 'ok' ],
+    [__ 'ok' ],
+], 'Output should reflect deploy successes and failures';
+$vented = MockOutput->get_vent;
+is @{ $vented }, 2, 'Should have two vented items';
+like $vented->[0][0], qr/Oops/, 'First vented should be the error';
+is_deeply $vented->[1], [__x 'Reverting to {change}', change => '@alpha'],
+    'Should notifiy user of rollback to @alpha';
 $mock_whu->unmock_all;
 
 ##############################################################################
@@ -1713,6 +1795,52 @@ is_deeply +MockOutput->get_info_literal, [
 is_deeply +MockOutput->get_info, [
     [__ 'ok' ],
 ], 'Output should reflect deploy success';
+
+# Make the logging die.
+$mock_whu->mock(log_deploy_change => sub { hurl test => 'OHNO' });
+throws_ok { $engine->deploy_change($change) } 'App::Sqitch::X',
+    'Deploying change should die on logging failure';
+is $@->ident, 'private', 'Should have privat ident';
+is $@->message, __('Deploy failed'), 'Should have failure message';
+is_deeply $engine->seen, [
+    [run_file => $change->deploy_file],
+    [run_file => $change->revert_file],
+    ['log_fail_change', $change],
+], 'It should have been deployed and reverted';
+is_deeply +MockOutput->get_info_literal, [
+    ['  + foo ..', '..........', ' ']
+], 'Should have shown change name';
+is_deeply +MockOutput->get_info, [
+    [__ 'not ok' ],
+], 'Output should reflect deploy failure';
+is_deeply +MockOutput->get_vent, [
+    ['OHNO']
+], 'Vent should reflect deployment error';
+
+# Also make the revert fail.
+$mock_whu->mock('run_revert' => sub { hurl test => 'NO REVERT' });
+throws_ok { $engine->deploy_change($change) } 'App::Sqitch::X',
+    'Deploying change should die on logging failure';
+is $@->ident, 'private', 'Should have privat ident';
+is $@->message, __('Deploy failed'), 'Should have failure message';
+is_deeply $engine->seen, [
+    [run_file => $change->deploy_file],
+    ['log_fail_change', $change],
+], 'It should have been deployed but not reverted';
+is_deeply +MockOutput->get_info_literal, [
+    ['  + foo ..', '..........', ' ']
+], 'Should have shown change name';
+is_deeply +MockOutput->get_info, [
+    [__ 'not ok' ],
+], 'Output should reflect deploy failure';
+is_deeply +MockOutput->get_vent, [
+    ['OHNO'],
+    ['NO REVERT'],
+], 'Vent should reflect deployment and reversion errors';
+
+# Unmock.
+$mock_whu->unmock('log_deploy_change');
+$mock_whu->unmock('run_revert');
 
 my $make_deps = sub {
     my $conflicts = shift;
@@ -2242,6 +2370,20 @@ is_deeply $engine->seen, [
 ], 'The change file should have been run';
 is_deeply +MockOutput->get_info, [], 'Should have no info output';
 
+# Should raise an error when the verfiy fails script fails.
+$mock_engine->mock(run_verify => sub { die 'OHNO' });
+throws_ok { $engine->verify_change($change) } 'App::Sqitch::X',
+    'Should throw error on verify failure';
+$mock_engine->unmock('run_verify');
+is $@->ident, 'verify', 'Verify error ident should be "verify"';
+like $@->previous_exception, qr/OHNO/, 'Previous exception should be captured';
+is $@->message, __x(
+    'Verify script "{script}" failed.',
+    script => $change->verify_file
+), 'Verify error message should be correct';
+is_deeply $engine->seen, [], 'Should have seen not method calls';
+is_deeply +MockOutput->get_info, [], 'Should have no info output';
+
 # Try a change with no verify script.
 $change = App::Sqitch::Plan::Change->new( name => 'roles', plan => $target->plan );
 ok $engine->verify_change($change), 'Verify a change with no verify script.';
@@ -2264,6 +2406,23 @@ CHECK_DEPLOY_DEPEND: {
     is_deeply $engine->seen, [
         [ are_deployed_changes => [map { $plan->change_at($_) } 0..$plan->count - 1] ],
     ], 'Should have called are_deployed_changes';
+
+    # Fail when some changes are already deployed.
+    my @deployed = map { $plan->change_at($_) } 0, 2;
+    @deployed_change_ids = map { $_->id } @deployed;
+    throws_ok { $engine->check_deploy_dependencies($plan) } 'App::Sqitch::X',
+        'Should die when some changes deployed';
+    is $@->ident, 'deploy', 'Already deployed error ident should be "deploy"';
+    is $@->message, __nx(
+        'Change "{changes}" has already been deployed',
+        'Changes have already been deployed: {changes}',
+        scalar @deployed_change_ids,
+        changes => join(', ', map { $_->format_name_with_tags . " (" . $_->id . ")" } @deployed),
+    );
+    is_deeply $engine->seen, [
+        [ are_deployed_changes => [map { $plan->change_at($_) } 0..$plan->count - 1] ],
+    ], 'Should have called are_deployed_changes';
+    @deployed_change_ids = ();
 
     # Make sure it works when depending on a previous change.
     my $change = $plan->change_at(3);
@@ -2511,6 +2670,14 @@ CHECK_REVERT_DEPEND: {
         id        => '24234234234e',
         plan      => $plan,
     );
+
+    # First test with no dependencies.
+    @requiring = [];
+    ok $engine->check_revert_dependencies($change),
+        'Should get no error with no dependencies';
+    is_deeply $engine->seen, [
+        [changes_requiring_change => $change ],
+    ], 'It should have check for requiring changes';
 
     # Have revert change fail with requiring changes.
     my $req = {
@@ -2915,7 +3082,6 @@ is_deeply +MockOutput->get_comment, [[__ 'Not present in the plan' ]],
 is_deeply $engine->seen, [], 'No verify script should have been run';
 
 # Try a change in the wrong place in the plan.
-my $mock_plan = Test::MockModule->new(ref $plan);
 $mock_plan->mock(index_of => 5);
 is $engine->_verify_changes(1, 0, 0, $changes[1]), 1,
     'Verify of an out-of-order change should return errcount 1';
@@ -3415,6 +3581,29 @@ is_deeply +MockOutput->get_info, [[__x(
     secs => $engine->lock_timeout,
 )]], 'Should have notified user of waiting for lock';
 is_deeply $engine->seen, ['wait_lock'], 'wait_lock should have been called';
+
+##############################################################################
+# Test _to_idx()
+$mock_whu->mock(latest_change_id => 2);
+is $engine->_to_idx, $plan->count-1,
+    'Should get last index when there is a latest change ID';
+$mock_whu->unmock('latest_change_id');
+
+##############################################################################
+# Test _handle_lookup_index() with change names not in the plan.
+throws_ok { $engine->_handle_lookup_index('foo', [qw(x y)]) } 'App::Sqitch::X',
+    'Should die on too many IDs';
+is $@->ident, 'engine', 'Too many IDs ident should be "engine"';
+is $@->message, __('Change Lookup Failed'),
+    'Too many IDs message should be correct';
+is_deeply +MockOutput->get_vent, [
+    [__x(
+        'Change "{change}" is ambiguous. Please specify a tag-qualified change:',
+        change => 'foo',
+    )],
+    [ '  * ', 'bugaboo' ],
+    [ '  * ', 'bugaboo' ],
+], 'Too many IDs error should have been vented';
 
 ##############################################################################
 # Test planned_deployed_common_ancestor_id.

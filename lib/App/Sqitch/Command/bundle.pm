@@ -129,22 +129,6 @@ sub execute {
     return $self;
 }
 
-sub _mkpath {
-    my ( $self, $dir ) = @_;
-    $self->debug( '    ', __x 'Created {file}', file => $dir )
-        if make_path $dir, { error => \my $err };
-
-    my $diag = shift @{ $err } or return $self;
-
-    my ( $path, $msg ) = %{ $diag };
-    hurl bundle => __x(
-        'Error creating {path}: {error}',
-        path  => $path,
-        error => $msg,
-    ) if $path;
-    hurl bundle => $msg;
-}
-
 sub _copy_if_modified {
     my ( $self, $src, $dst ) = @_;
 

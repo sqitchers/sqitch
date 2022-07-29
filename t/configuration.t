@@ -80,7 +80,8 @@ is_deeply $config->get_section(section => 'engine.pg'), {
 
 # Make sure it works with irregular casing.
 is_deeply $config->get_section(section => 'foo.BAR'), {
-    baz => 'hello'
+    baz => 'hello',
+    yep => undef,
 }, 'get_section() whould work with capitalized subsection';
 
 # Should work with multiple subsections and case-preserved keys.

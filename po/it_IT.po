@@ -1638,13 +1638,3 @@ msgstr "L'email utente non può contenere \">\"."
 
 #~ msgid "The @{old} symbolic tag has been deprecated; use @{new} instead"
 #~ msgstr "Il tag simbolico @{old} è stato deprecato; usa @{new} al suo posto."
-
-#~ msgid ""
-#~ "The core.{engine} config has been deprecated in favor of engine."
-#~ "{engine}.\n"
-#~ "Run '{sqitch} engine update-config' to update your configurations."
-#~ msgstr ""
-#~ "La configurazione core.{engine} è stata deprecata a favore di engine."
-#~ "{engine}.\n"
-#~ "Esegui '{sqitch} engine update-config` per aggiornare la tua "
-#~ "configurazione."

@@ -375,6 +375,15 @@ is_deeply [$snow->_regex_expr('corn', 'Obama$')],
     'Should use regexp_substr IS NOT NULL for regex expr';
 
 ##############################################################################
+# Test unexpeted datbase error in _cid().
+$mock_snow->mock(dbh => sub { die 'OW' });
+throws_ok { $snow->initialized } qr/OW/,
+    'initialized() should rethrow unexpected DB error';
+throws_ok { $snow->_cid } qr/OW/,
+    '_cid should rethrow unexpected DB error';
+$mock_snow->unmock('dbh');
+
+##############################################################################
 # Test _run(), _capture() _spool(), and _probe().
 $config->replace('core.engine' => 'snowflake');
 can_ok $snow, qw(_run _capture _spool);

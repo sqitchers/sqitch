@@ -234,121 +234,6 @@ sub show {
     return $self;
 }
 
-# DEPRECATTION: Added in v0.997 (Oct 2014). As of v0.9999, Sqitch no longer
-# notices and warns about core.$engine; most folks should long since have
-# updated their configurations. Keeping this method for now, since it might
-# still be useful and doesn't add much overhead in general except for the
-# compilation of the engine command. But consider removing in the future.
-sub update_config {
-    my $self = shift;
-    my $sqitch = $self->sqitch;
-    my $config = $sqitch->config;
-
-    my $local_file = $config->local_file;
-    for my $file (
-        $local_file,
-        $config->user_file,
-        $config->system_file,
-    ) {
-        $sqitch->emit(__x( 'Loading {file}', file => $file ));
-        # Hide all other files. Just want to deal with the one.
-        local $ENV{SQITCH_CONFIG}        = '/dev/null/not.conf';
-        local $ENV{SQITCH_USER_CONFIG}   = '/dev/null/not.user';
-        local $ENV{SQITCH_SYSTEM_CONFIG} = '/dev/null/not.sys';
-        my $c = App::Sqitch::Config->new;
-        $c->load_file($file);
-        my %engines;
-        for my $ekey (App::Sqitch::Command::ENGINES) {
-            my $sect = $c->get_section( section => "core.$ekey");
-            if (%{ $sect }) {
-                if (%{ $c->get_section( section => "engine.$ekey") }) {
-                    $sqitch->warn('  - ' . __x(
-                        "Deprecated {section} found in {file}; to remove it, run\n    {sqitch} config --file {file} --remove-section {section}",
-                        section => "core.$ekey",
-                        file    => $file,
-                        sqitch  => $0,
-                    ));
-                    next;
-                }
-                # Migrate this one.
-                $engines{$ekey} = $sect;
-            }
-        }
-        unless (%engines) {
-            $sqitch->emit(__ '  - No engines to update');
-            next;
-        }
-
-        # Make sure we can write to the file.
-        unless (-w $file) {
-            $sqitch->warn('  - ' . __x(
-                'Cannot update {file}. Please make it writable',
-                file => $file,
-            ));
-            next;
-        }
-
-        # Move all of the engines.
-        for my $ekey (sort keys %engines) {
-            my $old = $engines{$ekey};
-
-            my @new;
-            if ( my $target = delete $old->{target} ) {
-                # Good, there is already a specific target.
-                push @new => {
-                    key => "engine.$ekey.target",
-                    value => $target,
-                };
-                # Kill off deprecated variables.
-                delete $old->{$_} for qw(host port username password db_name);
-            } elsif ( $file eq $local_file ) {
-                # Start with a default and migrate deprecated configs.
-                my $uri = URI::db->new("db:$ekey:");
-                for my $spec (
-                    [host     => 'host'],
-                    [port     => 'port'],
-                    [username => 'user'],
-                    [password => 'password'],
-                    [db_name  => 'dbname'],
-                ) {
-                    my ($key, $meth) = @{ $spec };
-                    my $val = delete $old->{$key} or next;
-                    $uri->$meth($val);
-                }
-                push @new => {
-                    key => "engine.$ekey.target",
-                    value => $uri->as_string,
-                };
-            } else {
-                # Just kill off any of the deprecated variables.
-                delete $old->{$_} for qw(host port username password db_name);
-            }
-
-            # Copy over the remaining variabls.
-            push @new => map {{
-                key => "engine.$ekey.$_",
-                value => $old->{$_},
-            }} keys %{ $old };
-
-            # Create the new variables and delete the old section.
-            $config->group_set( $file, \@new );
-            # $c->rename_section(
-            #     from     => "core.$ekey",
-            #     filename => $file,
-            # );
-
-            $sqitch->emit('  - ' . __x(
-                "Migrated {old} to {new}; To remove {old}, run\n    {sqitch} config --file {file} --remove-section {old}",
-                old    => "core.$ekey",
-                new    => "engine.$ekey",
-                sqitch => $0,
-                file   => $file,
-            ));
-        }
-    }
-    return $self;
-}
-
 1;
 
 __END__
@@ -409,10 +294,6 @@ Implements the C<remove> action.
 =head3 C<show>
 
 Implements the C<show> action.
-
-=head3 C<update_config>
-
-Implements the C<update_config> action.
 
 =head1 See Also
 

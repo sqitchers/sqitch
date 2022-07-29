@@ -192,6 +192,7 @@ sub deploy {
     my $sqitch   = $self->sqitch;
     my $plan     = $self->_sync_plan;
     my $to_index = $plan->count - 1;
+    my $position = $plan->position;
 
     hurl plan => __ 'Nothing to deploy (empty plan)' if $to_index < 0;
 
@@ -202,7 +203,7 @@ sub deploy {
         );
 
         # Just return if there is nothing to do.
-        if ($to_index == $plan->position) {
+        if ($to_index == $position) {
             $sqitch->info(__x(
                 'Nothing to deploy (already at "{change}")',
                 change => $to
@@ -211,12 +212,12 @@ sub deploy {
         }
     }
 
-    if ($plan->position == $to_index) {
+    if ($position == $to_index) {
         # We are up-to-date.
         $sqitch->info( __ 'Nothing to deploy (up-to-date)' );
         return $self;
 
-    } elsif ($plan->position == -1) {
+    } elsif ($position == -1) {
         # Initialize or upgrade the database, if necessary.
         if ($self->initialized) {
             $self->upgrade_registry;
@@ -232,7 +233,7 @@ sub deploy {
     } else {
         # Make sure that $to_index is greater than the current point.
         hurl deploy => __ 'Cannot deploy to an earlier change; use "revert" instead'
-            if $to_index < $plan->position;
+            if $to_index < $position;
         # Upgrade database if it needs it.
         $self->upgrade_registry;
     }
@@ -262,7 +263,7 @@ sub deploy {
     $self->max_name_length(
         max map {
             length $_->format_name_with_tags
-        } ($plan->changes)[$plan->position + 1..$to_index]
+        } ($plan->changes)[$position + 1..$to_index]
     );
 
     $self->$meth( $plan, $to_index );
@@ -898,7 +899,7 @@ sub _deploy_all {
             push @run => $change;
         }
     } catch {
-        if (my $ident = eval { $_->ident }) {
+        if (my $ident = try { $_->ident }) {
             $self->sqitch->vent($_->message) unless $ident eq 'private'
         } else {
             $self->sqitch->vent($_);

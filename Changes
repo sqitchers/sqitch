@@ -23,6 +23,10 @@ Revision history for Perl extension App::Sqitch
        MySQL. Bug introduced along with destination locking in v1.2.0.
        Thanks Tom Bloor the report and to Alberto Simões for the help
        replicating the issue (#601).
+     - Removed the `sqitch engine update-config` action, originally added for
+       compatibility reasons in 2014, and the prompt to use it was removed as
+       of 0.9999 in 2019.
+     - Fixed a warning when searching for the Firebird client on Windows.
 
 1.2.1  2021-12-05T19:59:45Z
      - Updated all the live engine tests, aside from Oracle, to test with

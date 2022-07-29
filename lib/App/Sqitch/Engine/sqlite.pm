@@ -172,7 +172,7 @@ sub _no_table_error  {
 }
 
 sub _no_column_error  {
-    return try { $_->message =~ /^\Qno such column:/ };
+    return $DBI::errstr && $DBI::errstr =~ /^\Qno such column:/;
 }
 
 sub _regex_op { 'REGEXP' }

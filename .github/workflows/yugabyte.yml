@@ -1,7 +1,7 @@
 # This workflow tests Sqitch's PostgreSQL engine on all supported versions of
 # YugabyteDB. It runs for pushes and pull requests on the `main`, `develop`,
 # `**postgres**`, `**yugabyte**`, and `**engine**` branches.
-name: 💫 YugabyteDB
+name: 💫 Yugabyte
 on:
   push:
     branches: [main, develop, "**engine**", "**postgres**", "**yugabyte**" ]
@@ -16,7 +16,7 @@ jobs:
           - { version: '2.12', tag: 2.12.5.0-b24  }
           - { version: '2.8',  tag: 2.8.6.0-b12   }
           - { version: '2.6',  tag: 2.6.18.0-b3   }
-    name: 💫 YugabyteDB ${{ matrix.version }}
+    name: 💫 Yugabyte ${{ matrix.version }}
     runs-on: ubuntu-latest
     steps:
       - name: Setup YugabyteDB cluster

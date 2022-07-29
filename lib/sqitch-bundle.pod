@@ -4,7 +4,7 @@ sqitch-bundle - Bundle a Sqitch project for distribution
 
 =head1 Synopsis
 
-  sqitch bundle [options
+  sqitch bundle [options]
   sqitch bundle --dest-dir widgets-1.0.0
   sqitch bundle --all
   sqitch bundle pg mysql

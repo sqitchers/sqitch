@@ -63,6 +63,7 @@ is $fb->key, 'firebird', 'Key should be "firebird"';
 is $fb->name, 'Firebird', 'Name should be "Firebird"';
 is $fb->username, $ENV{ISC_USER}, 'Should have username from environment';
 is $fb->password, $ENV{ISC_PASSWORD}, 'Should have password from environment';
+is $fb->_limit_default, '18446744073709551615', 'Should have _limit_default';
 
 my $have_fb_client;
 if ($have_fb_driver && (my $client = try { $fb->client })) {
@@ -157,7 +158,6 @@ is $@->message, __x(
     'Database name missing in URI {uri}',
     uri => 'db:firebird:',
 ), 'No dbname exception message should be correct';
-
 
 ##############################################################################
 # Test _run(), _capture(), and _spool().
@@ -278,7 +278,117 @@ is $dt->second,  1, 'DateTime second should be set';
 is $dt->time_zone->name, 'UTC', 'DateTime TZ should be set';
 
 ##############################################################################
+# Test error checking functions.
+DBI: {
+    local *DBI::errstr;
+    ok !$fb->_no_table_error, 'Should have no table error';
+    ok !$fb->_no_column_error, 'Should have no column error';
 
+    $DBI::errstr = '-Table unknown';
+    ok $fb->_no_table_error, 'Should now have table error';
+    ok !$fb->_no_column_error, 'Still should have no column error';
+
+    $DBI::errstr = 'No such file or directory';
+    ok $fb->_no_table_error, 'Should again have table error';
+    ok !$fb->_no_column_error, 'Still should have no column error';
+
+    $DBI::errstr = '-Column unknown';
+    ok !$fb->_no_table_error, 'Should again have no table error';
+    ok $fb->_no_column_error, 'Should now have no column error';
+}
+
+##############################################################################
+# Test database creation failure.
+DBFAIL: {
+    my $mock = Test::MockModule->new($CLASS);
+    $mock->mock(initialized => 0);
+    $mock->mock(use_driver => 1);
+    my $fbmock = Test::MockModule->new('DBD::Firebird', no_auto => 1);
+    $fbmock->mock(create_database => sub { die 'Creation failed' });
+    throws_ok { $fb->initialize } 'App::Sqitch::X',
+        'Should get an error from initialize';
+    is $@->ident, 'firebird', 'No creattion exception ident should be "firebird"';
+    my $msg = __x(
+        'Cannot create database {database}: {error}',
+        database => $fb->connection_string($fb->registry_uri),
+        error => 'Creation failed',
+    );
+    like $@->message, qr{^\Q$msg\E}, 'Creation exception message should be correct';
+}
+
+##############################################################################
+# Test various database connection and error-handling logic.
+DBH: {
+    # Need to mock DBH.
+    my $dbh = DBI->connect('dbi:Mem:', undef, undef, {});
+    my $mock_engine = Test::MockModule->new($CLASS);
+    $mock_engine->mock(dbh => $dbh);
+    $mock_engine->mock(registry_uri => URI->new('db:firebird:foo.fdb'));
+    my $mock_dbd = Test::MockModule->new(ref $dbh, no_auto => 1);
+    my ($disconnect, $clear);
+    $mock_dbd->mock(disconnect => sub { $disconnect = 1 });
+    $mock_engine->mock(_clear_dbh => sub { $clear = 1 });
+    my $run;
+    $mock_sqitch->mock(run => sub { $run = 1 });
+
+    # Test that upgrading disconnects from a local database before upgrading.
+    ok $fb->run_upgrade('somefile'), 'Run the upgrade';
+    ok $disconnect, 'Should have disconnected';
+    ok $clear, 'Should have cleared the database handle';
+    ok $run, 'Should have run a command';
+    $mock_sqitch->unmock('run');
+
+    # Test that _cid propagates an unexpected error from DBI.
+    local *DBI::err;
+    $DBI::err = 0;
+    $mock_engine->mock(dbh => sub { die 'Oops' });
+    throws_ok { $fb->_cid('ASC', 0, 'foo') } qr/^Oops/,
+        '_cid should propagate unexpected error';
+
+    # But it should just return for error code -902.
+    $DBI::err = -902;
+    lives_ok { $fb->_cid('ASC', 0, 'foo') }
+        '_cid should just return on error code -902';
+
+    # Test that current_state returns on no table error.
+    local *DBI::errstr;
+    $DBI::errstr = '-Table unknown';
+    $mock_engine->mock(initialized => 0);
+    lives_ok { $fb->current_state('foo') }
+        'current_state should return on no table error';
+
+    # But it should die if it's not a table error.
+    $DBI::errstr = 'Some other error';
+    throws_ok { $fb->current_state('foo') } qr/^Oops/,
+        'current_state should propagate unexpected error';
+
+    # Make sure change_id_for returns undef when no useful params.
+    $mock_engine->mock(dbh => $dbh);
+    is $fb->change_id_for(project => 'foo'), undef,
+        'Should get undef from change_id_for when no useful params';
+}
+
+# Make sure defaul_client croaks when it finds no client.
+FSPEC: {
+    # Give it an invalid fbsql file to find.
+    my $tmpdir = tempdir(CLEANUP => 1);
+    my $tmp = Path::Class::Dir->new("$tmpdir");
+    my $iswin = App::Sqitch::ISWIN || $^O eq 'cygwin';
+    my $fbsql = $tmp->file('fbsql' . ($iswin ? '.exe' : ''));
+    $fbsql->touch;
+    chmod '0755', $fbsql unless $iswin;
+
+    my $fs_mock = Test::MockModule->new('File::Spec');
+    $fs_mock->mock(path => sub { $tmp });
+    throws_ok { $fb->default_client } 'App::Sqitch::X',
+        'Should get error when no client found';
+    is $@->ident, 'firebird', 'Client exception ident should be "firebird"';
+    is $@->message, __(
+        'Unable to locate Firebird ISQL; set "engine.firebird.client" via sqitch config'
+    ), 'Client exception message should be correct';
+}
+
+##############################################################################
 # Can we do live tests?
 my ($data_dir, $fb_version, @cleanup) = ($tmpdir);
 my $id = DBIEngineTest->randstr;

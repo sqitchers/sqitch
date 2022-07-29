@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 182;
+use Test::More tests => 198;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use List::Util qw(first);
@@ -26,6 +26,8 @@ use App::Sqitch::Target;
 use Test::Exception;
 use Test::NoWarnings;
 use Test::MockModule;
+use Test::Dir;
+use File::Path qw(make_path remove_tree);
 use Locale::TextDomain qw(App-Sqitch);
 use Capture::Tiny 0.12 ':all';
 use Path::Class;
@@ -405,6 +407,10 @@ ARGS: {
         'Single unknown arg raise an error';
     is $@->ident, 'whu', 'Unknown error ident should be "whu"';
     is $@->message, $msg->('foo'), 'Unknown error message should be correct';
+    throws_ok { $parsem->( args => ['Changes'] ) } 'App::Sqitch::X',
+        'Single invavlid fiile arg raise an error';
+    is $@->ident, 'whu', 'Unknown error ident should be "whu"';
+    is $@->message, $msg->('Changes'), 'Unknown file error message should be correct';
     is_deeply $parsem->( args => ['hey'] ), [['devdb'], ['hey']],
         'Single change should be recognized as change';
     is_deeply $parsem->( args => ['devdb'] ),  [['devdb'], []],
@@ -723,3 +729,46 @@ like capture_stderr {
     throws_ok { $cmd->usage('Invalid whozit') } qr/EXITED: 2/
 }, qr/\Qsqitch <command> [options] [command-options] [args]/,
     'usage should prefer sqitch-$command-usage';
+
+##############################################################################
+# Test _mkpath.
+require MockOutput;
+my $path = dir 'delete.me';
+dir_not_exists_ok $path, "Path $path should not exist";
+END { remove_tree $path->stringify if -e $path }
+ok $cmd->_mkpath($path), "Create $path";
+dir_exists_ok $path, "Path $path should now exist";
+is_deeply +MockOutput->get_debug, [['    ', __x 'Created {file}', file => $path]],
+    'The mkdir info should have been output';
+
+# Create it again.
+ok $cmd->_mkpath($path), "Create $path again";
+dir_exists_ok $path, "Path $path should still exist";
+is_deeply +MockOutput->get_debug, [], 'Nothing should have been emitted';
+
+# Handle errors.
+FSERR: {
+    # Make mkpath to insert an error.
+    my $mock = Test::MockModule->new('File::Path');
+    $mock->mock( mkpath => sub {
+        my ($file, $p) = @_;
+        ${ $p->{error} } = [{ $file => 'Permission denied yo'}];
+        return;
+    });
+
+    throws_ok { $cmd->_mkpath('foo') } 'App::Sqitch::X',
+        'Should fail on permission issue';
+    is $@->ident, 'good', 'Permission error should have ident "good"';
+    is $@->message, __x(
+        'Error creating {path}: {error}',
+        path  => 'foo',
+        error => 'Permission denied yo',
+    ), 'The permission error should be formatted properly';
+
+    # Try an error with no path.
+    throws_ok { $cmd->_mkpath('') } 'App::Sqitch::X',
+        'Should fail on nonexistent file';
+    is $@->ident, 'good', 'Nonexistant path error should have ident "good"';
+    is $@->message, 'Permission denied yo',
+        'Nonexistant path error should be the message';
+}

@@ -289,7 +289,7 @@ sub _no_table_error  {
 }
 
 sub _no_column_error  {
-    return $DBI::errstr && $DBI::errstr =~ /^-Column unknown|/m;
+    return $DBI::errstr && $DBI::errstr =~ /^-Column unknown/m;
 }
 
 sub _regex_op { 'SIMILAR TO' }               # NOT good match for
@@ -898,7 +898,8 @@ sub default_client {
         my $loops = 0;
         for my $dir (File::Spec->path) {
             my $path = file $dir, $try;
-            $path = Win32::GetShortPathName($path) if App::Sqitch::ISWIN;
+            # GetShortPathName returns undef for nonexistent files.
+            $path = Win32::GetShortPathName($path) // next if App::Sqitch::ISWIN;
             if (-f $path && -x $path) {
                 if (try { App::Sqitch->probe($path, @opts) =~ /Firebird/ } ) {
                     # Restore STDERR and return.

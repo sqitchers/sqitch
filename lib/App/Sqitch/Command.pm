@@ -8,6 +8,7 @@ use Try::Tiny;
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use Hash::Merge 'merge';
+use File::Path qw(make_path);
 use Moo;
 use App::Sqitch::Types qw(Sqitch Target);
 
@@ -239,7 +240,7 @@ sub parse_args {
         $seen{$target->name}++;
     }
 
-    # Iterate over the argsx to look for changes, engines, plans, or targets.
+    # Iterate over the args to look for changes, engines, plans, or targets.
     my %engines = map { $_ => 1 } ENGINES;
     for my $arg (@{ $p{args} }) {
         if ( !$p{no_changes} && $target && -e $target->plan_file && $target->plan->contains($arg) ) {
@@ -307,6 +308,22 @@ sub parse_args {
     }
 
     return (@names, \@targets, $rec{changes});
+}
+
+sub _mkpath {
+    my ( $self, $dir ) = @_;
+    $self->debug( '    ', __x 'Created {file}', file => $dir )
+        if make_path $dir, { error => \my $err };
+
+    my $diag = shift @{ $err } or return $self;
+
+    my ( $path, $msg ) = %{ $diag };
+    hurl $self->command => __x(
+        'Error creating {path}: {error}',
+        path  => $path,
+        error => $msg,
+    ) if $path;
+    hurl $self->command => $msg;
 }
 
 1;

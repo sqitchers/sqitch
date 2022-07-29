@@ -10,7 +10,6 @@ use Moo;
 use App::Sqitch::Types qw(Str Int ArrayRef HashRef Dir Bool Maybe);
 use Path::Class;
 use Try::Tiny;
-use File::Path qw(make_path);
 use Clone qw(clone);
 use List::Util qw(first);
 use namespace::autoclean;
@@ -372,16 +371,7 @@ sub _add {
     }
 
     # Create the directory for the file, if it does not exist.
-    make_path $file->dir->stringify, { error => \my $err };
-    if ( my $diag = shift @{ $err } ) {
-        my ( $path, $msg ) = %{ $diag };
-        hurl add => __x(
-            'Error creating {path}: {error}',
-            path  => $path,
-            error => $msg,
-        ) if $path;
-        hurl add => $msg;
-    }
+    $self->_mkpath($file->dir->stringify);
 
     my $vars = clone {
         %{ $self->variables },
