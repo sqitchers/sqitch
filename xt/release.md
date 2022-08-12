@@ -18,7 +18,7 @@ First, update the sources so that everything is up-to-date.
 
     ``` sh
     cpan Dist::Zilla
-    dzil authordeps --missing | cpanm
+    dzil authordeps --missing | cpanm --notest
     ```
 
 *   Update the translation dictionaries:
@@ -26,8 +26,9 @@ First, update the sources so that everything is up-to-date.
     ``` sh
     dzil msg-scan
     perl -i -pe 's/\QSOME DESCRIPTIVE TITLE./Sqitch Localization Messages/' po/App-Sqitch.pot
-    perl -i -pe 's/\Q(C) YEAR/(c) 2012-2021/' po/App-Sqitch.pot
+    perl -i -pe "s/\Q(C) YEAR/(c) 2012-$(date +%Y)/" po/App-Sqitch.pot
     dzil msg-merge
+    git add po
     git commit -am 'Update translation dictionaries'
     ```
 
