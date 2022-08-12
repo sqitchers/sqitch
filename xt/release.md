@@ -33,7 +33,9 @@ First, update the sources so that everything is up-to-date.
     ```
 
 *   Proofread Changes and fix any spelling or grammatical errors, and edit
-    descriptions to minimize confusion.
+    descriptions to minimize confusion. Consider whether the changes constitute
+    a major, minor, or patch update, and increment the appropriate [semver]
+    parts (`major.minor.patch`) accordingly.
 
 *   Update copyright dates if a year has turned over since the last release:
 
@@ -226,6 +228,7 @@ Also add a line for the new version (without the pre-release part) to the top of
 the `Changes` file. Then commit and push the changes and you're done! Time to
 start work on the next release. Good luck!
 
+  [semver]: https://semver.org/
   [workflow actions]: https://github.com/sqitchers/sqitch/actions
   [Release action]: https://github.com/sqitchers/sqitch/actions/workflows/release.yml
   [GitHub release]: https://github.com/sqitchers/sqitch/releases

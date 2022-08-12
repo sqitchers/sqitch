@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-1.2.2  2022-08-12T21:19:38Z
+1.3.0  2022-08-12T22:09:13Z
      - Fixed an issue when testing Firebird on a host with Firebird installed
        but no `isql`, and when using a local Firebird (e.g., the Engine12
        provider), which allows only one connection at a time. Thanks to Slaven
