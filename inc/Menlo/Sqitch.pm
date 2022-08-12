@@ -64,9 +64,7 @@ sub remove_build_dependencies {
 __DATA__
 AppConfig
 Archive-Tar
-Archive-Zip
 CPAN
-CPAN-Checksums
 CPAN-Common-Index
 CPAN-DistnameInfo
 CPAN-Meta
@@ -82,7 +80,6 @@ Compress-Raw-Lzma
 Compress-Raw-Zlib
 Config-AutoConf
 DBD-CSV
-Data-Compare
 Date-Manip
 Devel-CheckLib
 Devel-GlobalDestruction
@@ -92,7 +89,6 @@ Digest
 Digest-MD5
 Dist-CheckConflicts
 Dumpvalue
-Expect
 ExtUtils-CBuilder
 ExtUtils-Config
 ExtUtils-Constant
@@ -121,11 +117,11 @@ HTTP-Negotiate
 HTTP-Tiny
 HTTP-Tinyish
 IO-Compress
+IO-Compress-Brotli
 IO-Compress-Lzma
 IO-HTML
 IO-Socket-IP
 IO-Socket-SSL
-IO-Tty
 IO-Zlib
 IPC-Cmd
 JSON-PP
@@ -176,6 +172,7 @@ Text-Balanced
 Text-CSV_XS
 Text-Glob
 Text-Soundex
+Thread-Semaphore
 Tie-File
 Tie-Handle-Offset
 TimeDate
@@ -185,10 +182,12 @@ XML-DOM
 XML-Parser
 XML-RegExp
 YAML
-YAML-LibYAML
 YAML-Syck
 bignum
 inc-latest
+lib
 libwww-perl
 libxml-perl
 local-lib
+threads
+threads-shared

@@ -1,16 +1,27 @@
-App/Sqitch version v1.2.1
+App/Sqitch version v1.3.0
 =========================
 
-| Release           | Coverage          | Database                             ||
-|-------------------|-------------------|-------------------|-------------------|
-| [![CPAN]][📚]     | [![OSes]][💿]     | [![Exasol]][☀️]    | [![Oracle]][🔮]   |
-| [![Docker]][🐳]   | [![Perl]][🧅]     | [![Firebird]][🔥] | [![Snowflake]][❄️] |
-| [![Homebrew]][🍺] | [![Coverage]][📈] | [![MySQL]][🐬]    | [![SQLite]][💡]   |
-| [![Debian]][🍥]   |                   | [![Postgres]][🐘] | [![Vertica]][🔺]  |
+| Release           | Coverage          | Database                              ||
+|-------------------|-------------------|-------------------|--------------------|
+| [![CPAN]][📚]     | [![OSes]][💿]     | [![Exasol]][☀️]    | [![Oracle]][🔮]    |
+| [![Docker]][🐳]   | [![Perl]][🧅]     | [![Firebird]][🔥] | [![Snowflake]][❄️]  |
+| [![Homebrew]][🍺] | [![Coverage]][📈] | [![MySQL]][🐬]    | [![SQLite]][💡]    |
+| [![Debian]][🍥]   |                   | [![Postgres]][🐘] | [![Vertica]][🔺]   |
+|                   |                   | [![Yugabyte]][💫] | [![Cockroach]][🪳] |
 
-[Sqitch] is a database change management application. It currently supports
-PostgreSQL 8.4+, SQLite 3.7.11+, MySQL 5.0+, Oracle 10g+, Firebird 2.0+, Vertica
-6.0+, Exasol 6.0+ and Snowflake.
+[Sqitch] is a database change management application. It currently supports:
+
+*   [PostgreSQL] 8.4+
+*   [YugabyteDB] 2.6+
+*   [CockroachDB] 21+
+*   [SQLite][lite] 3.7.11+
+*   [MySQL][my] 5.1+
+*   [MariaDB] 10.0+
+*   [Oracle][orcl] 10g+,
+*   [Firebird][bird] 2.0+
+*   [Vertica][vert] 6.0+
+*   [Exasol][exa] 6.0+
+*   [Snowflake][flake]
 
 What makes it different from your typical migration approaches? A few things:
 
@@ -24,7 +35,7 @@ What makes it different from your typical migration approaches? A few things:
 
     Changes are implemented as scripts native to your selected database engine.
     Writing a [PostgreSQL] application? Write SQL scripts for [`psql`]. Writing
-    an [Oracle]-backed app? Write SQL scripts for [SQL\*Plus].
+    an [Oracle][orcl]-backed app? Write SQL scripts for [SQL\*Plus].
 
 *   Dependency resolution
 
@@ -34,7 +45,7 @@ What makes it different from your typical migration approaches? A few things:
 
 *   Deployment integrity
 
-    Sqitch manages changes and dependencies via a plan file, and employs a
+    Sqitch manages changes and dependencies via a plan file, employing a
     [Merkle tree] pattern similar to [Git][gitmerkle] and [Blockchain] to ensure
     deployment integrity. As such, there is no need to number your changes,
     although you can if you want. Sqitch doesn't much care how you name your
@@ -44,13 +55,12 @@ What makes it different from your typical migration approaches? A few things:
 
     Up until you [tag] and [release] your project, you can modify your change
     deployment scripts as often as you like. They're not locked in just because
-    they've been committed to your VCS. This allows you to take an iterative
-    approach to developing your database schema. Or, better, you can do
-    test-driven database development.
+    they've been committed to your VCS. This allows you to take an iterative or
+    test-driven approach to developing your database schema.
 
 Want to learn more? The best place to start is in the tutorials:
 
-*   [Introduction to Sqitch on PostgreSQL](lib/sqitchtutorial.pod)
+*   [Introduction to Sqitch on PostgreSQL, YugabyteDB, and CockroachDB](lib/sqitchtutorial.pod)
 *   [Introduction to Sqitch on SQLite](lib/sqitchtutorial-sqlite.pod)
 *   [Introduction to Sqitch on Oracle](lib/sqitchtutorial-oracle.pod)
 *   [Introduction to Sqitch on MySQL](lib/sqitchtutorial-mysql.pod)
@@ -102,7 +112,7 @@ naming the feature:
 The feature names generally correspond to the supported engines. The currently
 supported features are:
 
-*   `--with postgres`:  Support for managing PostgreSQL databases
+*   `--with postgres`:  Support for managing Postgres, Yugabyte, and Cockroach databases
 *   `--with sqlite`:    Support for managing SQLite databases
 *   `--with mysql`:     Support for managing MySQL databases
 *   `--with firebird`:  Support for managing Firebird databases
@@ -128,7 +138,7 @@ Linux distributions and Windows, see the [Installation documentation].
 License
 -------
 
-Copyright (c) 2012-2021 iovation Inc., David E. Wheeler
+Copyright (c) 2012-2022 iovation Inc., David E. Wheeler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -176,13 +186,26 @@ SOFTWARE.
   [🍥]:        https://packages.debian.org/stable/sqitch "Latest version on Debian"
   [Postgres]:  https://github.com/sqitchers/sqitch/actions/workflows/pg.yml/badge.svg
   [🐘]:        https://github.com/sqitchers/sqitch/actions/workflows/pg.yml "Tested with PostgreSQL 9.3–14"
+  [Yugabyte]:  https://github.com/sqitchers/sqitch/actions/workflows/yugabyte.yml/badge.svg
+  [💫]:        https://github.com/sqitchers/sqitch/actions/workflows/yugabyte.yml "Tested with YugabyteDB 2.6–2.13"
   [Vertica]:   https://github.com/sqitchers/sqitch/actions/workflows/vertica.yml/badge.svg
   [🔺]:        https://github.com/sqitchers/sqitch/actions/workflows/vertica.yml "Tested with Vertica 7.1–11.0"
+  [Cockroach]: https://github.com/sqitchers/sqitch/actions/workflows/cockroach.yml/badge.svg
+  [🪳]:        https://github.com/sqitchers/sqitch/actions/workflows/cockroach.yml "Tested with CockroachDB v21-22"
 
   [Sqitch]: https://sqitch.org/
   [PostgreSQL]: https://postgresql.org/
+  [YugabyteDB]: https://www.yugabyte.com/yugabytedb/
+  [CockroachDB]: https://www.cockroachlabs.com/product/
+  [lite]: https://sqlite.org/
+  [my]: https://dev.mysql.com/
+  [MariaDB]: https://mariadb.org
   [`psql`]: https://www.postgresql.org/docs/current/static/app-psql.html
-  [Oracle]: https://www.oracle.com/database/
+  [orcl]: https://www.oracle.com/database/
+  [bird]: https://www.firebirdsql.org/
+  [vert]: https://www.vertica.com/
+  [exa]: https://www.exasol.com/
+  [flake]: https://www.snowflake.net/
   [SQL\*Plus]: https://www.orafaq.com/wiki/SQL*Plus
   [Merkle tree]: https://en.wikipedia.org/wiki/Merkle_tree "Wikipedia: “Merkle tree”"
   [gitmerkle]: https://stackoverflow.com/a/18589734/

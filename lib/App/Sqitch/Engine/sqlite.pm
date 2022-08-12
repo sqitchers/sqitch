@@ -172,7 +172,7 @@ sub _no_table_error  {
 }
 
 sub _no_column_error  {
-    return try { $_->message =~ /^\Qno such column:/ };
+    return $DBI::errstr && $DBI::errstr =~ /^\Qno such column:/;
 }
 
 sub _regex_op { 'REGEXP' }
@@ -188,6 +188,8 @@ sub _ts2char_format {
 }
 
 sub _listagg_format {
+    # The order of the concatenated elements is arbitrary.
+    # https://www.sqlite.org/lang_aggfunc.html
     return q{group_concat(%s, ' ')};
 }
 
@@ -282,7 +284,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2021 iovation Inc., David E. Wheeler
+Copyright (c) 2012-2022 iovation Inc., David E. Wheeler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

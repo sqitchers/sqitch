@@ -227,6 +227,9 @@ is_deeply +MockOutput->get_info, [
     ["  * $verify_file"],
 ], 'And the info message should suggest editing the old files';
 is_deeply +MockOutput->get_debug, [
+    ['    ', __x 'Created {file}', file => dir qw(test-rework deploy) ],
+    ['    ', __x 'Created {file}', file => dir qw(test-rework revert) ],
+    ['    ', __x 'Created {file}', file => dir qw(test-rework verify) ],
     [__x(
         'Copied {src} to {dest}',
         dest => $deploy_file2,

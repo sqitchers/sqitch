@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use utf8;
 use Test::More tests => 201;
-#use Test::More 'no_plan';
+# use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::Exception;
@@ -54,7 +54,6 @@ can_ok $cmd, qw(
     remove
     rm
     show
-    update_config
     does
 );
 
@@ -178,6 +177,35 @@ is_deeply +MockOutput->get_emit, [
     ["pg\tdb:pg:try"],
     ["sqlite\twidgets"]
 ], 'The list of engines and their targets should have been output';
+
+##############################################################################
+# Test _target().
+TARGET: {
+    isa_ok $cmd = $CLASS->new({
+        sqitch => App::Sqitch->new( config => $config, options => { })
+    }), $CLASS, 'New engine';
+
+    is $cmd->_target('pg', undef), undef, 'Target should be undef';
+    is $cmd->_target('pg', 'db:pg:'), 'db:pg:',
+        'Target should fall back on passed name';
+
+    throws_ok { $cmd->_target('pg', 'db:sqlite:') } 'App::Sqitch::X',
+        'Should get error for mismatched target engine';
+    is $@->ident, 'engine', 'Mismatched target error ident should be "engine"';
+    is $@->message, __x(
+        'Cannot assign URI using engine "{new}" to engine "{old}"',
+        new => 'sqlite',
+        old => 'pg',
+    ), 'Mismatched target error message should be correct';
+
+    throws_ok { $cmd->_target('pg', 'nonesuch') } 'App::Sqitch::X',
+    'Should get error for unknown target';
+    is $@->ident, 'engine', 'Uknown target error ident should be "engine"';
+    is $@->message, __x(
+        'Unknown target "{target}"',
+        target => 'nonesuch'
+    ), 'Unkonwn target error message should be correct';
+}
 
 ##############################################################################
 # Test add().
@@ -580,80 +608,3 @@ MISSINGARGS: {
         action => 'nonexistent',
     )], 'Nonexistent action message should be passed to usage';
 }
-
-##############################################################################
-# Test update_config.
-$config->group_set($config->local_file, [
-    {key => 'core.mysql.target',   value => 'widgets'   },
-    {key => 'core.mysql.client',   value => 'mysql.exe' },
-    {key => 'core.mysql.registry', value => 'spliff'    },
-    {key => 'core.mysql.host',     value => 'localhost' },
-    {key => 'core.mysql.port',     value => 1234        },
-    {key => 'core.mysql.username', value => 'fred'      },
-    {key => 'core.mysql.password', value => 'barb'      },
-    {key => 'core.mysql.db_name',  value => 'ouch'      },
-]);
-$cmd->sqitch->config->load;
-my $core = $cmd->sqitch->config->get_section(section => 'core.mysql');
-ok $cmd->update_config, 'Update the config';
-$cmd->sqitch->config->load;
-is_deeply $cmd->sqitch->config->get_section(section => 'core.mysql'), $core,
-    'The core.mysql config should still be present';
-is_deeply $cmd->sqitch->config->get_section(section => 'engine.mysql'), {
-    target => 'widgets',
-    client => 'mysql.exe',
-    registry => 'spliff',
-}, 'MySQL config should have been rewritten without deprecated keys';
-
-# Try with no target.
-$config->rename_section(
-    from     => 'engine.mysql',
-    filename => $config->local_file,
-);
-$config->group_set($config->local_file, [
-    {key => 'core.mysql.target',   value => undef       },
-    {key => 'core.mysql.client',   value => 'mysql.exe' },
-    {key => 'core.mysql.registry', value => 'spliff'    },
-    {key => 'core.mysql.host',     value => 'localhost' },
-    {key => 'core.mysql.port',     value => 1234        },
-    {key => 'core.mysql.username', value => 'fred'      },
-    {key => 'core.mysql.password', value => 'barb'      },
-    {key => 'core.mysql.db_name',  value => 'ouch'      },
-]);
-$cmd->sqitch->config->load;
-$core = $cmd->sqitch->config->get_section(section => 'core.mysql');
-ok $cmd->update_config, 'Update the config again';
-$cmd->sqitch->config->load;
-is_deeply $cmd->sqitch->config->get_section(section => 'core.mysql'), $core,
-    'The core.mysql config should again remain';
-is_deeply $cmd->sqitch->config->get_section(section => 'engine.mysql'), {
-    target => 'db:mysql://fred:barb@localhost:1234/ouch',
-    client => 'mysql.exe',
-    registry => 'spliff',
-}, 'MySQL config should have been rewritten with an integrated target';
-
-# Try with no deprecated keys.
-$config->rename_section(
-    from     => 'engine.mysql',
-    filename => $config->local_file,
-);
-$config->group_set($config->local_file, [
-    {key => 'core.mysql.client',   value => 'mysql.exe' },
-    {key => 'core.mysql.registry', value => 'spliff'    },
-    {key => 'core.mysql.host',     value => undef       },
-    {key => 'core.mysql.port',     value => undef       },
-    {key => 'core.mysql.username', value => undef       },
-    {key => 'core.mysql.password', value => undef       },
-    {key => 'core.mysql.db_name',  value => undef       },
-]);
-$cmd->sqitch->config->load;
-$core = $cmd->sqitch->config->get_section(section => 'core.mysql');
-ok $cmd->update_config, 'Update the config again';
-$cmd->sqitch->config->load;
-is_deeply $cmd->sqitch->config->get_section(section => 'core.mysql'), $core,
-    'The core.mysql config should again remain';
-is_deeply $cmd->sqitch->config->get_section(section => 'engine.mysql'), {
-    target => 'db:mysql:',
-    client => 'mysql.exe',
-    registry => 'spliff',
-}, 'MySQL config should have been rewritten with a default target';

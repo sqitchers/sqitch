@@ -259,7 +259,6 @@ sub _select_state {
 
 sub current_state {
     my ( $self, $project ) = @_;
-    my $dbh    = $self->dbh;
     my $state  = try {
         $self->_select_state($project, 1)
     } catch {
@@ -268,7 +267,7 @@ sub current_state {
         die $_;
     } or return undef;
 
-    $state->{tags} = $dbh->selectcol_arrayref(
+    $state->{tags} = $self->dbh->selectcol_arrayref(
         'SELECT tag FROM tags WHERE change_id = ? ORDER BY committed_at',
         undef, $state->{change_id}
     );
@@ -562,7 +561,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2021 iovation Inc., David E. Wheeler
+Copyright (c) 2012-2022 iovation Inc., David E. Wheeler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

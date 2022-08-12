@@ -9,7 +9,7 @@ use Locale::TextDomain qw(App-Sqitch);
 use Path::Class qw(file);
 use App::Sqitch::X qw(hurl);
 use List::Util qw(first max);
-use URI::db 0.19;
+use URI::db 0.20;
 use App::Sqitch::Types qw(Str Int Num Sqitch Plan Bool HashRef URI Maybe Target);
 use namespace::autoclean;
 use constant registry_release => '1.1';
@@ -192,6 +192,7 @@ sub deploy {
     my $sqitch   = $self->sqitch;
     my $plan     = $self->_sync_plan;
     my $to_index = $plan->count - 1;
+    my $position = $plan->position;
 
     hurl plan => __ 'Nothing to deploy (empty plan)' if $to_index < 0;
 
@@ -202,7 +203,7 @@ sub deploy {
         );
 
         # Just return if there is nothing to do.
-        if ($to_index == $plan->position) {
+        if ($to_index == $position) {
             $sqitch->info(__x(
                 'Nothing to deploy (already at "{change}")',
                 change => $to
@@ -211,12 +212,12 @@ sub deploy {
         }
     }
 
-    if ($plan->position == $to_index) {
+    if ($position == $to_index) {
         # We are up-to-date.
         $sqitch->info( __ 'Nothing to deploy (up-to-date)' );
         return $self;
 
-    } elsif ($plan->position == -1) {
+    } elsif ($position == -1) {
         # Initialize or upgrade the database, if necessary.
         if ($self->initialized) {
             $self->upgrade_registry;
@@ -232,7 +233,7 @@ sub deploy {
     } else {
         # Make sure that $to_index is greater than the current point.
         hurl deploy => __ 'Cannot deploy to an earlier change; use "revert" instead'
-            if $to_index < $plan->position;
+            if $to_index < $position;
         # Upgrade database if it needs it.
         $self->upgrade_registry;
     }
@@ -262,7 +263,7 @@ sub deploy {
     $self->max_name_length(
         max map {
             length $_->format_name_with_tags
-        } ($plan->changes)[$plan->position + 1..$to_index]
+        } ($plan->changes)[$position + 1..$to_index]
     );
 
     $self->$meth( $plan, $to_index );
@@ -270,11 +271,13 @@ sub deploy {
 
 sub revert {
     my ( $self, $to ) = @_;
-    $self->lock_destination;
+
+    # Check the registry and, once we know it's there, lock the destination.
     $self->_check_registry;
+    $self->lock_destination;
+
     my $sqitch = $self->sqitch;
     my $plan   = $self->plan;
-
     my @changes;
 
     if (defined $to) {
@@ -896,7 +899,7 @@ sub _deploy_all {
             push @run => $change;
         }
     } catch {
-        if (my $ident = eval { $_->ident }) {
+        if (my $ident = try { $_->ident }) {
             $self->sqitch->vent($_->message) unless $ident eq 'private'
         } else {
             $self->sqitch->vent($_);
@@ -1068,7 +1071,6 @@ sub _timeout {
         return 0 if $secs < 0;
         sleep $secs;
     }
-    return 0;
 }
 
 sub try_lock { 1 }
@@ -2664,7 +2666,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2021 iovation Inc., David E. Wheeler
+Copyright (c) 2012-2022 iovation Inc., David E. Wheeler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

@@ -121,7 +121,7 @@ has dbh => (
         # Make sure we support this version.
         my ($dbms, $vnum, $vstr) = $dbh->{mysql_serverinfo} =~ /mariadb/i
             ? ('MariaDB', 50300, '5.3')
-            : ('MySQL',   50000, '5.0.0');
+            : ('MySQL',   50100, '5.1.0');
         hurl mysql => __x(
             'Sqitch requires {rdbms} {want_version} or higher; this is {have_version}',
             rdbms        => $dbms,
@@ -223,8 +223,9 @@ has _fractional_seconds => (
     lazy    => 1,
     default => sub {
         my $dbh = shift->dbh;
-        return $dbh->{mysql_serverinfo} !~ /mariadb/i
-            && $dbh->{mysql_serverversion} >= 50604;
+        return $dbh->{mysql_serverinfo} =~ /mariadb/i
+            ? $dbh->{mysql_serverversion} >= 50305
+            : $dbh->{mysql_serverversion} >= 50604;
     },
 );
 
@@ -250,23 +251,29 @@ sub _quote_idents {
 
 sub _version_query { 'SELECT CAST(ROUND(MAX(version), 1) AS CHAR) FROM releases' }
 
-sub initialized {
-    my $self = shift;
+has initialized => (
+    is      => 'ro',
+    isa     => Bool,
+    lazy    => 1,
+    writer  => '_set_initialized',
+    default => sub {
+        my $self = shift;
 
-    # Try to connect.
-    my $dbh = try { $self->dbh } catch {
-        # MySQL error code 1049 (ER_BAD_DB_ERROR): Unknown database '%-.192s'
-        return if $DBI::err && $DBI::err == 1049;
-        die $_;
-    } or return 0;
+        # Try to connect.
+        my $dbh = try { $self->dbh } catch {
+            # MySQL error code 1049 (ER_BAD_DB_ERROR): Unknown database '%-.192s'
+            return if $DBI::err && $DBI::err == 1049;
+            die $_;
+        } or return 0;
 
-    return $dbh->selectcol_arrayref(q{
-        SELECT COUNT(*)
-          FROM information_schema.tables
-         WHERE table_schema = ?
-           AND table_name   = ?
-    }, undef, $self->registry, 'changes')->[0];
-}
+        return $dbh->selectcol_arrayref(q{
+            SELECT COUNT(*)
+            FROM information_schema.tables
+            WHERE table_schema = ?
+            AND table_name   = ?
+        }, undef, $self->registry, 'changes')->[0];
+    }
+);
 
 sub initialize {
     my $self   = shift;
@@ -286,6 +293,7 @@ sub initialize {
 
     # Deploy the registry to the Sqitch database.
     $self->run_upgrade( file(__FILE__)->dir->file('mysql.sql') );
+    $self->_set_initialized(1);
     $self->_register_release;
 }
 
@@ -306,7 +314,10 @@ sub begin_work {
 # Override to try to acquire a lock on the string "sqitch working" without
 # waiting.
 sub try_lock {
-    shift->dbh->selectcol_arrayref(
+    my $self = shift;
+    # Can't create a lock in the registry if it doesn't exist.
+    $self->initialize unless $self->initialized;
+    $self->dbh->selectcol_arrayref(
         q{SELECT get_lock('sqitch working', 0)}
     )->[0]
 }
@@ -348,7 +359,7 @@ sub _regex_op { 'REGEXP' }
 sub _limit_default { '18446744073709551615' }
 
 sub _listagg_format {
-    return q{GROUP_CONCAT(%s SEPARATOR ' ')};
+    return q{GROUP_CONCAT(%1$s ORDER BY %1$s SEPARATOR ' ')};
 }
 
 sub _prepare_to_log {
@@ -431,7 +442,6 @@ sub run_verify {
 
 sub run_upgrade {
     my ($self, $file) = @_;
-    my $dbh = $self->dbh;
     my @cmd = $self->mysql;
     $cmd[1 + firstidx { $_ eq '--database' } @cmd ] = $self->registry;
     return $self->sqitch->run( @cmd, $self->_source($file) )
@@ -441,7 +451,8 @@ sub run_upgrade {
     (my $sql = scalar $file->slurp) =~ s{DATETIME\(\d+\)}{DATETIME}g;
 
     # Strip out 5.5 stuff on earlier versions.
-    $sql =~ s/-- ## BEGIN 5[.]5.+?-- ## END 5[.]5//ms if $dbh->{mysql_serverversion} < 50500;
+    $sql =~ s/-- ## BEGIN 5[.]5.+?-- ## END 5[.]5//ms
+        if $self->dbh->{mysql_serverversion} < 50500;
 
     # Write out a temp file and execute it.
     require File::Temp;
@@ -547,7 +558,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2021 iovation Inc., David E. Wheeler
+Copyright (c) 2012-2022 iovation Inc., David E. Wheeler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

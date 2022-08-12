@@ -1,12 +1,13 @@
 # This workflow creates the services and installs the clients in order to run
 # coverage tests. Each engine must be accessible for a complete coverage report.
-# It runs for pushes and pull requests on the main and develop branches.
+# It runs for pushes and pull requests on the `main`, `develop`, and `**cover**`
+# branches.
 name: 📈 Coverage
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, "**cover**"]
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop, "**cover**"]
 jobs:
   Snowflake:
     name: 📈 Coverage
@@ -43,6 +44,8 @@ jobs:
         image: vertica/vertica-ce:latest
         ports: [ 5433 ]
     steps:
+      - name: Start CockroachDB
+        run: docker run -d -p 26257:26257 cockroachdb/cockroach:latest start-single-node --insecure
       - uses: actions/checkout@v2
       - name: Setup Clients
         env:
@@ -90,6 +93,8 @@ jobs:
           LIVE_SQLITE_REQUIRED: true
           LIVE_VERTICA_REQUIRED: true
           SQITCH_TEST_VSQL_URI: db:vertica://dbadmin@localhost:${{ job.services.vertica.ports[5433] }}/VMart?Driver=Vertica
+          LIVE_COCKROACH_REQUIRED: true
+          SQITCH_TEST_COCKROACH_URI: db:cockroach://root@localhost:26257/
         run: prove -lrj4 t
       - name: Report Coverage
         env:

@@ -110,7 +110,7 @@ support environment variables of their own. These are not comprehensive for
 all variables supported by a database engine, but document those supported by
 Sqitch's implementation for each engine.
 
-=head3 PostgreSQL
+=head3 PostgreSQL, YugabyteDB, CockroachDB
 
 All the usual
 L<PostgreSQL environment variables|https://www.postgresql.org/docs/current/static/libpq-envars.html>
@@ -249,12 +249,12 @@ C<$SQITCH_PASSWORD> and the target URI password.
 
 =item C<VSQL_HOST>
 
-The PostgreSQL server host to connect to. Superseded by the target URI host
+The Vertica server host to connect to. Superseded by the target URI host
 name.
 
 =item C<VSQL_PORT>
 
-The PostgreSQL server port to connect to. Superseded by the target URI port.
+The Vertica server port to connect to. Superseded by the target URI port.
 
 =item C<VSQL_DATABASE>
 

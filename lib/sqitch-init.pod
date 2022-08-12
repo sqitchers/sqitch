@@ -37,7 +37,7 @@ include:
 
 =over
 
-=item * C<pg> - L<PostgreSQL|https://postgresql.org/> and L<Postgres-XC|https://sourceforge.net/>
+=item * C<pg> - C<pg> - L<PostgreSQL|https://postgresql.org/>, L<Postgres-XC|https://sourceforge.net/projects/postgres-xc/>, and L<YugabyteDB|https://www.yugabyte.com/yugabytedb/>
 
 =item * C<sqlite> - L<SQLite|https://sqlite.org/>
 
@@ -52,6 +52,8 @@ include:
 =item * C<exasol> - L<Exasol|https://www.exasol.com/>
 
 =item * C<snowflake> - L<Snowflake|https://www.snowflake.net/>
+
+=item * C<cockroach> - L<CockroachDB|https://www.cockroachlabs.com/product/>
 
 =back
 

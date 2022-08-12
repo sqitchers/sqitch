@@ -7,7 +7,7 @@ CREATE TABLE :"registry".releases (
     installed_at    TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
     installer_name  TEXT        NOT NULL,
     installer_email TEXT        NOT NULL
-);
+):tableopts;
 
 COMMENT ON TABLE  :"registry".releases                 IS 'Sqitch registry releases.';
 COMMENT ON COLUMN :"registry".releases.version         IS 'Version of the Sqitch registry.';

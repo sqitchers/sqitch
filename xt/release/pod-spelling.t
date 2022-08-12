@@ -13,6 +13,7 @@ Blockchain
 blog
 change's
 CLDR
+CockroachDB
 command's
 committer
 committers
@@ -121,3 +122,5 @@ VM
 XC
 yay
 Yay
+Yugabyte
+YugabyteDB

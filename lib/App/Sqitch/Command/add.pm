@@ -10,7 +10,6 @@ use Moo;
 use App::Sqitch::Types qw(Str Int ArrayRef HashRef Dir Bool Maybe);
 use Path::Class;
 use Try::Tiny;
-use File::Path qw(make_path);
 use Clone qw(clone);
 use List::Util qw(first);
 use namespace::autoclean;
@@ -372,16 +371,7 @@ sub _add {
     }
 
     # Create the directory for the file, if it does not exist.
-    make_path $file->dir->stringify, { error => \my $err };
-    if ( my $diag = shift @{ $err } ) {
-        my ( $path, $msg ) = %{ $diag };
-        hurl add => __x(
-            'Error creating {path}: {error}',
-            path  => $path,
-            error => $msg,
-        ) if $path;
-        hurl add => $msg;
-    }
+    $self->_mkpath($file->dir->stringify);
 
     my $vars = clone {
         %{ $self->variables },
@@ -542,7 +532,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2021 iovation Inc., David E. Wheeler
+Copyright (c) 2012-2022 iovation Inc., David E. Wheeler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

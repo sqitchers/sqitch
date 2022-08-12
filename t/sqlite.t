@@ -145,20 +145,20 @@ is $sqlite->registry_destination, $sqlite->registry_uri->as_string,
 $config->update(
     'engine.sqlite.registry' => 'registry',
     'engine.sqlite.target'   => 'noext',
-    'target.noext.uri'       => 'db:sqlite:/path/to/sqitch.db',
+    'target.noext.uri'       => 'db:sqlite://x:foo@/path/to/sqitch.db',
 );
 $target = ref($target)->new( sqitch => $sqitch );
 ok $sqlite = $CLASS->new(sqitch => $sqitch, target => $target),
     'Create another sqlite';
-is $sqlite->uri->as_string, 'db:sqlite:/path/to/sqitch.db',
+is $sqlite->uri->as_string, 'db:sqlite://x:foo@/path/to/sqitch.db',
     'dbname should fall back on config with no extension';
 is $sqlite->target, $target, 'Target should be as specified';
 is $sqlite->destination, 'noext',
     'Destination should be configured target name';
-is $sqlite->registry_uri->as_string, 'db:sqlite:/path/to/registry.db',
+is $sqlite->registry_uri->as_string, 'db:sqlite://x:foo@/path/to/registry.db',
     'registry_uri should fall back on config wth extension';
-is $sqlite->registry_destination, $sqlite->registry_uri->as_string,
-    'Registry target should be configured registry_uri stringified';
+is $sqlite->registry_destination, 'db:sqlite://x:@/path/to/registry.db',
+    'Registry target should be configured registry_uri without password';
 
 # Try a registry with an absolute path.
 $config->update(
@@ -328,6 +328,22 @@ $mock_sqitch->mock(capture => sub { return ( "\n",$sqlite_version) });
 
 # Un-mock for live tests below
 $mock_sqitch->unmock_all;
+
+##############################################################################
+# Test error checking functions.
+DBI: {
+    local *DBI::errstr;
+    ok !$sqlite->_no_table_error, 'Should have no table error';
+    ok !$sqlite->_no_column_error, 'Should have no column error';
+
+    $DBI::errstr = 'no such table: xyz';
+    ok $sqlite->_no_table_error, 'Should now have table error';
+    ok !$sqlite->_no_column_error, 'Still should have no column error';
+
+    $DBI::errstr = 'no such column: xyz';
+    ok !$sqlite->_no_table_error, 'Should again have no table error';
+    ok $sqlite->_no_column_error, 'Should now have no column error';
+}
 
 ##############################################################################
 my $alt_db = $db_name->dir->file("sqitchtest$id.db");

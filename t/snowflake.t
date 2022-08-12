@@ -336,7 +336,8 @@ is_deeply [$snow->snowsql], [qw(
 
 ##############################################################################
 # Test SQL helpers.
-is $snow->_listagg_format, q{listagg(%s, ' ')}, 'Should have _listagg_format';
+is $snow->_listagg_format, q{listagg(%1$s, ' ') WITHIN GROUP (ORDER BY %1$s)},
+    'Should have _listagg_format';
 is $snow->_ts_default, 'current_timestamp', 'Should have _ts_default';
 is $snow->_regex_op, 'REGEXP', 'Should have _regex_op';
 is $snow->_simple_from, ' FROM dual', 'Should have _simple_from';
@@ -372,6 +373,15 @@ is_deeply [$snow->_limit_offset()], [[], []],
 is_deeply [$snow->_regex_expr('corn', 'Obama$')],
     ["regexp_substr(corn, ?) IS NOT NULL", 'Obama$'],
     'Should use regexp_substr IS NOT NULL for regex expr';
+
+##############################################################################
+# Test unexpeted datbase error in _cid().
+$mock_snow->mock(dbh => sub { die 'OW' });
+throws_ok { $snow->initialized } qr/OW/,
+    'initialized() should rethrow unexpected DB error';
+throws_ok { $snow->_cid } qr/OW/,
+    '_cid should rethrow unexpected DB error';
+$mock_snow->unmock('dbh');
 
 ##############################################################################
 # Test _run(), _capture() _spool(), and _probe().

@@ -13,10 +13,12 @@ use 5.010;
 use Test::More;
 use App::Sqitch;
 use App::Sqitch::Target;
+use Test::File::Contents;
 use Test::MockModule;
 use Path::Class;
 use Try::Tiny;
 use Test::Exception;
+use List::MoreUtils qw(firstidx);
 use Locale::TextDomain qw(App-Sqitch);
 use File::Temp 'tempdir';
 use lib 't/lib';
@@ -108,10 +110,11 @@ ENV: {
 }
 
 ##############################################################################
-# Make sure config settings override defaults.
+# Make sure config settings override defaults and the password is set or removed
+# as appropriate.
 $config->update(
     'engine.mysql.client'   => '/path/to/mysql',
-    'engine.mysql.target'   => 'db:mysql://foo.com/widgets',
+    'engine.mysql.target'   => 'db:mysql://me:pwd@foo.com/widgets',
     'engine.mysql.registry' => 'meta',
 );
 my $mysql_version = 'mysql  Ver 15.1 Distrib 10.0.15-MariaDB';
@@ -123,20 +126,23 @@ $target = App::Sqitch::Target->new(sqitch => $sqitch);
 ok $mysql = $CLASS->new(sqitch => $sqitch, target => $target),
     'Create another mysql';
 is $mysql->client, '/path/to/mysql', 'client should be as configured';
-is $mysql->uri->as_string, 'db:mysql://foo.com/widgets',
+is $mysql->uri->as_string, 'db:mysql://me:pwd@foo.com/widgets',
     'URI should be as configured';
-is $mysql->target->name, $mysql->uri->as_string, 'target name should be the URI';
-is $mysql->destination, $mysql->uri->as_string, 'destination should be the URI';
+is $mysql->target->name, 'db:mysql://me:@foo.com/widgets',
+    'target name should be the URI without the password';
+is $mysql->destination, 'db:mysql://me:@foo.com/widgets',
+    'destination should be the URI without the password';
 is $mysql->registry, 'meta', 'registry should be as configured';
-is $mysql->registry_uri->as_string, 'db:mysql://foo.com/meta',
+is $mysql->registry_uri->as_string, 'db:mysql://me:pwd@foo.com/meta',
     'Sqitch DB URI should be the same as uri but with DB name "meta"';
-is $mysql->registry_destination, $mysql->registry_uri->as_string,
-    'registry_destination should be the sqitch DB URL';
+is $mysql->registry_destination, 'db:mysql://me:@foo.com/meta',
+    'registry_destination should be the sqitch DB URL without the password';
 is_deeply [$mysql->mysql], [
     '/path/to/mysql',
-    '--user', $sqitch->sysuser,
+    '--user',     'me',
     '--database', 'widgets',
     '--host',     'foo.com',
+    '--password=pwd',
     @std_opts
 ], 'mysql command should be configured';
 
@@ -360,7 +366,8 @@ is $dt->time_zone->name, 'UTC', 'DateTime TZ should be set';
 
 ##############################################################################
 # Test SQL helpers.
-is $mysql->_listagg_format, q{GROUP_CONCAT(%s SEPARATOR ' ')}, 'Should have _listagg_format';
+is $mysql->_listagg_format, q{GROUP_CONCAT(%1$s ORDER BY %1$s SEPARATOR ' ')},
+    'Should have _listagg_format';
 is $mysql->_regex_op, 'REGEXP', 'Should have _regex_op';
 is $mysql->_simple_from, '', 'Should have _simple_from';
 is $mysql->_limit_default, '18446744073709551615', 'Should have _limit_default';
@@ -377,11 +384,15 @@ SECS: {
     is $my51->_ts_default, 'utc_timestamp',
         'Should have _ts_default without fractional seconds on 5.1';
 
-    $dbh->{mysql_serverversion} = 50604;
+    $dbh->{mysql_serverversion} = 50304;
     $dbh->{mysql_serverinfo} = 'Something about MariaDB man';
     my $maria = $CLASS->new(sqitch => $sqitch, target => $target);
     is $maria->_ts_default, 'utc_timestamp',
-        'Should have _ts_default without fractional seconds on mariadb';
+        'Should have _ts_default without fractional seconds on early mariadb';
+
+    $dbh->{mysql_serverversion} = 50305;
+    is $mysql->_ts_default, 'utc_timestamp(6)',
+        'Should have _ts_default with fractional secondson mariadb 5.03.05';
 }
 
 DBI: {
@@ -425,6 +436,136 @@ is_deeply [$mysql->_regex_expr('corn', 'Obama$')],
     'Should use REGEXP for regex expr';
 
 ##############################################################################
+# Test unexpeted datbase error in initialized() and _cid().
+MOCKDBH: {
+    my $mock = Test::MockModule->new($CLASS);
+    $mock->mock(dbh => sub { die 'OW' });
+    throws_ok { $mysql->initialized } qr/OW/,
+        'initialized() should rethrow unexpected DB error';
+    throws_ok { $mysql->_cid } qr/OW/,
+        '_cid should rethrow unexpected DB error';
+}
+
+##############################################################################
+# Test _prepare_to_log().
+PREPLOG: {
+    my $mock = Test::MockModule->new($CLASS);
+    my $fracsec;
+    $mock->mock(_fractional_seconds => sub { $fracsec });
+
+    # Start with fractional seconds detected.
+    $fracsec = 1;
+    is $mysql, $mysql->_prepare_to_log('atable', undef),
+        'Should just get self when fractional seconds supported';
+
+    # Now try with fractional seconds unsupported by the database.
+    $fracsec = 0;
+
+    # Need to mock the database handle.
+    my $dbh = DBI->connect('dbi:Mem:', undef, undef, {});
+    $mock->mock(dbh => $dbh);
+    my $mock_dbh = Test::MockModule->new(ref $dbh, no_auto => 1);
+    my @prepared;
+    $mock_dbh->mock(prepare => sub { shift; @prepared = @_ });
+    my @results = ([1], [0]);
+    $mock_dbh->mock(selectcol_arrayref => sub { shift @results });
+
+    # Mock sleep, too.
+    my $mock_thr = Test::MockModule->new('Time::HiRes');
+    my @slept;
+    $mock_thr->mock(sleep => sub { push @slept, shift } );
+
+    # We need to pass in a real change.
+    my $plan = App::Sqitch::Plan->new(
+        sqitch => $sqitch,
+        target => $target,
+        'project' => 'mysql',
+    );
+    my $change = App::Sqitch::Plan::Change->new(
+        name => 'mysql_test',
+        plan => $plan,
+    );
+
+    # Make sure it sleeps once.
+    lives_ok { $mysql->_prepare_to_log('atable', $change) }
+        'Should get no error from _prepare_to_log';
+
+    # Check the stuff that was passed.
+    is_deeply \@prepared, [qq{
+        SELECT UNIX_TIMESTAMP(committed_at) >= UNIX_TIMESTAMP()
+          FROM atable
+         WHERE project = ?
+         ORDER BY committed_at DESC
+         LIMIT 1
+    }], 'Should have prepared the statement comparing times';
+    is_deeply \@results, [], 'Results should have been returned';
+    is_deeply \@slept, [0.1], 'Should have slept once';
+}
+
+##############################################################################
+# Test run_upgrade().
+UPGRADE: {
+    my $mock = Test::MockModule->new($CLASS);
+    my $fracsec;
+    my $version = 50500;
+    $mock->mock(_fractional_seconds => sub { $fracsec });
+    $mock->mock(dbh =>  sub { { mysql_serverversion => $version } });
+
+    # Mock run.
+    my @run;
+    $mock_sqitch->mock(run => sub { shift; @run = @_ });
+
+    # Mock File::Temp so we hang on to the file.
+    my $mock_ft = Test::MockModule->new('File::Temp');
+    my $tmp_fh;
+    my $ft_new;
+    $mock_ft->mock(new => sub { $tmp_fh = 'File::Temp'->$ft_new() });
+    $ft_new = $mock_ft->original('new');
+
+    # Assemble the expected command.
+    my @cmd = $mysql->mysql;
+    $cmd[1 + firstidx { $_ eq '--database' } @cmd ] = $mysql->registry;
+    my $fn = file($INC{'App/Sqitch/Engine/mysql.pm'})->dir->file('mysql.sql');
+
+    # Test with fractional seconds supported.
+    $fracsec = 1;
+    ok $mysql->run_upgrade($fn), 'Run the upgrade';
+    is $tmp_fh, undef, 'Should not have created a temp file';
+    is_deeply \@run, [@cmd, $mysql->_source($fn)],
+        'It should have run the unchanged file';
+
+    # Now disable fractional seconds.
+    $fracsec = 0;
+    ok $mysql->run_upgrade($fn), 'Run the upgrade again';
+    ok $tmp_fh, 'Should have created a temp file';
+    is_deeply \@run, [@cmd, $mysql->_source($tmp_fh)],
+        'It should have run the temp file';
+
+    # Make sure the file was changed to remove precision from datetimes.
+    file_contents_unlike $tmp_fh, qr/DATETIME\(\d+\)/,
+        'Should have removed datetime precision';
+    file_contents_like $tmp_fh, qr/-- ## BEGIN 5\.5/,
+        'Should not have removed MySQL 5.5-requiring block BEGIN';
+    file_contents_like $tmp_fh, qr/-- ## END 5\.5/,
+        'Should not have removed MySQL 5.5-requiring block END';
+
+    # Now try MySQL 5.4.
+    $version = 50400;
+    $tmp_fh = undef;
+    ok $mysql->run_upgrade($fn), 'Run the upgrade on 5.4';
+    ok $tmp_fh, 'Should have created another temp file';
+    is_deeply \@run, [@cmd, $mysql->_source($tmp_fh)],
+        'It should have the new temp file';
+
+    file_contents_unlike $tmp_fh, qr/-- ## BEGIN 5\.5/,
+        'Should have removed MySQL 5.5-requiring block BEGIN';
+    file_contents_unlike $tmp_fh, qr/-- ## END 5\.5/,
+        'Should have removed MySQL 5.5-requiring block END';
+
+    $mock_sqitch->unmock_all;
+}
+
+##############################################################################
 # Can we do live tests?
 my $dbh;
 my $id = DBIEngineTest->randstr;
@@ -462,8 +603,8 @@ my $err = try {
             unless $dbh->{mysql_serverversion} >= 50300;
     }
     else {
-        die "MySQL >= 50000 required; this is $dbh->{mysql_serverversion}\n"
-            unless $dbh->{mysql_serverversion} >= 50000;
+        die "MySQL >= 50100 required; this is $dbh->{mysql_serverversion}\n"
+            unless $dbh->{mysql_serverversion} >= 50100;
     }
 
     $dbh->do("CREATE DATABASE $db");
@@ -520,19 +661,19 @@ DBIEngineTest->run(
             like $sql_mode, qr/\b\Q$mode\E\b/i, "sql_mode should include $mode";
         }
     },
-    lock_sql => {
-        is_locked  => q{SELECT is_used_lock('sqitch working')},
-        try_lock   => q{SELECT get_lock('sqitch working', 0)},
-        wait_time  => 1, # get_lock() does not support sub-second precision, apparently.
-        async_free => 1,
-        free_lock  => 'SELECT ' . ($dbh ? do {
-            # MySQL 5.5-5.6 and Maria 10.0-10.4 prefer release_lock(), while
-            # 5.7+ and 10.5+ prefer release_all_locks().
-            $dbh->selectrow_arrayref('SELECT version()')->[0] =~ /^(?:5\.[56]|10\.[0-4])/
-                ? q{release_lock('sqitch working')}
-                : 'release_all_locks()'
-        } : ''),
-    },
+        lock_sql => sub { return {
+            is_locked  => q{SELECT is_used_lock('sqitch working')},
+            try_lock   => q{SELECT get_lock('sqitch working', 0)},
+            wait_time  => 1, # get_lock() does not support sub-second precision, apparently.
+            async_free => 1,
+            free_lock  => 'SELECT ' . ($dbh ? do {
+                # MySQL 5.5-5.6 and Maria 10.0-10.4 prefer release_lock(), while
+                # 5.7+ and 10.5+ prefer release_all_locks().
+                $dbh->selectrow_arrayref('SELECT version()')->[0] =~ /^(?:5\.[56]|10\.[0-4])/
+                    ? q{release_lock('sqitch working')}
+                    : 'release_all_locks()'
+            } : ''),
+        } },
 );
 
 done_testing;

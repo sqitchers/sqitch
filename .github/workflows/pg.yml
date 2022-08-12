@@ -1,12 +1,12 @@
 # This workflow tests Sqitch's PostgreSQL engine on all supported versions of
 # Postgres. It runs for pushes and pull requests on the `main`, `develop`,
-# `**postgres**`, and `**engine**` branches.
+# `**postgres**`, `**yugabyte**`, and `**engine**` branches.
 name: 🐘 Postgres
 on:
   push:
-    branches: [main, develop, "**engine**", "**postgres**" ]
+    branches: [main, develop, "**engine**", "**postgres**", "**yugabyte**" ]
   pull_request:
-    branches: [main, develop, "**engine**", "**postgres**" ]
+    branches: [main, develop, "**engine**", "**postgres**", "**yugabyte**" ]
 jobs:
   Postgres:
     strategy:

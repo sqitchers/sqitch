@@ -1,0 +1,44 @@
+# This workflow tests Sqitch's PostgreSQL engine on all supported versions of
+# YugabyteDB. It runs for pushes and pull requests on the `main`, `develop`,
+# `**postgres**`, `**yugabyte**`, and `**engine**` branches.
+name: 💫 Yugabyte
+on:
+  push:
+    branches: [main, develop, "**engine**", "**postgres**", "**yugabyte**" ]
+  pull_request:
+    branches: [main, develop, "**engine**", "**postgres**", "**yugabyte**" ]
+jobs:
+  Yugabyte:
+    strategy:
+      matrix:
+        include:
+          - { version: '2.13', tag: 2.13.2.0-b135 }
+          - { version: '2.12', tag: 2.12.5.0-b24  }
+          - { version: '2.8',  tag: 2.8.6.0-b12   }
+          - { version: '2.6',  tag: 2.6.18.0-b3   }
+    name: 💫 Yugabyte ${{ matrix.version }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup YugabyteDB cluster
+        id: yugabyte
+        uses: yugabyte/yugabyte-db-action@master
+        with:
+          yb_image_tag: "${{ matrix.tag }}"
+      - uses: actions/checkout@v2
+      - name: Setup Perl
+        id: perl
+        uses: shogo82148/actions-setup-perl@v1
+        with: { perl-version: latest }
+      - name: Cache CPAN Modules
+        uses: actions/cache@v2
+        with:
+          path: local
+          key: perl-${{ steps.perl.outputs.perl-hash }}
+      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends --cpanfile dist/cpanfile
+      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends DBD::Pg
+      - name: prove
+        env:
+          PERL5LIB: "${{ github.workspace }}/local/lib/perl5"
+          LIVE_PG_REQUIRED: true
+          SQITCH_TEST_PG_URI: db:pg://yugabyte@localhost:${{ steps.yugabyte.outputs.ysql_port }}/
+        run: prove -lvr t/pg.t

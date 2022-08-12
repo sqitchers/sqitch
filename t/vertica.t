@@ -151,8 +151,8 @@ is_deeply [$vta->vsql], [
 ], 'vsql command should be configured from URI config';
 
 ##############################################################################
-# Test _run(), _capture(), and _spool().
-can_ok $vta, qw(_run _capture _spool);
+# Test _run(), _capture(), _spool(), and _prob()
+can_ok $vta, qw(_run _capture _spool _probe);
 my $mock_sqitch = Test::MockModule->new('App::Sqitch');
 my (@run, $exp_pass);
 $mock_sqitch->mock(run => sub {
@@ -190,6 +190,18 @@ $mock_sqitch->mock(spool => sub {
     }
 });
 
+my @probe;
+$mock_sqitch->mock(probe => sub {
+    local $Test::Builder::Level = $Test::Builder::Level + 2;
+    shift;
+    @probe = @_;
+    if (defined $exp_pass) {
+        is $ENV{VSQL_PASSWORD}, $exp_pass, qq{VSQL_PASSWORD should be "$exp_pass"};
+    } else {
+        ok !exists $ENV{VSQL_PASSWORD}, 'VSQL_PASSWORD should not exist';
+    }
+});
+
 $exp_pass = 's3cr3t';
 $target->uri->password($exp_pass);
 ok $vta->_run(qw(foo bar baz)), 'Call _run';
@@ -203,6 +215,9 @@ is_deeply \@spool, ['FH', $vta->vsql],
 ok $vta->_capture(qw(foo bar baz)), 'Call _capture';
 is_deeply \@capture, [$vta->vsql, qw(foo bar baz)],
     'Command should be passed to capture()';
+
+ok $vta->_probe(qw(hi there)), 'Call _probe';
+is_deeply \@probe, [$vta->vsql, qw(hi there)];
 
 # Without password.
 $target = App::Sqitch::Target->new( sqitch => $sqitch );
@@ -220,6 +235,9 @@ is_deeply \@spool, ['FH', $vta->vsql],
 ok $vta->_capture(qw(foo bar baz)), 'Call _capture again';
 is_deeply \@capture, [$vta->vsql, qw(foo bar baz)],
     'Command should be passed to capture() again';
+
+ok $vta->_probe(qw(go there)), 'Call _probe';
+is_deeply \@probe, [$vta->vsql, qw(go there)];
 
 ##############################################################################
 # Test file and handle running.
@@ -244,7 +262,7 @@ is_deeply \@run, [$vta->vsql, '--file', 'foo/bar.sql'],
 $mock_sqitch->unmock_all;
 
 ##############################################################################
-# Test DateTime formatting stuff.
+# Test DateTime formatting and other database stuff.
 ok my $ts2char = $CLASS->can('_ts2char_format'), "$CLASS->can('_ts2char_format')";
 is sprintf($ts2char->(), 'foo'),
     q{to_char(foo AT TIME ZONE 'UTC', '"year":YYYY:"month":MM:"day":DD:"hour":HH24:"minute":MI:"second":SS:"time_zone":"UTC"')},
@@ -261,6 +279,41 @@ is $dt->hour,   15, 'DateTime hour should be set';
 is $dt->minute,  7, 'DateTime minute should be set';
 is $dt->second,  1, 'DateTime second should be set';
 is $dt->time_zone->name, 'UTC', 'DateTime TZ should be set';
+is $vta->_listagg_format, undef, 'Should have no listagg format';
+
+##############################################################################
+# Test table error methods.
+DBI: {
+    local *DBI::state;
+    ok !$vta->_no_table_error, 'Should have no table error';
+    ok !$vta->_no_column_error, 'Should have no column error';
+
+    $DBI::state = '42V01';
+    ok $vta->_no_table_error, 'Should now have table error';
+    ok !$vta->_no_column_error, 'Still should have no column error';
+
+    $DBI::state = '42703';
+    ok !$vta->_no_table_error, 'Should again have no table error';
+    ok $vta->_no_column_error, 'Should now have no column error';
+}
+
+##############################################################################
+# Test current state error handling.
+CS: {
+    my $mock_engine = Test::MockModule->new($CLASS);
+    $mock_engine->mock(_select_state => sub { die 'OW' });
+    throws_ok { $vta->current_state } qr/OW/,
+        "current_state should propagate an error when it's not a column error";
+}
+
+##############################################################################
+# Test _cid error handling.
+CID: {
+    my $mock_engine = Test::MockModule->new($CLASS);
+    $mock_engine->mock(dbh => sub { die 'OH NO' });
+    throws_ok { $vta->_cid } qr/OH NO/,
+        "_cid should propagate an error when it's not a table or column error";
+}
 
 ##############################################################################
 # Can we do live tests?
@@ -285,17 +338,27 @@ $uri = URI->new(
     $ENV{VSQL_URI} ||
     'db:vertica://dbadmin:password@localhost/dbadmin'
 );
-my $err = try {
-    $vta->use_driver;
-    $dbh = DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {
-        PrintError => 0,
-        RaiseError => 1,
-        AutoCommit => 1,
-    });
-    undef;
-} catch {
-    eval { $_->message } || $_;
-};
+
+# Try to connect.
+my $err;
+for my $i (1..30) {
+    $err = try {
+        $vta->use_driver;
+        $dbh = DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {
+            PrintError => 0,
+            RaiseError => 1,
+            AutoCommit => 1,
+        });
+        undef;
+    } catch {
+        eval { $_->message } || $_;
+    };
+    # Sleep if it failed but Vertica is still starting up.
+    # SQL-57V03: `failed: FATAL 4149:  Node startup/recovery in progress. Not yet ready to accept connections`
+    # SQL-08001: `failed: [Vertica][DSI] An error occurred while attempting to retrieve the error message for key 'VConnectFailed' and component ID 101: Could not open error message files`
+    last unless $err && (($DBI::state || '') eq '57V03' || $err =~ /VConnectFailed/);
+    sleep 1 if $i < 30;
+}
 
 DBIEngineTest->run(
     class             => $CLASS,

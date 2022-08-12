@@ -400,6 +400,20 @@ $file->touch; # File must exist, because on Windows it gets copied.
 is $ora->_file_for_script($file), $tmpdir->file('foo_bar.sql'),
     'File with special char should be aliased';
 
+# Now the alias exists, make sure _file_for_script dies if it cannot remove it.
+FILE: {
+    my $mock_pcf = Test::MockModule->new('Path::Class::File');
+    $mock_pcf->mock(remove => 0);
+    throws_ok { $ora->_file_for_script($file) } 'App::Sqitch::X',
+        'Should get an error on failure to delete the alias';
+    is $@->ident, 'oracle', 'File deletion error ident should be "oracle"';
+    is $@->message, __x(
+        'Cannot remove {file}: {error}',
+        file  => $tmpdir->file('foo_bar.sql'),
+        error => $!,
+    ), 'File deletion error message should be correct';
+}
+
 # Make sure double-quotes are escaped.
 WIN32: {
     $file = $tmpdir->file('"foo$bar".sql');
@@ -409,6 +423,15 @@ WIN32: {
     is $ora->_file_for_script($file), $tmpdir->file('""foo_bar"".sql'),
         'File with special char and quotes should be aliased';
 }
+
+##############################################################################
+# Test unexpeted datbase error in _cid().
+$mock_ora->mock(dbh => sub { die 'OW' });
+throws_ok { $ora->initialized } qr/OW/,
+    'initialized() should rethrow unexpected DB error';
+throws_ok { $ora->_cid } qr/OW/,
+    '_cid should rethrow unexpected DB error';
+$mock_ora->unmock('dbh');
 
 ##############################################################################
 # Test file and handle running.
@@ -546,6 +569,34 @@ is_deeply $ora->_log_conflicts_param($change), [qw(aaa bbb ccc)],
     '_log_conflicts_param should format prereqs';
 
 $mock_change->unmock_all;
+
+##############################################################################
+# Test _change_id_in()
+can_ok $CLASS, qw(_change_id_in);
+my $change_id_in = $CLASS->can('_change_id_in');
+is $change_id_in->(0), '', 'Should get empty string for 0 change IDs';
+is $change_id_in->(1), 'change_id IN (?)',
+    'Should get single param for 1 change ID';
+is $change_id_in->(3), 'change_id IN (?, ?, ?)',
+    'Should get 3 params for 3 change IDs';
+for my $count (10, 32, 50, 200, 250) {
+    is $change_id_in->($count),
+        'change_id IN (' . join(', ' => ('?') x $count) . ')',
+        "Should get $count params for $count change IDs";
+}
+
+# Make sure we get multiple IN clauses for over 250 IDs.
+my $in_group = 'change_id IN (' . join(', ' => ('?') x 250) . ')';
+is $change_id_in->(251), "$in_group OR change_id IN (?)",
+    'Should get 250 and 1 groups for 251 IDs';
+is $change_id_in->(253), "$in_group OR change_id IN (?, ?, ?)",
+    'Should get 250 and 3 groups for 253 IDs';
+is $change_id_in->(502), "$in_group OR $in_group OR change_id IN (?, ?)",
+    'Should get 250, 240, and 2 groups for 503 IDs';
+is $change_id_in->(1042), join(
+    ' OR ', $in_group, $in_group, $in_group, $in_group,
+    'change_id IN (' . join(', ' => ('?') x 42) . ')'
+), 'Should get 4 x 250 and 42 groups for 1042 IDs';
 
 ##############################################################################
 # Can we do live tests?

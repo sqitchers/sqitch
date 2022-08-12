@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 187;
-#use Test::More 'no_plan';
+use Test::More tests => 196;
+# use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Path::Class;
@@ -611,6 +611,42 @@ for my $bad (@bad_names) {
         . 'punctuation or digits following punctuation',
         project => $bad
     ), qq{Bad project "$bad" error message should be correct};
+}
+
+# Make sure that config_target will add the URI if passed (even though it's not
+# clear what it's used for, if at all).
+isa_ok $target = $init->config_target(
+    name => 'custom',
+    uri  => URI->new('db:pg:actually'),
+), 'App::Sqitch::Target', 'Custom URI target';
+is $target->uri, URI->new('db:pg:actually'), 'Shoudl have the custom URI';
+is $target->name, 'custom', 'Should have the custom name';
+
+# Handle errors.
+FSERR: {
+    # Make mkpath to insert an error.
+    my $mock = Test::MockModule->new('File::Path');
+    $mock->mock( mkpath => sub {
+        my ($file, $p) = @_;
+        ${ $p->{error} } = [{ $file => 'Permission denied yo'}];
+        return;
+    });
+
+    throws_ok { $init->mkdirs('foo') } 'App::Sqitch::X',
+        'Should fail on permission issue';
+    is $@->ident, 'init', 'Permission error should have ident "init"';
+    is $@->message, __x(
+        'Error creating {path}: {error}',
+        path  => 'foo',
+        error => 'Permission denied yo',
+    ), 'The permission error should be formatted properly';
+
+    # Try an error with no path.
+    throws_ok { $init->mkdirs('') } 'App::Sqitch::X',
+        'Should fail on nonexistent dir name';
+    is $@->ident, 'init', 'Nonexistant path error should have ident "init"';
+    is $@->message, 'Permission denied yo',
+        'Nonexistant path error should be the message';
 }
 
 ##############################################################################

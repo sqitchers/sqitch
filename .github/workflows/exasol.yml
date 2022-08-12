@@ -11,23 +11,18 @@ jobs:
   Exasol:
     strategy:
       matrix:
-        include:
-          - { version: '7.1', image: 'latest-7.1', port: 8563 }
-          - { version: '7.0', image: 'latest-7.0', port: 8563 }
-          # - { version: '6.2', image: 'latest-6.2', port: 8888 }
-          # - { version: '6.1', image: 'latest-6.1', port: 8888 }
-          # - { version: '6.0', image: '6.0.16-d1',  port: 8888 }
-    name: ☀️ Exasol ${{ matrix.version }}
+        exasol: ['7.1', '7.0']
+    name: ☀️ Exasol ${{ matrix.exasol }}
     runs-on: ubuntu-latest
     services:
       exasol:
-        image: exasol/docker-db:${{ matrix.image }}
-        ports: [ "${{ matrix.port }}" ]
+        image: exasol/docker-db:latest-${{ matrix.exasol }}
+        ports: [ 8563 ]
         options: --privileged
     steps:
       - uses: actions/checkout@v2
       - name: Setup Clients
-        run: .github/ubuntu/exasol.sh ${{ matrix.version }}
+        run: .github/ubuntu/exasol.sh
       - name: Setup Perl
         id: perl
         uses: shogo82148/actions-setup-perl@v1
@@ -43,5 +38,5 @@ jobs:
         env:
           PERL5LIB: "${{ github.workspace }}/local/lib/perl5"
           LIVE_EXASOL_REQUIRED: true
-          SQITCH_TEST_EXASOL_URI: db:exasol://sys:exasol@127.0.0.1:${{ job.services.exasol.ports[matrix.port] }}/?Driver=Exasol;SSLCertificate=SSL_VERIFY_NONE
+          SQITCH_TEST_EXASOL_URI: db:exasol://sys:exasol@127.0.0.1:${{ job.services.exasol.ports[8563] }}/?Driver=Exasol;SSLCertificate=SSL_VERIFY_NONE
         run: prove -lvr t/exasol.t

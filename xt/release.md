@@ -18,7 +18,7 @@ First, update the sources so that everything is up-to-date.
 
     ``` sh
     cpan Dist::Zilla
-    dzil authordeps --missing | cpanm
+    dzil authordeps --missing | cpanm --notest
     ```
 
 *   Update the translation dictionaries:
@@ -26,18 +26,21 @@ First, update the sources so that everything is up-to-date.
     ``` sh
     dzil msg-scan
     perl -i -pe 's/\QSOME DESCRIPTIVE TITLE./Sqitch Localization Messages/' po/App-Sqitch.pot
-    perl -i -pe 's/\Q(C) YEAR/(c) 2012-2021/' po/App-Sqitch.pot
+    perl -i -pe "s/\Q(C) YEAR/(c) 2012-$(date +%Y)/" po/App-Sqitch.pot
     dzil msg-merge
+    git add po
     git commit -am 'Update translation dictionaries'
     ```
 
 *   Proofread Changes and fix any spelling or grammatical errors, and edit
-    descriptions to minimize confusion.
+    descriptions to minimize confusion. Consider whether the changes constitute
+    a major, minor, or patch update, and increment the appropriate [semver]
+    parts (`major.minor.patch`) accordingly.
 
 *   Update copyright dates if a year has turned over since the last release:
 
     ``` sh
-    grep -ril copyright . | xargs perl -i -pe 's/-2021/-2022/g'
+    grep -ril copyright . | xargs perl -i -pe "s/-2022/-$(date +%Y)/g"
     ```
 
 *   Make a build and run `xt/dependency_report`:
@@ -80,6 +83,7 @@ to get it out there!
 *   Merge `develop` into the `main` branch:
 
     ``` sh
+    git checkout main
     git merge --no-ff -m "Merge develop for v$VERSION" develop
     git push
     ```
@@ -129,28 +133,32 @@ then make the updates.
     perl -i -pe "s/^(VERSION)=.+/\$1=$VERSION/" build
     ```
 
-*   Edit the `README.md` to add the new version to the list of tags. It should
-    also be listed as using the `latest` tag.
-
 *   Commit and push the changes:
 
     ``` sh
-    git commit -am "Upgrade Sqitch to v$VERSION'
+    git commit -am "Upgrade Sqitch to v$VERSION"
     git push
     ```
 
-*   Watch the [CI/CD action] to make sure the build finishes and publishes the new
-    Docker image [on Docker Hub].
+*   Watch the [CI/CD action] to make sure the build finishes successfully. Once
+    it does, tag the commit and push it, appending an extra `.0`:
 
-*   Test the new version with Docker. This command should should show a usage
-    statement for the new version:
+    ``` sh
+    git tag -sm "Tag v$VERSION.0" v$VERSION.0
+    git push --tags
+    ```
+
+*   Watch the [CI/CD action] again, to be sure it publishes the new image [on
+    Docker Hub]. Then test the new version with Docker. This command should
+    should show a usage statement for the new version:
 
     ``` sh
     docker run -it --rm sqitch/sqitch:v$VERSION
     ```
 
 *   Log into Docker Hub and update the description of the [repository page] with
-    the new release tag. Find the credentials in the shared 1Password vault.
+    the new release tag. It should also be listed as using the `latest` tag.
+    Find the Docker Hub credentials in the shared 1Password vault.
 
 Homebrew
 --------
@@ -173,8 +181,14 @@ Update the Sqitch Homebrew tap with the new version.
 
     ``` sh
     git commit -am "Upgrade to v$VERSION"
-    git tag v$VERSION -sm "Tag v$VERSION"
     git push
+    ```
+
+*   Watch the [CI Action] to make sure the build completes successfully, and fix
+    any issues that arise. Once tests pass, tag the release:
+
+    ``` sh
+    git tag v$VERSION.0 -sm "Tag v$VERSION.0"
     git push --tags
     ```
 
@@ -214,6 +228,7 @@ Also add a line for the new version (without the pre-release part) to the top of
 the `Changes` file. Then commit and push the changes and you're done! Time to
 start work on the next release. Good luck!
 
+  [semver]: https://semver.org/
   [workflow actions]: https://github.com/sqitchers/sqitch/actions
   [Release action]: https://github.com/sqitchers/sqitch/actions/workflows/release.yml
   [GitHub release]: https://github.com/sqitchers/sqitch/releases
@@ -225,3 +240,4 @@ start work on the next release. Good luck!
   [on Docker Hub]: https://hub.docker.com/r/sqitch/sqitch
   [repository page]: https://hub.docker.com/repository/docker/sqitch/sqitch
   [homebrew-sqitch]: https://github.com/sqitchers/homebrew-sqitch
+  [CI Action]: https://github.com/sqitchers/homebrew-sqitch/actions/workflows/ci.yml

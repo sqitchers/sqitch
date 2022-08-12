@@ -961,10 +961,8 @@ sub run {
         is $engine->latest_change_id(3), $change->id,  'Should get "users" offset 3 from latest';
 
         $state = $engine->current_state;
-        # MySQL's group_concat() and Oracle's collect() do not by default sort
-        # by row order, alas.
-        $state->{tags} = [ sort @{ $state->{tags} } ]
-            if $class =~ /::(?:mysql|oracle)$/;
+        # Oracle's collect() does not by default sort by row order, alas.
+        $state->{tags} = [ sort @{ $state->{tags} } ] if $class =~ /::oracle$/;
         is_deeply $state, {
             project         => 'engine',
             change_id       => $barney->id,
@@ -1724,7 +1722,7 @@ sub run {
 
         ######################################################################
         # Test try_lock() and wait_lock().
-        if (my $sql = $p{lock_sql}) {
+        if (my $sql = ($p{lock_sql} || sub {})->($engine)) {
             ok !$engine->dbh->selectcol_arrayref($sql->{is_locked})->[0],
                 'Should not be locked';
             ok $engine->try_lock, 'Try lock';

@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 236;
+use Test::More tests => 238;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Target;
@@ -626,7 +626,14 @@ USAGE: {
         'No name arg or option should yield usage';
     is_deeply \@args, [$add], 'No args should be passed to usage';
 
-    # Should be true when no engine is specified, either.
+    # Should get usage when no change name passed or specified.
+    @args = ();
+    throws_ok { $add->execute('pg') } qr/USAGE/,
+        'No name arg or option should yield usage';
+    is_deeply \@args, [$add], 'No args should be passed to usage';
+
+    # Should get usage when no engine is specified, either.
+    @args = ();
     $add = $CLASS->new(sqitch => App::Sqitch->new(config => TestConfig->new));
     throws_ok { $add->execute } qr/USAGE/,
         'No name arg or option should yield usage';

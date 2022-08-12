@@ -1,5 +1,5 @@
 Name:           sqitch
-Version:        1.2.1
+Version:        1.3.0
 Release:        1%{?dist}
 Summary:        Sensible database change management
 License:        MIT
@@ -65,6 +65,7 @@ BuildRequires:  perl(Term::ANSIColor) >= 2.02
 BuildRequires:  perl(Test::Deep)
 BuildRequires:  perl(Test::Dir)
 BuildRequires:  perl(Test::Exception)
+BuildRequires:  perl(Test::Exit)
 BuildRequires:  perl(Test::File)
 BuildRequires:  perl(Test::File::Contents) >= 0.20
 BuildRequires:  perl(Test::MockModule) >= 0.17
@@ -80,7 +81,7 @@ BuildRequires:  perl(Type::Tiny::XS) >= 0.010
 BuildRequires:  perl(Type::Utils)
 BuildRequires:  perl(Types::Standard)
 BuildRequires:  perl(URI)
-BuildRequires:  perl(URI::db) >= 0.19
+BuildRequires:  perl(URI::db) >= 0.20
 BuildRequires:  perl(User::pwent)
 BuildRequires:  perl(utf8)
 BuildRequires:  perl(warnings)
@@ -137,7 +138,7 @@ Requires:       perl(Type::Tiny::XS) >= 0.010
 Requires:       perl(Type::Utils)
 Requires:       perl(Types::Standard)
 Requires:       perl(URI)
-Requires:       perl(URI::db) >= 0.19
+Requires:       perl(URI::db) >= 0.20
 Requires:       perl(User::pwent)
 Requires:       perl(utf8)
 Requires:       perl(warnings)
@@ -183,7 +184,7 @@ rm -rf $RPM_BUILD_ROOT
 %config %{etcdir}/*
 
 %package pg
-Summary:        Sensible database change management for PostgreSQL
+Summary:        Sensible database change management for PostgreSQL, YugabyteDB, and CockroachDB
 Group:          Development/Libraries
 Requires:       sqitch >= %{version}
 Requires:       postgresql >= 8.4.0
@@ -237,7 +238,7 @@ package bundles the Sqitch Oracle support.
 Summary:        Sensible database change management for MySQL
 Group:          Development/Libraries
 Requires:       sqitch >= %{version}
-Requires:       mysql >= 5.0.0
+Requires:       mysql >= 5.1.0
 Requires:       perl(DBI)
 Requires:       perl(DBD::mysql) >= 4.018
 Requires:       perl(MySQL::Config)
@@ -308,6 +309,11 @@ also be installed.
 # No additional files required.
 
 %changelog
+* Fri Aug 12 2022 David E. Wheeler <david@justatheory.com> 1.3.0-1
+- Add Test::Exit build requirement.
+- Upgrade URI::db to v0.20.
+- Increased minimal MySQL version to 5.1.
+
 * Sun Dec 5 2021 David E. Wheeler <david@justatheory.com> 1.2.1-1
 - Upgrade to v1.2.1.
 

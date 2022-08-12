@@ -11,6 +11,7 @@ use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::Plan::Change;
 use List::Util qw(first);
 use App::Sqitch::Types qw(DBH ArrayRef);
+use Type::Utils qw(enum);
 use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
@@ -60,7 +61,7 @@ has _psql => (
             [ user   => $self->username ],
             [ dbname => $uri->dbname    ],
             [ host   => $uri->host      ],
-            [ port   => $uri->_port     ],
+            [ port   => $uri->port      ],
             map { [ $_ => $query_params{$_} ] }
                 sort keys %query_params,
         ) {
@@ -101,6 +102,13 @@ sub name   { 'PostgreSQL' }
 sub driver { 'DBD::Pg 2.0' }
 sub default_client { 'psql' }
 
+has _provider => (
+    is      => 'rw',
+    isa     => enum([qw( postgres yugabyte )]),
+    default => 'postgres',
+    lazy    => 1,
+);
+
 has dbh => (
     is      => 'rw',
     isa     => DBH,
@@ -135,6 +143,12 @@ has dbh => (
                         # https://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
                         $dbh->set_err(undef, undef) if $dbh->err;
                     };
+                    # Determine the provider. Yugabyte says this is the right way to do it.
+                    # https://yugabyte-db.slack.com/archives/CG0KQF0GG/p1653762283847589
+                    my $v = $dbh->selectcol_arrayref(
+                        q{SELECT split_part(version(), ' ', 2)}
+                    )->[0] // '';
+                    $self->_provider('yugabyte') if $v =~ /-YB-/;
                     return;
                 },
             },
@@ -166,7 +180,16 @@ sub _ts_default { 'clock_timestamp()' }
 sub _char2ts { $_[1]->as_string(format => 'iso') }
 
 sub _listagg_format {
-    q{ARRAY(SELECT * FROM UNNEST( array_agg(%s) ) a WHERE a IS NOT NULL)}
+    my $dbh = shift->dbh;
+    # Since 9.3, we can use array_remove().
+    return q{array_remove(array_agg(%1$s ORDER BY %1$s), NULL)}
+        if $dbh->{pg_server_version} >= 90300;
+
+    # Since 8.4 we can use ORDER BY.
+    return q{ARRAY(SELECT * FROM UNNEST( array_agg(%1$s ORDER BY %1$s) ) a WHERE a IS NOT NULL)}
+        if $dbh->{pg_server_version} >= 80400;
+
+    return q{ARRAY(SELECT * FROM UNNEST( array_agg(%s) ) a WHERE a IS NOT NULL)};
 }
 
 sub _regex_op { '~' }
@@ -189,7 +212,7 @@ sub initialize {
         'Sqitch schema "{schema}" already exists',
         schema => $self->registry
     ) if $self->initialized;
-    $self->_run_registry_file( file(__FILE__)->dir->file('pg.sql') );
+    $self->_run_registry_file( file(__FILE__)->dir->file($self->key . '.sql') );
     $self->_register_release;
 }
 
@@ -259,7 +282,10 @@ sub begin_work {
 
     # Start transaction and lock changes to allow only one change at a time.
     $dbh->begin_work;
-    $dbh->do('LOCK TABLE changes IN EXCLUSIVE MODE');
+    $dbh->do('LOCK TABLE changes IN EXCLUSIVE MODE')
+        if $self->_provider eq 'postgres';
+        # Yugabyte does not yet support EXCLUSIVE MODE.
+        # https://docs.yugabyte.com/preview/api/ysql/the-sql-language/statements/txn_lock/#lockmode-1
     return $self;
 }
 
@@ -274,6 +300,13 @@ sub try_lock {
 # until timeout.
 sub wait_lock {
     my $self = shift;
+
+    # Yugabyte does not support advisory locks.
+    # https://github.com/yugabyte/yugabyte-db/issues/3642
+    # Use pessimistic locking when it becomes available.
+    # https://github.com/yugabyte/yugabyte-db/issues/5680
+    return 1 if $self->_provider ne 'postgres';
+
     # Asynchronously request a lock with an indefinite wait.
     my $dbh = $self->dbh;
     $dbh->do(
@@ -339,7 +372,7 @@ sub log_new_tags {
                  , planner_email
             )
             SELECT tid, tg, proj, chid, n, name, email, at, pname, pemail FROM ( VALUES
-        } . join( ",\n                ", ( q{(?, ?, ?, ?, ?, ?, ?, ?::timestamptz, ?, ?)} ) x @tags )
+        } . join( ",\n                ", ( q{(?::text, ?::text, ?::text, ?::text, ?::text, ?::text, ?::text, ?::timestamptz, ?::text, ?::text)} ) x @tags )
         . q{
             ) i(tid, tg, proj, chid, n, name, email, at, pname, pemail)
               LEFT JOIN tags ON i.tid = tags.tag_id
@@ -408,6 +441,13 @@ sub _dt($) {
 sub _no_table_error  {
     return 0 unless $DBI::state && $DBI::state eq '42P01'; # undefined_table
     my $dbh = shift->dbh;
+    return 1 unless $dbh->{pg_server_version} >= 90000;
+
+    # Try to avoid confusion for people monitoring the Postgres error log by
+    # sending a warning to the log immediately after the missing relation error
+    # to tell log watchers that Sqitch is aware of the issue and will next
+    # initialize the database. Hopefully this will reduce confusion and
+    # unnecessary time trouble shooting an error that Sqitch handles.
     my @msg = map { $dbh->quote($_) } (
         __ 'Sqitch registry not initialized',
         __ 'Because the "changes" table does not exist, Sqitch will now initialize the database to create its registry tables.',
@@ -417,7 +457,7 @@ sub _no_table_error  {
             SET LOCAL client_min_messages = 'ERROR';
             RAISE WARNING USING ERRCODE = 'undefined_table', MESSAGE = %s, DETAIL = %s;
         END;
-    $$}, @msg) if $dbh->{pg_server_version} >= 90000;
+    $$}, @msg);
     return 1;
 }
 
@@ -478,7 +518,7 @@ App::Sqitch::Engine::pg - Sqitch PostgreSQL Engine
 =head1 Description
 
 App::Sqitch::Engine::pg provides the PostgreSQL storage engine for Sqitch. It
-supports PostgreSQL 8.4.0 and higher as well as Postgres-XC 1.2 and higher.
+supports PostgreSQL 8.4.0 and higher, Postgres-XC 1.2 and higher, and YugabyteDB.
 
 =head1 Interface
 
@@ -508,7 +548,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2021 iovation Inc., David E. Wheeler
+Copyright (c) 2012-2022 iovation Inc., David E. Wheeler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

@@ -66,6 +66,7 @@ has dbh => (
     is      => 'rw',
     isa     => DBH,
     lazy    => 1,
+    clearer => '_clear_dbh',
     default => sub {
         my $self = shift;
         my $uri  = $self->registry_uri;
@@ -288,7 +289,7 @@ sub _no_table_error  {
 }
 
 sub _no_column_error  {
-    return $DBI::errstr && $DBI::errstr =~ /^-Column unknown|/m;
+    return $DBI::errstr && $DBI::errstr =~ /^-Column unknown/m;
 }
 
 sub _regex_op { 'SIMILAR TO' }               # NOT good match for
@@ -343,6 +344,13 @@ sub run_upgrade {
     my @cmd    = $self->isql;
     $cmd[-1]   = $self->connection_string($uri);
     my $sqitch = $self->sqitch;
+    unless ($uri->host) {
+        # Only one connection allowed when using an embedded database (Engine 12
+        # provider). So disconnect so that the upgrade can connect and succeed,
+        # and clear the disconnected handle so that the next call to ->dbh will
+        # reconnect.
+        $self->dbh->disconnect; $self->_clear_dbh;
+    }
     $sqitch->run( @cmd, '-input' => $sqitch->quote_shell($file) );
 }
 
@@ -890,7 +898,8 @@ sub default_client {
         my $loops = 0;
         for my $dir (File::Spec->path) {
             my $path = file $dir, $try;
-            $path = Win32::GetShortPathName($path) if App::Sqitch::ISWIN;
+            # GetShortPathName returns undef for nonexistent files.
+            $path = Win32::GetShortPathName($path) // next if App::Sqitch::ISWIN;
             if (-f $path && -x $path) {
                 if (try { App::Sqitch->probe($path, @opts) =~ /Firebird/ } ) {
                     # Restore STDERR and return.
@@ -973,7 +982,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2021 iovation Inc., David E. Wheeler
+Copyright (c) 2012-2022 iovation Inc., David E. Wheeler
 
 Copyright (c) 2013 Ștefan Suciu
 

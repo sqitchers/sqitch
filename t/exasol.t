@@ -230,6 +230,15 @@ like capture_stderr {
 }, qr/^OMGWTF/m, 'STDERR should be emitted by _capture';
 
 ##############################################################################
+# Test unexpeted datbase error in _cid().
+$mock_exa->mock(dbh => sub { die 'OW' });
+throws_ok { $exa->initialized } qr/OW/,
+    'initialized() should rethrow unexpected DB error';
+throws_ok { $exa->_cid } qr/OW/,
+    '_cid should rethrow unexpected DB error';
+$mock_exa->unmock('dbh');
+
+##############################################################################
 # Test _file_for_script().
 can_ok $exa, '_file_for_script';
 is $exa->_file_for_script(Path::Class::file 'foo'), 'foo',
@@ -246,6 +255,20 @@ my $file = $tmpdir->file('foo@bar.sql');
 $file->touch; # File must exist, because on Windows it gets copied.
 is $exa->_file_for_script($file), $tmpdir->file('foo_bar.sql'),
     'File with special char should be aliased';
+
+# Now the alias exists, make sure _file_for_script dies if it cannot remove it.
+FILE: {
+    my $mock_pcf = Test::MockModule->new('Path::Class::File');
+    $mock_pcf->mock(remove => 0);
+    throws_ok { $exa->_file_for_script($file) } 'App::Sqitch::X',
+        'Should get an error on failure to delete the alias';
+    is $@->ident, 'exasol', 'File deletion error ident should be "exasol"';
+    is $@->message, __x(
+        'Cannot remove {file}: {error}',
+        file  => $tmpdir->file('foo_bar.sql'),
+        error => $!,
+    ), 'File deletion error message should be correct';
+}
 
 # Make sure double-quotes are escaped.
 WIN32: {
@@ -326,7 +349,8 @@ is $exa->_char2ts($dt), '2017-11-06 10:47:35',
 
 ##############################################################################
 # Test SQL helpers.
-is $exa->_listagg_format, q{GROUP_CONCAT(%s SEPARATOR ' ')}, 'Should have _listagg_format';
+is $exa->_listagg_format, q{GROUP_CONCAT(%1$s ORDER BY %1$s SEPARATOR ' ')},
+    'Should have _listagg_format';
 is $exa->_ts_default, 'current_timestamp', 'Should have _ts_default';
 is $exa->_regex_op, 'REGEXP_LIKE', 'Should have _regex_op';
 is $exa->_simple_from, ' FROM dual', 'Should have _simple_from';

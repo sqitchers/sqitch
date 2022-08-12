@@ -264,15 +264,13 @@ sub _parse_core_opts {
 
     # Handle version request.
     if ( delete $opts{version} ) {
-        require File::Basename;
-        my $fn = File::Basename::basename($0);
-        print $fn, ' (', __PACKAGE__, ') ', __PACKAGE__->VERSION, "\n";
+        $self->emit( _bn($0), ' (', __PACKAGE__, ') ', __PACKAGE__->VERSION );
         exit;
     }
 
     # Handle --etc-path.
     if ( $opts{etc_path} ) {
-        say App::Sqitch::Config->class->system_dir;
+        $self->emit( App::Sqitch::Config->class->system_dir );
         exit;
     }
 
@@ -906,7 +904,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2021 iovation Inc., David E. Wheeler
+Copyright (c) 2012-2022 iovation Inc., David E. Wheeler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

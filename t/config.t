@@ -2,8 +2,8 @@
 
 use strict;
 use warnings;
-use Test::More tests => 346;
-#use Test::More 'no_plan';
+use Test::More tests => 360;
+# use Test::More 'no_plan';
 use File::Spec;
 use Test::MockModule;
 use Test::Exception;
@@ -477,6 +477,7 @@ engine.sqlite.client=/opt/local/bin/sqlite3
 engine.sqlite.registry=meta
 engine.sqlite.target=devdb
 foo.BAR.baz=hello
+foo.BAR.yep
 guess.Yes.No.calico=false
 guess.Yes.No.red=true
 revert.count=2
@@ -511,6 +512,7 @@ core.top_dir=migrations
 core.uri=https://github.com/sqitchers/sqitch/
 engine.pg.client=/usr/local/pgsql/bin/psql
 foo.BAR.baz=hello
+foo.BAR.yep
 guess.Yes.No.calico=false
 guess.Yes.No.red=true
 revert.count=2
@@ -835,8 +837,15 @@ is_deeply \@emit, [[q{engine.pg.user=theory}
 ]], 'Should match all engine.pg options that match';
 @emit = ();
 
+ok $cmd->execute('foo\\.BAR\\..+', ''),
+    'Call get_regex on foo\\Bar\\..+ and always-matching regex';
+is_deeply \@emit, [[q{foo.BAR.baz=hello
+foo.BAR.yep}
+]], 'Should include key with no value';
+@emit = ();
+
 throws_ok { $cmd->execute('engine\\.pg\\..+', 'x$') } 'App::Sqitch::X',
-    'Attempt to get_regex core.foo with non-matching regex should fail';
+    'Attempt to get_regex engine\\.pg with non-matching regex should fail';
 is $@->ident, 'config', 'Error ident should be "config"';
 is $@->message, '', 'Error Message should be empty';
 is $@->exitval, 1, 'Error exitval should be 1';
@@ -1091,9 +1100,39 @@ $cmd->add('core.foo', 'hi');
 $cmd->add('core.foo', 'bye');
 throws_ok { $cmd->set('core.foo', 'hi') } 'App::Sqitch::X',
     'Should fail setting multi-value key';
-is $@->ident, 'config', 'Mult-valkue key exception ident should be "config"';
+is $@->ident, 'config', 'Multi-value key exception ident should be "config"';
 is $@->message, __('Cannot overwrite multiple values with a single value'),
     'The multi-value key error should be thrown';
+SETERR: {
+    my $mock_cfg = TestConfig->mock(
+        set => sub { die 'XXX' },
+        rename_section => sub { die 'YYY' },
+        remove_section => sub { die 'ZZZ' },
+    );
+    throws_ok { $cmd->set('core.xxx', 'hi') } 'App::Sqitch::X',
+        'Set should fail on App::Sqitch::Cofig error';
+    is $@->ident, 'config', 'Set exception ident should be "config"';
+    like $@->message, qr/^XXX/,
+        'Config set exception message should propagate';
+
+    throws_ok { $cmd->unset('core.foo') } 'App::Sqitch::X',
+        'Unset should fail on App::Sqitch::Cofig error';
+    is $@->ident, 'config', 'Unset exception ident should be "config"';
+    like $@->message, qr/^XXX/,
+        'Config set exception message should propagate';
+
+    throws_ok { $cmd->rename_section('core.foo', 'core.bar') } 'App::Sqitch::X',
+        'Rename should fail on App::Sqitch::Cofig error';
+    is $@->ident, 'config', 'Rename exception ident should be "config"';
+    like $@->message, qr/^YYY/,
+        'Config rename exception message should propagate';
+
+    throws_ok { $cmd->remove_section('core') } 'App::Sqitch::X',
+        'Remove should fail on App::Sqitch::Cofig error';
+    is $@->ident, 'config', 'Remove exception ident should be "config"';
+    like $@->message, qr/^ZZZ/,
+        'Config remove exception message should propagate';
+}
 
 ##############################################################################
 # Test edit().
