@@ -87,6 +87,7 @@ on 'build' => sub {
 on 'test' => sub {
   requires "Capture::Tiny" => "0.12";
   requires "Carp" => "0";
+  requires "DBD::Mem" => "0";
   requires "File::Find" => "0";
   requires "File::Spec" => "0";
   requires "File::Spec::Functions" => "0";
