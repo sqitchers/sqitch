@@ -81,7 +81,7 @@ my @std_opts = (
     '--set' => 'registry=sqitch',
 );
 my $sysuser = $sqitch->sysuser;
-is_deeply [$pg->psql], [$client, '--dbname', 'port=5432', @std_opts],
+is_deeply [$pg->psql], [$client, @std_opts],
     'psql command should be conninfo, and std opts-only';
 
 isa_ok $pg = $CLASS->new(sqitch => $sqitch, target => $target), $CLASS;
@@ -89,7 +89,6 @@ ok $pg->set_variables(foo => 'baz', whu => 'hi there', yo => 'stellar'),
     'Set some variables';
 is_deeply [$pg->psql], [
     $client,
-    '--dbname' => 'port=5432',
     '--set'    => 'foo=baz',
     '--set'    => 'whu=hi there',
     '--set'    => 'yo=stellar',
@@ -141,7 +140,7 @@ is $pg->registry, 'meta', 'registry should be as configured';
 is_deeply [$pg->psql], [
     '/path/to/psql',
     '--dbname',
-    "dbname=try host=localhost port=5432 connect_timeout=5 sslmode=disable",
+    "dbname=try host=localhost connect_timeout=5 sslmode=disable",
 @std_opts], 'psql command should be configured from URI config';
 
 ##############################################################################

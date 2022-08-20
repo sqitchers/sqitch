@@ -98,6 +98,8 @@ has uri => (
 
         # Set defaults in the URI.
         $uri->host($self->_host($uri));
+        # Use _port instead of port so it's empty if no port is in the URI.
+        # https://github.com/sqitchers/sqitch/issues/675
         # XXX SNOWSQL_PORT deprecated; remove once Snowflake removes it.
         $uri->port($ENV{SNOWSQL_PORT}) if !$uri->_port && $ENV{SNOWSQL_PORT};
         $uri->dbname(

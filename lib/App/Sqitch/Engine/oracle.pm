@@ -695,6 +695,8 @@ sub _script {
     my $self = shift;
     my $uri  = $self->uri;
     my $conn = '';
+    # Use _port instead of port so it's empty if no port is in the URI.
+    # https://github.com/sqitchers/sqitch/issues/675
     my ($user, $pass, $host, $port) = (
         $self->username, $self->password, $uri->host, $uri->_port
     );

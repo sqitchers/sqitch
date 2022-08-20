@@ -160,6 +160,8 @@ has _mysql => (
         ) unless $uri->dbname;
 
         my @ret  = ( $self->client );
+        # Use _port instead of port so it's empty if no port is in the URI.
+        # https://github.com/sqitchers/sqitch/issues/675
         for my $spec (
             [ user     => $self->username ],
             [ database => $uri->dbname    ],
