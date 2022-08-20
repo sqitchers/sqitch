@@ -11,6 +11,9 @@ Revision history for Perl extension App::Sqitch
        database. This will allow multiple instances of Sqitch to run at the
        same time as long as they're connecting to different databases. Thanks
        to Dmytro Kh for the report and discussion of the options (#670).
+     - Fixed test failures where DBD::Mem was not installed. Likely only
+       occurred on some CPAN Testers nodes. Thanks to Slaven Rezić for those
+       (#673).
 
 1.3.0  2022-08-12T22:09:13Z
      - Fixed an issue when testing Firebird on a host with Firebird installed

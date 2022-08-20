@@ -21,6 +21,7 @@ use Test::Exception;
 use List::MoreUtils qw(firstidx);
 use Locale::TextDomain qw(App-Sqitch);
 use File::Temp 'tempdir';
+use DBD::Mem;
 use lib 't/lib';
 use DBIEngineTest;
 use TestConfig;

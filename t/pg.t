@@ -31,6 +31,7 @@ use App::Sqitch;
 use App::Sqitch::Target;
 use App::Sqitch::Plan;
 use Path::Class;
+use DBD::Mem;
 use lib 't/lib';
 use DBIEngineTest;
 use TestConfig;
