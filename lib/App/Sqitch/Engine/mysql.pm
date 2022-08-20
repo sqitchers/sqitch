@@ -313,24 +313,35 @@ sub begin_work {
     return $self;
 }
 
-# Override to try to acquire a lock on the string "sqitch working" without
-# waiting.
+# We include the database name in the lock name because that's probably the most
+# stringent lock the user expects. Locking the whole server with a static string
+# prevents parallel deploys to other databases. Yes, locking just the target
+# allows parallel deploys to conflict with one another if they make changes to
+# other databases, but is not a great practice and likely an anti-pattern. So
+# stick with the least surprising behavior.
+# https://github.com/sqitchers/sqitch/issues/670
+sub _lock_name {
+    'sqitch working on ' . shift->uri->dbname
+}
+
+# Override to try to acquire a lock on the string "sqitch working on $dbname"
+# without waiting.
 sub try_lock {
     my $self = shift;
     # Can't create a lock in the registry if it doesn't exist.
     $self->initialize unless $self->initialized;
     $self->dbh->selectcol_arrayref(
-        q{SELECT get_lock('sqitch working', 0)}
+        q{SELECT get_lock(?, ?)}, undef, $self->_lock_name, 0,
     )->[0]
 }
 
-# Override to try to acquire a lock on the string "sqitch working", waiting
-# for the lock until timeout.
+# Override to try to acquire a lock on the string "sqitch working on $dbname",
+# waiting for the lock until timeout.
 sub wait_lock {
     my $self = shift;
     $self->dbh->selectcol_arrayref(
-        q{SELECT get_lock('sqitch working', ?)},
-        undef, $self->lock_timeout
+        q{SELECT get_lock(?, ?)}, undef,
+        $self->_lock_name, $self->lock_timeout,
     )->[0]
 }
 

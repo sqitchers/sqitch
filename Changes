@@ -1,13 +1,16 @@
 Revision history for Perl extension App::Sqitch
 
 1.3.1
-
      - Fixed a bug introduced in v1.3.0 where the Postgres engine would
        always pass the port to `psql`, thus ignoring the `PGPORT` environment
        variable. Thanks to Cam Feenstra for the spot (#675)!
      - Fixed test failures on OSes where the local time zone cannot be
        determined. Thanks to Slaven Rezić for the test reports, and to
        Dave Rolsky for the solution (#672).
+     - Updated the MySQL deploy/revert lock to be specific to the target
+       database. This will allow multiple instances of Sqitch to run at the
+       same time as long as they're connecting to different databases. Thanks
+       to Dmytro Kh for the report and discussion of the options (#670).
 
 1.3.0  2022-08-12T22:09:13Z
      - Fixed an issue when testing Firebird on a host with Firebird installed
