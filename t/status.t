@@ -19,6 +19,7 @@ use TestConfig;
 my $CLASS = 'App::Sqitch::Command::status';
 require_ok $CLASS;
 
+local $ENV{TZ} = 'America/Barbados';
 my $config = TestConfig->new(
     'core.engine'  => 'sqlite',
     'core.top_dir' => 'test-status',

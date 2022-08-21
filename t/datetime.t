@@ -15,6 +15,7 @@ use TestConfig;
 
 my $CLASS = 'App::Sqitch::DateTime';
 require_ok $CLASS;
+local $ENV{TZ} = 'America/Vancouver';
 
 ok my $dt = $CLASS->now, 'Construct a datetime object';
 is_deeply [$dt->as_string_formats], [qw(

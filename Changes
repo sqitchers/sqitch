@@ -5,6 +5,9 @@ Revision history for Perl extension App::Sqitch
      - Fixed a bug introduced in v1.3.0 where the Postgres engine would
        always pass the port to `psql`, thus ignoring the `PGPORT` environment
        variable. Thanks to Cam Feenstra for the spot (#675)!
+     - Fixed test failures on OSes where the local time zone cannot be
+       determined. Thanks to Slaven Rezić for the test reports, and to
+       Dave Rolsky for the solution (#672).
 
 1.3.0  2022-08-12T22:09:13Z
      - Fixed an issue when testing Firebird on a host with Firebird installed
