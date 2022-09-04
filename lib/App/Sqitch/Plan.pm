@@ -30,10 +30,12 @@ my $name_re = qr{
            [[:digit:]]+            #         digits
            (?:$|[[:blank:]])       #         eol or blank
        )                           #     ...
-       [^[:blank:]:@#]             #     match a valid character
+       [^[:blank:]:@#\\]           #     match a valid character
     )+                             # ... end non-capturing group
     (?<![$punct])\b                # last character isn't punctuation
 }x;
+
+my $dir_sep_re = qr{/};
 
 my %reserved = map { $_ => undef } qw(ROOT HEAD);
 
@@ -235,8 +237,8 @@ sub _parse {
             my $proj = $+{value};
             $raise_syntax_error->(__x(
                 qq{invalid project name "{project}": project names must not }
-                . 'begin with punctuation, contain "@", ":", "#", or blanks, or end in '
-                . 'punctuation or digits following punctuation',
+                . 'begin with punctuation, contain "@", ":", "#", "\\", or blanks, '
+                . 'or end in punctuation or digits following punctuation',
                 project => $proj,
             )) unless $proj =~ /\A$name_re\z/;
             $pragmas{project} = $proj;
@@ -316,7 +318,7 @@ sub _parse {
         # Raise errors for missing data.
         $raise_syntax_error->(__(
             qq{Invalid name; names must not begin with punctuation, }
-            . 'contain "@", ":", "#", or blanks, or end in punctuation or digits following punctuation',
+            . 'contain "@", ":", "#", "\\", or blanks, or end in punctuation or digits following punctuation',
         )) if !$params{name}
             || (!$params{yr} && $line =~ $ts_re);
 
@@ -352,6 +354,15 @@ sub _parse {
         );
 
         if ($type eq 'tag') {
+            # Faile if contains directory separators
+            if ($params{name} =~ qr/($dir_sep_re)/) {
+                $raise_syntax_error->(__x(
+                    'Tag "{tag}" contains illegal character {sep}',
+                    tag => $params{name},
+                    sep => $1,
+                ));
+            }
+
             # Fail if no changes.
             unless ($prev_change) {
                 $raise_syntax_error->(__x(
@@ -902,21 +913,20 @@ sub _is_valid {
         name => $name,
     ) if $name =~ /^[0-9a-f]{40}/;
 
-    unless ($name =~ /\A$name_re\z/) {
-        if ($type eq 'change') {
-            hurl plan => __x(
-                qq{"{name}" is invalid: changes must not begin with punctuation, }
-                . 'contain "@", ":", "#", or blanks, or end in punctuation or digits following punctuation',
-                name => $name,
-            );
-        } else {
-            hurl plan => __x(
-                qq{"{name}" is invalid: tags must not begin with punctuation, }
-                . 'contain "@", ":", "#", or blanks, or end in punctuation or digits following punctuation',
-                name => $name,
-            );
-        }
+    if ($type eq 'change' && $name !~ /\A$name_re\z/) {
+        hurl plan => __x(
+            qq{"{name}" is invalid: changes must not begin with punctuation, }
+            . 'contain "@", ":", "#", "\\", or blanks, or end in punctuation or digits following punctuation',
+            name => $name,
+        );
+    } elsif ($type eq 'tag' && ($name !~ /\A$name_re\z/ || $name =~ $dir_sep_re)) {
+        hurl plan => __x(
+            qq{"{name}" is invalid: tags must not begin with punctuation, }
+            . 'contain "@", ":", "#", "/", "\\", or blanks, or end in punctuation or digits following punctuation',
+            name => $name,
+        );
     }
+    return 1;
 }
 
 sub write_to {

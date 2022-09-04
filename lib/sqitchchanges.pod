@@ -16,8 +16,8 @@ L<C<sqitch log>|sqitch-log>, search the database for the change.
 =head2 Change Names
 
 A change name, such as that passed to L<C<sqitch add>|sqitch-add> and written
-to the plan file has a few limitations on the characters it may contain. The
-same limitations apply to tag names. The rules are:
+to the plan file, has a few limitations on the characters it may contain. The
+rules are:
 
 =over
 
@@ -43,7 +43,8 @@ Must not end in "~", "^", "/", "=", or "%" followed by digits.
 
 =item *
 
-All other characters may be any UTF-8 character other than ":", "@", and "#".
+All other characters may be any UTF-8 character other than ":", "@", "#",
+and "\".
 
 =back
 
@@ -102,11 +103,26 @@ Some examples of invalid names:
 
 =item C<foo:bar>
 
+=item C<foo\bar>
+
 =item C<+foo>
 
 =item C<-foo>
 
 =item C<@foo>
+
+=back
+
+=head2 Tag Names
+
+A tag name, such as that passed to L<C<sqitch tag>|sqitch-tag> and written
+to the plan file, adhere by the same rules as L</Change Names> with one
+additional limitation: tags must not contain a slash character ("/").
+Example valid change name but invalid tag name:
+
+=over
+
+=item C<foo/bar>
 
 =back
 
