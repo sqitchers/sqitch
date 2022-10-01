@@ -1,5 +1,5 @@
 Name:           sqitch
-Version:        1.3.1-dev
+Version:        1.3.1
 Release:        1%{?dist}
 Summary:        Sensible database change management
 License:        MIT
@@ -309,6 +309,9 @@ also be installed.
 # No additional files required.
 
 %changelog
+* Sat Oct 1 2022 David E. Wheeler <david@justatheory.com> 1.3.1-1
+- Upgrade to v1.3.1.
+
 * Fri Aug 12 2022 David E. Wheeler <david@justatheory.com> 1.3.0-1
 - Add Test::Exit build requirement.
 - Upgrade URI::db to v0.20.
