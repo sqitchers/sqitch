@@ -6,7 +6,7 @@ use the `$VERSION` environment variable for consistency. The assumption is that
 it's set to the new version being released, e.g.,
 
 ``` sh
-export VERSION=1.2.0
+export VERSION=1.3.1
 ```
 
 Preparation
@@ -17,7 +17,7 @@ First, update the sources so that everything is up-to-date.
 *   Install all author dependencies:
 
     ``` sh
-    cpan Dist::Zilla
+    cpanm Dist::Zilla
     dzil authordeps --missing | cpanm --notest
     ```
 
