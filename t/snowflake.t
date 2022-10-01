@@ -41,6 +41,7 @@ BEGIN {
 # Mock the home directory to prevent reading a user config file.
 my $tmp_dir = dir tempdir CLEANUP => 1;
 local $ENV{HOME} = $tmp_dir->stringify;
+local $ENV{TZ} = 'America/St_Johns';
 
 is_deeply [$CLASS->config_vars], [
     target   => 'any',

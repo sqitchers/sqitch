@@ -241,6 +241,8 @@ sub connection_string {
         'Database name missing in URI {uri}',
         uri => $uri,
     );
+    # Use _port instead of port so it's empty if no port is in the URI.
+    # https://github.com/sqitchers/sqitch/issues/675
     my $host = $uri->host   or return $file;
     my $port = $uri->_port  or return "$host:$file";
     return "$host/$port:$file";

@@ -18,6 +18,7 @@ use MockOutput;
 use TestConfig;
 use LC;
 
+local $ENV{TZ} = 'America/Chicago';
 my $CLASS = 'App::Sqitch::ItemFormatter';
 require_ok $CLASS;
 can_ok $CLASS => qw(

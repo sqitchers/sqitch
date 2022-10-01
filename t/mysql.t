@@ -21,6 +21,7 @@ use Test::Exception;
 use List::MoreUtils qw(firstidx);
 use Locale::TextDomain qw(App-Sqitch);
 use File::Temp 'tempdir';
+use DBD::Mem;
 use lib 't/lib';
 use DBIEngineTest;
 use TestConfig;
@@ -42,7 +43,11 @@ is_deeply [$CLASS->config_vars], [
     client   => 'any',
 ], 'config_vars should return three vars';
 
-my $config = TestConfig->new('core.engine' => 'mysql');
+my $uri = URI::db->new('db:mysql:mydb');
+my $config = TestConfig->new(
+    'core.engine' => 'mysql',
+    'engine.mysql.target' => $uri->as_string,
+);
 my $sqitch = App::Sqitch->new(config => $config);
 my $target = App::Sqitch::Target->new(sqitch => $sqitch);
 isa_ok my $mysql = $CLASS->new(sqitch => $sqitch, target => $target), $CLASS;
@@ -51,7 +56,6 @@ is $mysql->key, 'mysql', 'Key should be "mysql"';
 is $mysql->name, 'MySQL', 'Name should be "MySQL"';
 
 my $client = 'mysql' . (App::Sqitch::ISWIN ? '.exe' : '');
-my $uri = URI::db->new('db:mysql:');
 is $mysql->client, $client, 'client should default to mysql';
 is $mysql->registry, 'sqitch', 'registry default should be "sqitch"';
 my $sqitch_uri = $uri->clone;
@@ -60,6 +64,8 @@ is $mysql->registry_uri, $sqitch_uri, 'registry_uri should be correct';
 is $mysql->uri, $uri, qq{uri should be "$uri"};
 is $mysql->registry_destination, 'db:mysql:sqitch',
     'registry_destination should be the same as registry_uri';
+is $mysql->_lock_name, 'sqitch working on ' . $uri->dbname,
+    '_lock_name should be correct';
 
 my @std_opts = (
     (App::Sqitch::ISWIN ? () : '--skip-pager' ),
@@ -78,6 +84,7 @@ if ($vinfo =~ /mariadb/i) {
 my $mock_sqitch = Test::MockModule->new('App::Sqitch');
 my $warning;
 $mock_sqitch->mock(warn => sub { shift; $warning = [@_] });
+$mysql->uri->dbname('');
 is_deeply [$mysql->mysql], [$client, '--user', $sqitch->sysuser, @std_opts],
     'mysql command should be user and std opts-only';
 is_deeply $warning, [__x
@@ -661,16 +668,17 @@ DBIEngineTest->run(
             like $sql_mode, qr/\b\Q$mode\E\b/i, "sql_mode should include $mode";
         }
     },
-        lock_sql => sub { return {
-            is_locked  => q{SELECT is_used_lock('sqitch working')},
-            try_lock   => q{SELECT get_lock('sqitch working', 0)},
+        lock_sql => sub {
+            my $lock_name = shift->_lock_name; return {
+            is_locked  => "SELECT is_used_lock('$lock_name')",
+            try_lock   => "SELECT get_lock('$lock_name', 0)",
             wait_time  => 1, # get_lock() does not support sub-second precision, apparently.
             async_free => 1,
             free_lock  => 'SELECT ' . ($dbh ? do {
                 # MySQL 5.5-5.6 and Maria 10.0-10.4 prefer release_lock(), while
                 # 5.7+ and 10.5+ prefer release_all_locks().
                 $dbh->selectrow_arrayref('SELECT version()')->[0] =~ /^(?:5\.[56]|10\.[0-4])/
-                    ? q{release_lock('sqitch working')}
+                    ? "release_lock('$lock_name')"
                     : 'release_all_locks()'
             } : ''),
         } },

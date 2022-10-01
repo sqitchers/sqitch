@@ -334,7 +334,7 @@ is $@->message, __x(
     lineno => 5,
     error => __(
         qq{Invalid name; names must not begin with punctuation, }
-        . 'contain "@", ":", "#", or blanks, or end in punctuation or digits following punctuation',
+        . 'contain "@", ":", "#", "\\", or blanks, or end in punctuation or digits following punctuation',
     ),
 ), 'And the bad change name error message should be correct';
 
@@ -349,6 +349,7 @@ my @bad_names = (
     'hi!',      # No trailing punctuation
     'foo@bar',  # No @ allowed at all
     'foo:bar',  # No : allowed at all
+    'foo\\bar', # No \ allowed at all
     '+foo',     # No leading +
     '-foo',     # No leading -
     '@foo',     # No leading @
@@ -359,9 +360,7 @@ my $prags = '%syntax-version=' . App::Sqitch::Plan::SYNTAX_VERSION
     . "\n%project=test\n\n";
 for my $name (@bad_names) {
     for my $line ("+$name", "\@$name") {
-        next if $line eq '%hi'; # This would be a pragma.
         my $buf = $prags . $line;
-        my $what = $line =~ /^[@]/ ? 'tag' : 'change';
         my $fh = IO::File->new(\$buf, '<:utf8_strict');
         throws_ok { $plan->_parse('baditem', $fh) } 'App::Sqitch::X',
             qq{Should die on plan with bad name "$line"};
@@ -372,11 +371,36 @@ for my $name (@bad_names) {
             lineno => 4,
             error => __(
                 qq{Invalid name; names must not begin with punctuation, }
-                . 'contain "@", ":", "#", or blanks, or end in punctuation or digits following punctuation',
-            )
+                . 'contain "@", ":", "#", "\\", or blanks, or end in punctuation or digits following punctuation',
+            ),
         ),  qq{And "$line" should trigger the appropriate message};
         is sorted, 0, 'Should not have sorted changes';
     }
+}
+
+# Valid change names but invalid tag names.
+my @bad_tags = (
+    'foo/bar',  # No slash allowed in tags
+);
+for my $name (@bad_tags) {
+    my $line = "\@$name" . ' 2012-07-16T17:25:07Z X <x@example.org>';
+    my ($sep) = $name =~ qr{([/\\])};
+    my $buf = $prags . $line;
+    my $fh = IO::File->new(\$buf, '<:utf8_strict');
+    throws_ok { $plan->_parse('baditem', $fh) } 'App::Sqitch::X',
+        qq{Should die on plan with bad name "$line"};
+    is $@->ident, 'parse', 'Exception ident should be "parse"';
+    is $@->message, __x(
+        'Syntax error in {file} at line {lineno}: {error}',
+        file => 'baditem',
+        lineno => 4,
+        error => __x(
+            'Tag "{tag}" contains illegal character {sep}',
+            tag => $name,
+            sep => $sep,
+        ),
+    ),  qq{And "$name" should trigger the appropriate message};
+    is sorted, 0, 'Should not have sorted changes';
 }
 
 # Try some valid change and tag names.
@@ -393,7 +417,7 @@ for my $name (
     't',       # char
     '6',       # digit
     '阱阪阬',   # multibyte
-    'foo/bar', # middle punct
+    'foo,bar', # middle punct
     'beta1',   # ending digit
     'foo_',    # ending underscore
     '_foo',    # leading underscore
@@ -405,7 +429,7 @@ for my $name (
     # Test a change name.
     my $lines = encode_utf8 "\%project=foo\n\n$name $tsnp";
     my $fh = IO::File->new(\$lines, '<:utf8_strict');
-    ok my $parsed = $plan->_parse('ooditem', $fh),
+    ok my $parsed = $plan->_parse('odditem', $fh),
         encode_utf8(qq{Should parse "$name"});
     cmp_deeply delete $parsed->{pragmas}, {
         syntax_version => App::Sqitch::Plan::SYNTAX_VERSION,
@@ -438,7 +462,7 @@ for my $name (
         ],
     }, encode_utf8(qq{Should have line and change for "$tag"});
 }
-is sorted, 26, 'Should have sorted changes 18 times';
+is sorted, 26, 'Should have sorted changes 26 times';
 
 # Try planning with other reserved names.
 for my $reserved (qw(HEAD ROOT)) {
@@ -1196,7 +1220,7 @@ for my $name (@bad_names) {
     is $@->ident, 'plan', qq{Invalid name "$name" error ident should be "plan"};
     is $@->message, __x(
         qq{"{name}" is invalid: tags must not begin with punctuation, }
-        . 'contain "@", ":", "#", or blanks, or end in punctuation or digits following punctuation',
+        . 'contain "@", ":", "#", "/", "\\", or blanks, or end in punctuation or digits following punctuation',
         name => $name,
     ), qq{And the "$name" error message should be correct};
 }
@@ -1268,14 +1292,14 @@ is $@->message, __x(
 ), 'And the error message should report it as a dupe';
 
 # Should choke on an invalid tag names.
-for my $name (@bad_names, 'foo#bar') {
+for my $name (@bad_names, 'foo#bar', @bad_tags) {
     next if $name =~ /^@/;
     throws_ok { $plan->tag( name => $name ) } 'App::Sqitch::X',
         qq{Should get error for invalid tag "$name"};
     is $@->ident, 'plan', qq{Invalid name "$name" error ident should be "plan"};
     is $@->message, __x(
         qq{"{name}" is invalid: tags must not begin with punctuation, }
-        . 'contain "@", ":", "#", or blanks, or end in punctuation or digits following punctuation',
+        . 'contain "@", ":", "#", "/", "\\", or blanks, or end in punctuation or digits following punctuation',
         name => $name,
     ), qq{And the "$name" error message should be correct};
 }
@@ -1396,7 +1420,7 @@ for my $name (@bad_names) {
     is $@->ident, 'plan', qq{Invalid name "$name" error ident should be "plan"};
     is $@->message, __x(
         qq{"{name}" is invalid: changes must not begin with punctuation, }
-        . 'contain "@", ":", "#", or blanks, or end in punctuation or digits following punctuation',
+        . 'contain "@", ":", "#", "\\", or blanks, or end in punctuation or digits following punctuation',
         name => $name,
     ), qq{And the "$name" error message should be correct};
 }
@@ -2023,7 +2047,7 @@ for my $bad (@bad_names) {
     is $@->ident, 'parse', qq{Ident for bad proj "$bad" should be "parse"};
     my $error =  __x(
             'invalid project name "{project}": project names must not '
-            . 'begin with punctuation, contain "@", ":", "#", or blanks, or end in '
+            . 'begin with punctuation, contain "@", ":", "#", "\\", or blanks, or end in '
             . 'punctuation or digits following punctuation',
             project => $bad);
     is $@->message, __x(

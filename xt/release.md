@@ -6,7 +6,7 @@ use the `$VERSION` environment variable for consistency. The assumption is that
 it's set to the new version being released, e.g.,
 
 ``` sh
-export VERSION=1.2.0
+export VERSION=1.3.1
 ```
 
 Preparation
@@ -17,7 +17,7 @@ First, update the sources so that everything is up-to-date.
 *   Install all author dependencies:
 
     ``` sh
-    cpan Dist::Zilla
+    cpanm Dist::Zilla
     dzil authordeps --missing | cpanm --notest
     ```
 
@@ -218,10 +218,10 @@ example, if you've just released `v1.2.0`, change the version to `v1.2.1-dev`.
 ``` sh
 git checkout develop
 git merge main
-perl -i -pe 's/^(version\s*=).+/$1 v1.2.1-dev/' dist.ini
-perl -i -pe 's{(App/Sqitch version).+}{$1 v1.2.1-dev}' README.md
-perl -i -pe 's/(Project-Id-Version: App-Sqitch)[^\\n]+/$1 v1.2.1-dev/' po/App-Sqitch.pot
-perl -i -pe 's/(Version:\s*).+/${1}1.2.1-dev/' dist/sqitch.spec
+perl -i -pe 's/^(version\s*=).+/$1 v1.3.1-dev/' dist.ini
+perl -i -pe 's{(App/Sqitch version).+}{$1 v1.3.1-dev}' README.md
+perl -i -pe 's/(Project-Id-Version: App-Sqitch)[^\\n]+/$1 v1.3.1-dev/' po/App-Sqitch.pot
+perl -i -pe 's/(Version:\s*).+/${1}1.3.1-dev/' dist/sqitch.spec
 ```
 
 Also add a line for the new version (without the pre-release part) to the top of

@@ -21,6 +21,7 @@ use Locale::TextDomain qw(App-Sqitch);
 use File::Basename qw(dirname);
 use File::Spec::Functions;
 use File::Temp 'tempdir';
+use DBD::Mem;
 use lib 't/lib';
 use DBIEngineTest;
 use TestConfig;
