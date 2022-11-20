@@ -192,8 +192,6 @@ has dbh => (
         my $self = shift;
         $self->use_driver;
         my $uri = $self->uri;
-        my $wh = $self->warehouse;
-        my $role = $self->role;
         DBI->connect($uri->dbi_dsn, $self->username, $self->password, {
             PrintError        => 0,
             RaiseError        => 0,
@@ -210,11 +208,13 @@ has dbh => (
                 connected => sub {
                     my $dbh = shift;
                     try {
+                        my $wh = $dbh->quote_identifier($self->warehouse);
+                        my $role = $self->role;
                         $dbh->do($_) for (
-                            ($role ? ("USE ROLE $role") : ()),
+                            ($role ? ("USE ROLE " . $dbh->quote_identifier($role)) : ()),
                             "ALTER WAREHOUSE $wh RESUME IF SUSPENDED",
                             "USE WAREHOUSE $wh",
-                            'USE SCHEMA ' . $self->registry,
+                            'USE SCHEMA ' . $dbh->quote_identifier($self->registry),
                             'ALTER SESSION SET TIMESTAMP_TYPE_MAPPING=TIMESTAMP_LTZ',
                             "ALTER SESSION SET TIMESTAMP_OUTPUT_FORMAT='YYYY-MM-DD HH24:MI:SS'",
                             "ALTER SESSION SET TIMEZONE='UTC'",
@@ -224,7 +224,9 @@ has dbh => (
                     return;
                 },
                 disconnect => sub {
-                    shift->do("ALTER WAREHOUSE $wh SUSPEND");
+                    my $dbh = shift;
+                    my $wh = $dbh->quote_identifier($self->warehouse);
+                    $dbh->do("ALTER WAREHOUSE $wh SUSPEND");
                     return;
                 },
             },

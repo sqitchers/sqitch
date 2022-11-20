@@ -19,7 +19,7 @@ use MockOutput;
 use TestConfig;
 use LC;
 
-local $ENV{TZ} = 'America/Sao_Paolo';
+local $ENV{TZ} = 'Asia/Tokyo';
 my $CLASS = 'App::Sqitch::Command::plan';
 require_ok $CLASS;
 
