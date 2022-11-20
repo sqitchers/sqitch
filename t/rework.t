@@ -3,8 +3,8 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 234;
-#use Test::More 'no_plan';
+use Test::More tests => 256;
+# use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
 use Test::Exception;
@@ -396,8 +396,116 @@ MOCKSHELL: {
     MockOutput->get_debug; # empty debug.
 };
 
-# Make sure a configuration with multiple plans works.
+# Make sure we properly handle a reworked directory.
 $mock_plan->unmock('plan');
+REWORKED_DIR: {
+    my $dstring = $test_dir->stringify;
+    remove_tree $dstring;
+    make_path $dstring;
+    END { remove_tree $dstring if -e $dstring };
+    chdir $dstring;
+
+    my $conf = file 'rework_dir.conf';
+    $conf->spew(join "\n",
+        '[core]',
+        'reworked_dir = _reworked',
+        'engine = sqlite',
+    );
+
+    file('sqitch.plan')->spew(join "\n",
+        '%project=rework', '',
+        'widgets 2012-07-16T17:25:07Z anna <a@n.na>',
+        'gadgets 2012-07-16T18:25:07Z anna <a@n.na>',
+        '@foo 2012-07-16T17:24:07Z julie <j@ul.ie>', '',
+    );
+
+    # Create the scripts.
+    my (@change, @reworked);
+    for my $type (qw(deploy revert verify)) {
+        my $dir = dir $type;
+        $dir->mkpath;
+        my $script = $dir->file('gadgets.sql');
+        $script->spew("-- $dir gadgets");
+        push @change => $script;
+        push @reworked => dir('_reworked', $type)->file('gadgets@foo.sql');
+    }
+
+    # We should have the change scripts but not yet reworked.
+    file_exists_ok $_ for @change;
+    file_not_exists_ok '_reworked';
+    file_not_exists_ok $_ for @reworked;
+
+    my $config = TestConfig->from(local => $conf);
+    my $sqitch = App::Sqitch->new(config => $config);
+    ok $rework = $CLASS->new(
+        sqitch             => $sqitch,
+        note               => ['Testing reworked_dir'],
+        template_directory => dir->parent->subdir(qw(etc templates))
+    ), 'Create another rework with custom reworked_dir config';
+
+    # Let's do this thing!
+    ok $rework->execute('gadgets'), 'Rework change "gadgets"';
+    my $target = $rework->default_target;
+    ok my $head = $target->plan->get('gadgets@HEAD'),
+        "Get gadgets\@HEAD from the plan";
+    ok my $foo = $target->plan->get('gadgets@foo'),
+        "Get gadgets\@foo from the plan";
+    cmp_ok $head->id, 'ne', $foo->id,
+        "The two gadgets should be different changes";
+
+    # All the files should exist, now.
+    file_exists_ok '_reworked';
+    file_exists_ok $_ for @change, @reworked;
+
+    is_deeply \%request_params, {
+        for => __ 'rework',
+        scripts => \@change,
+    }, 'Should have listed scripts in the note prompt';
+
+    # Should have info output.
+    is_deeply +MockOutput->get_info, [
+        [__x(
+            'Added "{change}" to {file}.',
+            change => 'gadgets [gadgets@foo]',
+            file   => $target->plan_file,
+        )],
+        [__n(
+            'Modify this file as appropriate:',
+            'Modify these files as appropriate:',
+            3,
+        )],
+        map { ["  * $_"] } @change,
+    ], 'And the info message should suggest editing the old files';
+    # use Data::Dump; ddx +MockOutput->get_debug;
+    is_deeply +MockOutput->get_debug, [
+        ['    ', __x 'Created {file}', file => dir qw(_reworked deploy) ],
+        [__x(
+            'Copied {src} to {dest}',
+            src => $change[0],
+            dest  => $reworked[0],
+        )],
+        ['    ', __x 'Created {file}', file => dir qw(_reworked revert) ],
+        [__x(
+            'Copied {src} to {dest}',
+            src => $change[1],
+            dest  => $reworked[1],
+        )],
+        ['    ', __x 'Created {file}', file => dir qw(_reworked verify) ],
+        [__x(
+            'Copied {src} to {dest}',
+            src => $change[2],
+            dest  => $reworked[2],
+        )],
+        [__x(
+            'Copied {src} to {dest}',
+            src => $change[0],
+            dest  => $change[1],
+        )],
+    ], 'Debug should show directory creation and file copying';
+    chdir File::Spec->updir;
+}
+
+# Make sure a configuration with multiple plans works.
 MULTIPLAN: {
     my $dstring = $test_dir->stringify;
     remove_tree $dstring;
@@ -584,7 +692,6 @@ MULTIPLAN: {
     my %targets = map { $_->engine_key => $_ }
         App::Sqitch::Target->all_targets(sqitch => $sqitch);
     is keys %targets, 3, 'Should still have three targets';
-    my $name = 'gadgets@foo';
     for my $ekey(qw(pg mysql)) {
         my $target = $targets{$ekey};
         ok my $head = $target->plan->get('gadgets@HEAD'),
