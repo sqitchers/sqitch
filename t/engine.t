@@ -1159,8 +1159,6 @@ is_deeply $engine->seen, [
 ], 'Should have deployed to change 2';
 is_deeply +MockOutput->get_info, [
     [__x 'Deploying changes to {destination}', destination =>  $engine->destination ],
-    # [__ 'ok'],
-    # [__ 'ok'],
 ], 'Should have emitted deploy announcement and successes';
 
 # Make sure we can deploy everything by change.
@@ -2060,6 +2058,11 @@ is_deeply +MockOutput->get_info_literal, [
     ['  - roles ..', '........', ' '],
 ], 'It should have said it was reverting all changes and listed them';
 is_deeply +MockOutput->get_info, [
+    [__ 'Would revert the following changes:'],
+    ['roles'],
+    ['users @alpha'],
+    ['widgets @beta'],
+    ['lolz'],
     [__ 'ok'],
     [__ 'ok'],
     [__ 'ok'],
@@ -2092,6 +2095,11 @@ is_deeply +MockOutput->get_info_literal, [
     ['  - roles ..', '........', ' '],
 ], 'It should have said it was reverting all changes and listed them';
 is_deeply +MockOutput->get_info, [
+    [__ 'Would revert the following changes:'],
+    ['roles'],
+    ['users @alpha'],
+    ['widgets @beta'],
+    ['lolz'],
     [__ 'ok'],
     [__ 'ok'],
     [__ 'ok'],
@@ -2115,6 +2123,11 @@ is_deeply +MockOutput->get_ask_yes_no, [
     ), 1],
 ], 'Should have prompt to revert all changes';
 is_deeply +MockOutput->get_info, [
+    [__ 'Would revert the following changes:'],
+    ['roles'],
+    ['users @alpha'],
+    ['widgets @beta'],
+    ['lolz'],
 ], 'It should have emitted nothing else';
 
 # Revert all changes with no prompt.
@@ -2148,6 +2161,11 @@ is_deeply +MockOutput->get_info, [
         'Reverting all changes from {destination}',
         destination => $engine->destination,
     )],
+    [__ 'Will revert the following changes:'],
+    ['roles'],
+    ['users @alpha'],
+    ['widgets @beta'],
+    ['lolz'],
     [__ 'ok'],
     [__ 'ok'],
     [__ 'ok'],
@@ -2185,6 +2203,9 @@ is_deeply +MockOutput->get_info_literal, [
     ['  - widgets @beta ..', '', ' '],
 ], 'Output should show what it reverts to';
 is_deeply +MockOutput->get_info, [
+    [__ 'Would revert the following changes:'],
+    ['widgets @beta'],
+    ['lolz'],
     [__ 'ok'],
     [__ 'ok'],
 ], 'And the revert successes should be emitted';
@@ -2211,7 +2232,10 @@ is_deeply +MockOutput->get_ask_yes_no, [
     ), 1],
 ], 'Should have prompt to revert to @alpha';
 is_deeply +MockOutput->get_info, [
-], 'It should have emitted nothing else';
+    [__ 'Would revert the following changes:'],
+    ['widgets @beta'],
+    ['lolz'],
+], 'Should emit a detailed prompt.';
 
 # Try to revert just the last change with no prompt
 MockOutput->ask_yes_no_returns(1);
@@ -2241,6 +2265,8 @@ is_deeply +MockOutput->get_info, [
         destination => $engine->destination,
         change      => $dbchanges[-1]->format_name_with_tags,
     )],
+    [__ 'Will revert the following changes:'],
+    ['lolz'],
     [__ 'ok'],
 ], 'And the header and "ok" should be emitted';
 
