@@ -67,18 +67,6 @@ has start_at => (
     isa => Str
 );
 
-has no_prompt => (
-    is      => 'rw',
-    isa     => Bool,
-    default => 0,
-);
-
-has prompt_accept => (
-    is      => 'rw',
-    isa     => Bool,
-    default => 1,
-);
-
 has log_only => (
     is      => 'rw',
     isa     => Bool,
@@ -269,8 +257,17 @@ sub deploy {
     $self->$meth( $plan, $to_index );
 }
 
-sub revert {
-    my ( $self, $to ) = @_;
+sub revert($$$$) {
+    # $to = revert up to (but not including) this change. May be undefined.
+    # $prompt = If true, we ask for confirmation; if false, we don't.
+    # $prompt_default = Default if the user just hits enter at the prompt.
+    my ( $self, $to, $prompt, $prompt_default ) = @_;
+
+    if (defined $prompt) {
+        hurl revert => 'Missing mandatory parameter $prompt_default' unless defined $prompt_default;
+    } else {
+        hurl revert => 'Missing mandatory parameter $prompt'
+    }
 
     # Check the registry and, once we know it's there, lock the destination.
     $self->_check_registry;
@@ -309,7 +306,7 @@ sub revert {
             return $self;
         };
 
-        if ($self->no_prompt) {
+        unless ($prompt) {
             $sqitch->info(__x(
                 'Reverting changes to {change} from {destination}',
                 change      => $change->format_name_with_tags,
@@ -324,7 +321,7 @@ sub revert {
                 'Revert changes to {change} from {destination}?',
                 change      => $change->format_name_with_tags,
                 destination => $self->destination,
-            ), $self->prompt_accept );
+            ), $prompt_default );
         }
 
     } else {
@@ -333,7 +330,7 @@ sub revert {
             return $self;
         };
 
-        if ($self->no_prompt) {
+        unless ($prompt) {
             $sqitch->info(__x(
                 'Reverting all changes from {destination}',
                 destination => $self->destination,
@@ -346,7 +343,7 @@ sub revert {
             } unless $sqitch->ask_yes_no(__x(
                 'Revert all changes from {destination}?',
                 destination => $self->destination,
-            ), $self->prompt_accept );
+            ), $prompt_default );
         }
     }
 
@@ -369,6 +366,9 @@ sub revert {
 
 sub verify {
     my ( $self, $from, $to ) = @_;
+    # $from = verify changes after and including this one, or if undefined starting from the first change.
+    # $to = verify changes up to but not including this one, or if undefined up to all changes.
+
     $self->_check_registry;
     my $sqitch   = $self->sqitch;
     my $plan     = $self->plan;
@@ -1571,10 +1571,6 @@ The name of the registry schema or database.
 =head3 C<start_at>
 
 The point in the plan from which to start deploying changes.
-
-=head3 C<no_prompt>
-
-Boolean indicating whether or not to prompt for reverts. False by default.
 
 =head3 C<log_only>
 

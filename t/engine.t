@@ -34,7 +34,7 @@ BEGIN {
     delete $ENV{USER};
 }
 
-can_ok $CLASS, qw(load new name no_prompt run_deploy run_revert run_verify uri);
+can_ok $CLASS, qw(load new name run_deploy run_revert run_verify uri);
 
 my ($is_deployed_tag, $is_deployed_change) = (0, 0);
 my @deployed_changes;
@@ -281,7 +281,7 @@ $engine->seen;
 
 # Make sure it's checked on revert and verify.
 for my $meth (qw(revert verify)) {
-    throws_ok { $engine->$meth } 'App::Sqitch::X', "Should get error from $meth";
+    throws_ok { $engine->$meth(undef, 1, 1) } 'App::Sqitch::X', "Should get error from $meth";
     is $@->ident, 'engine', qq{$meth registry error ident should be "engine"};
     is $@->message, __x(
         'No registry found in {destination}. Have you ever deployed?',
@@ -1911,7 +1911,7 @@ $engine->plan($plan);
 
 # Start with no deployed IDs.
 @deployed_changes = ();
-ok $engine->revert,
+ok $engine->revert(undef, 1, 1),
     'Should return success for no changes to revert';
 is_deeply +MockOutput->get_info, [
     [__ 'Nothing to revert (nothing deployed)']
@@ -1923,7 +1923,7 @@ is_deeply $engine->seen, [
 is_deeply +MockOutput->get_info, [], 'Nothing should have been output';
 
 # Try reverting to an unknown change.
-throws_ok { $engine->revert('nonexistent') } 'App::Sqitch::X',
+throws_ok { $engine->revert('nonexistent', 1, 1) } 'App::Sqitch::X',
     'Revert should die on unknown change';
 is $@->ident, 'revert', 'Should be another "revert" error';
 is $@->message, __x(
@@ -1939,7 +1939,7 @@ is_deeply $engine->seen, [ [lock_destination => []], ['change_id_for', {
 is_deeply +MockOutput->get_info, [], 'Nothing should have been output';
 
 # Try reverting to an unknown change ID.
-throws_ok { $engine->revert('8d77c5f588b60bc0f2efcda6369df5cb0177521d') } 'App::Sqitch::X',
+throws_ok { $engine->revert('8d77c5f588b60bc0f2efcda6369df5cb0177521d', 1, 1) } 'App::Sqitch::X',
     'Revert should die on unknown change ID';
 is $@->ident, 'revert', 'Should be another "revert" error';
 is $@->message, __x(
@@ -1955,7 +1955,7 @@ is_deeply $engine->seen, [ [lock_destination => []], ['change_id_for', {
 is_deeply +MockOutput->get_info, [], 'Nothing should have been output';
 
 # Revert an undeployed change.
-throws_ok { $engine->revert('@alpha') } 'App::Sqitch::X',
+throws_ok { $engine->revert('@alpha', 1, 1) } 'App::Sqitch::X',
     'Revert should die on undeployed change';
 is $@->ident, 'revert', 'Should be another "revert" error';
 is $@->message, __x(
@@ -1973,7 +1973,7 @@ is_deeply +MockOutput->get_info, [], 'Nothing should have been output';
 # Revert to a point with no following changes.
 $offset_change = $changes[0];
 push @resolved => $offset_change->id;
-ok $engine->revert($changes[0]->id),
+ok $engine->revert($changes[0]->id, 1, 1),
     'Should return success for revert even with no changes';
 is_deeply +MockOutput->get_info, [
     [__x(
@@ -1996,7 +1996,7 @@ is_deeply $engine->seen, [
 ], 'Should have called change_id_for and deployed_changes_since';
 
 # Revert with nothing deployed.
-ok $engine->revert,
+ok $engine->revert(undef, 1, 1),
     'Should return success for known but undeployed change';
 is_deeply +MockOutput->get_info, [
     [__ 'Nothing to revert (nothing deployed)']
@@ -2033,7 +2033,7 @@ my @dbchanges;
 } @changes[0..3];
 
 MockOutput->ask_yes_no_returns(1);
-is $engine->revert, $engine, 'Revert all changes';
+is $engine->revert(undef, 1, 1), $engine, 'Revert all changes';
 is_deeply $engine->seen, [
     [lock_destination => []],
     [deployed_changes => undef],
@@ -2068,7 +2068,7 @@ is_deeply +MockOutput->get_info, [
 
 # Try with log-only.
 ok $engine->log_only(1), 'Enable log_only';
-ok $engine->revert(undef, 1), 'Revert all changes log-only';
+ok $engine->revert(undef, 1, 1), 'Revert all changes log-only';
 delete @{ $_ }{qw(_path_segments _rework_tags)} for @dbchanges; # These need to be invisible.
 is_deeply $engine->seen, [
     [lock_destination => []],
@@ -2100,7 +2100,7 @@ is_deeply +MockOutput->get_info, [
 
 # Should exit if the revert is declined.
 MockOutput->ask_yes_no_returns(0);
-throws_ok { $engine->revert } 'App::Sqitch::X', 'Should abort declined revert';
+throws_ok { $engine->revert(undef, 1, 1) } 'App::Sqitch::X', 'Should abort declined revert';
 is $@->ident, 'revert', 'Declined revert ident should be "revert"';
 is $@->exitval, 1, 'Should have exited with value 1';
 is $@->message, __ 'Nothing reverted', 'Should have exited with proper message';
@@ -2120,8 +2120,7 @@ is_deeply +MockOutput->get_info, [
 # Revert all changes with no prompt.
 MockOutput->ask_yes_no_returns(1);
 $engine->log_only(0);
-$engine->no_prompt(1);
-ok $engine->revert, 'Revert all changes with no prompt';
+ok $engine->revert(undef, 0, 1), 'Revert all changes with no prompt';
 is_deeply $engine->seen, [
     [lock_destination => []],
     [deployed_changes => undef],
@@ -2155,11 +2154,10 @@ is_deeply +MockOutput->get_info, [
 ], 'And the revert successes should be emitted';
 
 # Now just revert to an earlier change.
-$engine->no_prompt(0);
 $offset_change = $dbchanges[1];
 push @resolved => $offset_change->id;
 @deployed_changes = @deployed_changes[2..3];
-ok $engine->revert('@alpha'), 'Revert to @alpha';
+ok $engine->revert('@alpha', 1, 1), 'Revert to @alpha';
 
 delete $dbchanges[1]->{_rework_tags}; # These need to be invisible.
 is_deeply $engine->seen, [
@@ -2192,7 +2190,7 @@ is_deeply +MockOutput->get_info, [
 MockOutput->ask_yes_no_returns(0);
 $offset_change = $dbchanges[1];
 push @resolved => $offset_change->id;
-throws_ok { $engine->revert('@alpha') } 'App::Sqitch::X',
+throws_ok { $engine->revert('@alpha', 1, 1) } 'App::Sqitch::X',
     'Should abort declined revert to @alpha';
 is $@->ident, 'revert:confirm', 'Declined revert ident should be "revert:confirm"';
 is $@->exitval, 1, 'Should have exited with value 1';
@@ -2215,13 +2213,12 @@ is_deeply +MockOutput->get_info, [
 
 # Try to revert just the last change with no prompt
 MockOutput->ask_yes_no_returns(1);
-$engine->no_prompt(1);
 my $rev_file = $dbchanges[-1]->revert_file; # Grab before deleting _rework_tags.
 my $rtags = delete $dbchanges[-1]->{_rework_tags}; # These need to be invisible.
 $offset_change = $dbchanges[-1];
 push @resolved => $offset_change->id;
 @deployed_changes = $deployed_changes[-1];
-ok $engine->revert('@HEAD^'), 'Revert to @HEAD^';
+ok $engine->revert('@HEAD^', 0, 1), 'Revert to @HEAD^';
 is_deeply $engine->seen, [
     [lock_destination => []],
     [change_id_for => { change_id => undef, change => '', tag => 'HEAD', project => 'sql' }],

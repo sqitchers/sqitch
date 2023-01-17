@@ -583,7 +583,7 @@ is_deeply +MockOutput->get_info, [[__x(
 )]], 'Should have emitted info identifying the last common change';
 
 # Did it revert?
-is_deeply \@rev_args, [$checkout->default_target->plan->get('users')->id],
+is_deeply \@rev_args, [$checkout->default_target->plan->get('users')->id, 1, undef],
     '"users" ID and 1 should be passed to the engine revert';
 is_deeply \@rev_changes, [qw(roles users widgets)],
     'Should have had the current changes for revision';
