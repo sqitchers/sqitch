@@ -85,7 +85,7 @@ as appropriate.
 By default, Sqitch will read F<sqitch.conf> in the current directory for
 settings. But it will also read F<~/.sqitch/sqitch.conf> for user-specific
 settings. Since MySQL's
-L<C<mysql> client|https://dev.mysql.com/doc/refman/5.6/en/mysql.html> is not
+L<C<mysql client|https://dev.mysql.com/doc/refman/5.6/en/mysql.html> is not
 in the path on my system, let's go ahead an tell it where to find the client
 on our computer (don't bother if you're using the
 L<Docker image|https://hub.docker.com/r/sqitch/sqitch/> because it uses the
