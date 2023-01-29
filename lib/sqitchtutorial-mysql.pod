@@ -1398,7 +1398,7 @@ a great idea. So we need to modify the C<insert_user()> and C<change_pass()>
 functions to fix that. How?
 
 We can use MySQL's
-L<C<ENCRYPT()>|https://dev.mysql.com/doc/refman/5.5/en/encryption-functions.html#function_encrypt>
+L<C<ENCRYPT()>|https://dev.mysql.com/doc/refman/5.6/en/encryption-functions.html#function_encrypt>
 function to encrypt passwords with a salt, so that they're all unique. But how
 to deploy the changes to C<insert_user()> and C<change_pass()>?
 
@@ -1633,7 +1633,7 @@ in the new script files that include tags.
 But what about the verify script? How can we verify that the functions have
 been modified to use C<ENCRYPT()>? I think the simplest thing to do is to
 examine the body of the function as returned by
-L<C<INFORMATION_SCHEMA.ROUTINES>|https://dev.mysql.com/doc/refman/5.6/en/routines-table.html>
+L<C<INFORMATION_SCHEMA.ROUTINES>|https://dev.mysql.com/doc/refman/5.6/en/information-schema-routines-table.html>
 So the C<insert_user> verify script looks like this:
 
   -- Verify flipr:insert_user on mysql
