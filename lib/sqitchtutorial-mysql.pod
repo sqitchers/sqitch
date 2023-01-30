@@ -10,7 +10,7 @@ sqitchtutorial-mysql - A tutorial introduction to Sqitch change management on My
 
 =head1 Description
 
-This tutorial explains how to create a sqitch-enabled MySQL project, use a VCS
+This tutorial explains how to create a sqitch-enabled MySQL 5.7 project, use a VCS
 for deployment planning, and work with other developers to make sure changes
 remain in sync and in the proper order.
 
@@ -85,7 +85,7 @@ as appropriate.
 By default, Sqitch will read F<sqitch.conf> in the current directory for
 settings. But it will also read F<~/.sqitch/sqitch.conf> for user-specific
 settings. Since MySQL's
-L<C<mysql client|https://dev.mysql.com/doc/refman/5.6/en/mysql.html> is not
+L<C<mysql client|https://dev.mysql.com/doc/refman/5.7/en/mysql.html> is not
 in the path on my system, let's go ahead an tell it where to find the client
 on our computer (don't bother if you're using the
 L<Docker image|https://hub.docker.com/r/sqitch/sqitch/> because it uses the
@@ -1398,7 +1398,7 @@ a great idea. So we need to modify the C<insert_user()> and C<change_pass()>
 functions to fix that. How?
 
 We can use MySQL's
-L<C<ENCRYPT()>|https://dev.mysql.com/doc/refman/5.6/en/encryption-functions.html#function_encrypt>
+L<C<ENCRYPT()>|https://dev.mysql.com/doc/refman/5.7/en/encryption-functions.html#function_encrypt>
 function to encrypt passwords with a salt, so that they're all unique. But how
 to deploy the changes to C<insert_user()> and C<change_pass()>?
 
@@ -1633,7 +1633,7 @@ in the new script files that include tags.
 But what about the verify script? How can we verify that the functions have
 been modified to use C<ENCRYPT()>? I think the simplest thing to do is to
 examine the body of the function as returned by
-L<C<INFORMATION_SCHEMA.ROUTINES>|https://dev.mysql.com/doc/refman/5.6/en/information-schema-routines-table.html>
+L<C<INFORMATION_SCHEMA.ROUTINES>|https://dev.mysql.com/doc/refman/5.7/en/information-schema-routines-table.html>
 So the C<insert_user> verify script looks like this:
 
   -- Verify flipr:insert_user on mysql
