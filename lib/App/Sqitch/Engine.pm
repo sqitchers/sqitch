@@ -67,6 +67,28 @@ has start_at => (
     isa => Str
 );
 
+has no_prompt => (
+    is      => 'rw',
+    isa     => Bool,
+    trigger => sub {
+        # Deprecation notice added Feb 2023
+        warnings::warnif("deprecated",
+                         __("Engine::no_prompt is deprecated and will be removed in a future release\n".
+                            "Use direct arguments to revert() instead"));
+    }
+);
+
+has prompt_accept => (
+    is      => 'rw',
+    isa     => Bool,
+    trigger => sub {
+        # Deprecation notice added Feb 2023
+        warnings::warnif("deprecated",
+                         __("Engine::prompt_accept is deprecated and will be removed in a future release\n".
+                            "Use direct arguments to revert() instead"));
+    }
+);
+
 has log_only => (
     is      => 'rw',
     isa     => Bool,
@@ -257,16 +279,23 @@ sub deploy {
     $self->$meth( $plan, $to_index );
 }
 
-sub revert($$$$) {
+sub revert {
     # $to = revert up to (but not including) this change. May be undefined.
     # $prompt = If true, we ask for confirmation; if false, we don't.
     # $prompt_default = Default if the user just hits enter at the prompt.
     my ( $self, $to, $prompt, $prompt_default ) = @_;
 
     if (defined $prompt) {
-        hurl revert => 'Missing mandatory parameter $prompt_default' unless defined $prompt_default;
+        hurl revert => __('Missing mandatory parameter $prompt_default') unless defined $prompt_default;
     } else {
-        hurl revert => 'Missing mandatory parameter $prompt'
+        warnings::warnif("deprecated",
+                         __("This calling style of Engine::revert is deprecated.\n".
+                            "In the future `prompt` and `prompt_accept` parameters will be mandatory"));
+
+        my $no_prompt = $self->no_prompt // 0;
+        $prompt = ! $no_prompt;
+
+        $prompt_default = $self->prompt_accept // 1;
     }
 
     # Check the registry and, once we know it's there, lock the destination.
