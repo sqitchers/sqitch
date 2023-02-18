@@ -249,6 +249,11 @@ sub deploy {
         )
     );
 
+    $sqitch->debug(__ "Will deploy the following changes:");
+    foreach my $will_deploy_position ($plan->position .. $to_index) {
+        $sqitch->debug($plan->change_at($will_deploy_position)->format_name_with_tags);
+    }
+
     # Check that all dependencies will be satisfied.
     $self->check_deploy_dependencies($plan, $to_index);
 
@@ -267,6 +272,15 @@ sub deploy {
     );
 
     $self->$meth( $plan, $to_index );
+}
+
+# Do a thing similar to Sqitch::Plan::Change::format_name_with_tags,
+# but for an output from $self->deployed_changes or
+# $self->deployed_changes_since.
+sub _format_deployed_change_name_with_tags($) {
+    my ( $self, $change ) = @_;
+
+    return join ' ', $change->{name}, map { '@' . $_ } @{$change->{tags}};
 }
 
 sub revert {
@@ -299,6 +313,8 @@ sub revert {
             );
         };
 
+        # NB this is an array of unblessed references, not of
+        # Sqitch::Plan::Change references.
         @changes = $self->deployed_changes_since(
             $self->_load_changes($change)
         ) or do {
@@ -308,6 +324,8 @@ sub revert {
             ));
             return $self;
         };
+        my @change_descriptions =
+            map { $self->_format_deployed_change_name_with_tags($_) } @changes;
 
         if ($self->no_prompt) {
             $sqitch->info(__x(
@@ -315,7 +333,11 @@ sub revert {
                 change      => $change->format_name_with_tags,
                 destination => $self->destination,
             ));
+            $sqitch->info(__ 'Will revert the following changes:');
+            map { $sqitch->info($_) } @change_descriptions;
         } else {
+            $sqitch->info(__ 'Would revert the following changes:');
+            map { $sqitch->info($_) } @change_descriptions;
             hurl {
                 ident   => 'revert:confirm',
                 message => __ 'Nothing reverted',
@@ -326,19 +348,26 @@ sub revert {
                 destination => $self->destination,
             ), $self->prompt_accept );
         }
-
     } else {
+        # NB this is an array of unblessed references, not of
+        # Sqitch::Plan::Change references.
         @changes = $self->deployed_changes or do {
             $sqitch->info(__ 'Nothing to revert (nothing deployed)');
             return $self;
         };
+        my @change_descriptions =
+            map { $self->_format_deployed_change_name_with_tags($_) } @changes;
 
         if ($self->no_prompt) {
             $sqitch->info(__x(
                 'Reverting all changes from {destination}',
                 destination => $self->destination,
             ));
+            $sqitch->info(__ 'Will revert the following changes:');
+            map { $sqitch->info($_) } @change_descriptions;
         } else {
+            $sqitch->info(__ 'Would revert the following changes:');
+            map { $sqitch->info($_) } @change_descriptions;
             hurl {
                 ident   => 'revert',
                 message => __ 'Nothing reverted',
