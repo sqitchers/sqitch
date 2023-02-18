@@ -11,8 +11,8 @@ fi
 cat t/odbc/vertica.ini | sudo tee -a /etc/vertica.ini
 
 # https://www.vertica.com/download/vertica/client-drivers/
-curl -sSLO https://www.vertica.com/client_drivers/11.0.x/11.0.1-0/vertica-client-11.0.1-0.x86_64.tar.gz
-sudo tar -xzf vertica-client-11.0.1-0.x86_64.tar.gz -C /
+curl -sSLO https://www.vertica.com/client_drivers/12.0.x/12.0.3-0/vertica-client-12.0.3-0.x86_64.tar.gz
+sudo tar -xzf vertica-client-12.0.3-0.x86_64.tar.gz -C /
 
 if [[ ! -z "$GITHUB_PATH" ]]; then
     echo "/opt/vertica/bin" >> $GITHUB_PATH
