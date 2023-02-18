@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 158;
+use Test::More tests => 170;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -129,6 +129,8 @@ for my $spec (
     ['%{|}t', { tags => [] }, '' ],
     ['%{|}t', { tags => ['@foo'] }, ' @foo' ],
     ['%{|}t', { tags => ['@foo', '@bar'] }, ' @foo|@bar' ],
+    ['%{0}t', { tags => ['@foo', '@bar'] }, ' @foo0@bar' ],
+    ['%{}t', { tags => ['@foo', '@bar'] }, ' @foo@bar' ],
 
     ['%T', { tags => [] }, '' ],
     ['%T', { tags => ['@foo'] }, ' (@foo)' ],
@@ -136,6 +138,8 @@ for my $spec (
     ['%{|}T', { tags => [] }, '' ],
     ['%{|}T', { tags => ['@foo'] }, ' (@foo)' ],
     ['%{|}T', { tags => ['@foo', '@bar'] }, ' (@foo|@bar)' ],
+    ['%{0}T', { tags => ['@foo', '@bar'] }, ' (@foo0@bar)' ],
+    ['%{}T', { tags => ['@foo', '@bar'] }, ' (@foo@bar)' ],
 
     ['%r', { requires => [] }, '' ],
     ['%r', { requires => ['foo'] }, ' foo' ],
@@ -143,6 +147,8 @@ for my $spec (
     ['%{|}r', { requires => [] }, '' ],
     ['%{|}r', { requires => ['foo'] }, ' foo' ],
     ['%{|}r', { requires => ['foo', 'bar'] }, ' foo|bar' ],
+    ['%{0}r', { requires => ['foo', 'bar'] }, ' foo0bar' ],
+    ['%{}r', { requires => ['foo', 'bar'] }, ' foobar' ],
 
     ['%R', { requires => [] }, '' ],
     ['%R', { requires => ['foo'] }, __('Requires: ') . " foo\n" ],
@@ -150,6 +156,8 @@ for my $spec (
     ['%{|}R', { requires => [] }, '' ],
     ['%{|}R', { requires => ['foo'] }, __('Requires: ') . " foo\n" ],
     ['%{|}R', { requires => ['foo', 'bar'] }, __('Requires: ') . " foo|bar\n" ],
+    ['%{0}R', { requires => ['foo', 'bar'] }, __('Requires: ') . " foo0bar\n" ],
+    ['%{}R', { requires => ['foo', 'bar'] }, __('Requires: ') . " foobar\n" ],
 
     ['%x', { conflicts => [] }, '' ],
     ['%x', { conflicts => ['foo'] }, ' foo' ],
@@ -157,6 +165,8 @@ for my $spec (
     ['%{|}x', { conflicts => [] }, '' ],
     ['%{|}x', { conflicts => ['foo'] }, ' foo' ],
     ['%{|}x', { conflicts => ['foo', 'bax'] }, ' foo|bax' ],
+    ['%{0}x', { conflicts => ['foo', 'bax'] }, ' foo0bax' ],
+    ['%{}x', { conflicts => ['foo', 'bax'] }, ' foobax' ],
 
     ['%X', { conflicts => [] }, '' ],
     ['%X', { conflicts => ['foo'] }, __('Conflicts:') . " foo\n" ],
@@ -164,6 +174,8 @@ for my $spec (
     ['%{|}X', { conflicts => [] }, '' ],
     ['%{|}X', { conflicts => ['foo'] }, __('Conflicts:') . " foo\n" ],
     ['%{|}X', { conflicts => ['foo', 'bar'] }, __('Conflicts:') . " foo|bar\n" ],
+    ['%{0}X', { conflicts => ['foo', 'bar'] }, __('Conflicts:') . " foo0bar\n" ],
+    ['%{}X', { conflicts => ['foo', 'bar'] }, __('Conflicts:') . " foobar\n" ],
 
     ['%{yellow}C', {}, '' ],
     ['%{:event}C', { event => 'deploy' }, '' ],

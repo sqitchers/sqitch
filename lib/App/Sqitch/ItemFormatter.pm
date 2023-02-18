@@ -128,12 +128,12 @@ has formatter => (
 
                 t => sub {
                     @{ $_[0]->{tags} }
-                        ? ' ' . join $_[1] || ', ' => @{ $_[0]->{tags} }
+                        ? ' ' . join defined $_[1] ? $_[1] : ', ' => @{ $_[0]->{tags} }
                         : '';
                 },
                 T => sub {
                     @{ $_[0]->{tags} }
-                        ? ' (' . join($_[1] || ', ' => @{ $_[0]->{tags} }) . ')'
+                        ? ' (' . join(defined $_[1] ? $_[1] : ', ' => @{ $_[0]->{tags} }) . ')'
                         : '';
                 },
                 v => sub { "\n" },
@@ -168,24 +168,24 @@ has formatter => (
                 },
                 r => sub {
                     @{ $_[0]->{requires} }
-                        ? ' ' . join $_[1] || ', ' => @{ $_[0]->{requires} }
+                        ? ' ' . join defined $_[1] ? $_[1] : ', ' => @{ $_[0]->{requires} }
                         : '';
                 },
                 R => sub {
                     return '' unless @{ $_[0]->{requires} };
                     return __ ('Requires: ') . ' ' . join(
-                        $_[1] || ', ' => @{ $_[0]->{requires} }
+                        defined $_[1] ? $_[1] : ', ' => @{ $_[0]->{requires} }
                     ) . "\n";
                 },
                 x => sub {
                     @{ $_[0]->{conflicts} }
-                        ? ' ' . join $_[1] || ', ' => @{ $_[0]->{conflicts} }
+                        ? ' ' . join defined $_[1] ? $_[1] : ', ' => @{ $_[0]->{conflicts} }
                         : '';
                 },
                 X => sub {
                     return '' unless @{ $_[0]->{conflicts} };
                     return __('Conflicts:') . ' ' . join(
-                        $_[1] || ', ' => @{ $_[0]->{conflicts} }
+                        defined $_[1] ? $_[1] : ', ' => @{ $_[0]->{conflicts} }
                     ) . "\n";
                 },
                 a => sub {
