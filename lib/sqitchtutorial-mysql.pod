@@ -10,7 +10,7 @@ sqitchtutorial-mysql - A tutorial introduction to Sqitch change management on My
 
 =head1 Description
 
-This tutorial explains how to create a sqitch-enabled MySQL project, use a VCS
+This tutorial explains how to create a sqitch-enabled MySQL 5.7 project, use a VCS
 for deployment planning, and work with other developers to make sure changes
 remain in sync and in the proper order.
 
@@ -85,7 +85,7 @@ as appropriate.
 By default, Sqitch will read F<sqitch.conf> in the current directory for
 settings. But it will also read F<~/.sqitch/sqitch.conf> for user-specific
 settings. Since MySQL's
-L<C<mysql> client|https://dev.mysql.com/doc/refman/5.6/en/mysql.html> is not
+L<C<mysql client>|https://dev.mysql.com/doc/refman/5.7/en/mysql.html> is not
 in the path on my system, let's go ahead an tell it where to find the client
 on our computer (don't bother if you're using the
 L<Docker image|https://hub.docker.com/r/sqitch/sqitch/> because it uses the
@@ -669,14 +669,14 @@ C<checkit()> function again:
   BEGIN;
 
   SELECT sqitch.checkit(COUNT(*), 'Procedure "insert_user" does not exist')
-    FROM mysql.proc
-   WHERE db = database()
-     AND specific_name = 'insert_user';
+    FROM information_schema.routines
+   WHERE routine_schema = database()
+     AND routine_name = 'insert_user';
 
   ROLLBACK;
 
 We simply take advantage of the fact that the new procedure should be listed
-in the C<mysql.proc> table and throw an exception if it does not exist.
+in the C<information_schema.routines> table and throw an exception if it does not exist.
 
 And F<revert/insert_user.sql> should look something like this:
 
@@ -699,7 +699,7 @@ Now for C<change_pass>; F<deploy/change_pass.sql> might look like this:
       nickname VARCHAR(512),
       oldpass  VARCHAR(512),
       newpass  VARCHAR(512)
-  ) RETURNS INTEGER SQL SECURITY DEFINER
+  ) RETURNS INTEGER DETERMINISTIC SQL SECURITY DEFINER
   BEGIN
       UPDATE users
          SET password = md5(newpass)
@@ -719,9 +719,9 @@ Use C<checkit()> in F<verify/change_pass.sql> again:
 
   BEGIN;
   SELECT sqitch.checkit(COUNT(*), 'Procedure "change_pass" does not exist')
-    FROM mysql.proc
-   WHERE db = database()
-     AND specific_name = 'change_pass';
+    FROM information_schema.routines
+   WHERE routine_schema = database()
+     AND routine_name = 'change_pass';
   COMMIT;
 
 And of course, its C<revert> script, F<revert/change_pass.sql>, should look
@@ -742,13 +742,13 @@ Try em out!
 Do we have the functions? Of course we do, they were verified. Still, have a
 look:
 
-  > mysql -u root --execute "SELECT name FROM mysql.proc WHERE db = 'flipr_test'"
-  +-------------+
-  | name        |
-  +-------------+
-  | change_pass |
-  | insert_user |
-  +-------------+
+  > mysql -u root --execute "SELECT routine_name FROM information_schema.routines WHERE routine_schema = 'flipr_test'"
+  +--------------+
+  | routine_name |
+  +--------------+
+  | change_pass  |
+  | insert_user  |
+  +--------------+
 
 And what's the status?
 
@@ -768,7 +768,7 @@ Looks good. Let's make sure revert works:
   Reverting changes to users from flipr_test
     - change_pass .. ok
     - insert_user .. ok
-  > mysql -u root --execute "SELECT name FROM mysql.proc WHERE db = 'flipr_test'"
+  > mysql -u root --execute "SELECT routine_name FROM information_schema.routines WHERE routine_schema = 'flipr_test'"
 
 Note the use of C<@HEAD^^> to specify that the revert be to two changes prior
 the last deployed change. Looks good. Let's do the commit and re-deploy dance:
@@ -1002,7 +1002,7 @@ and commit them. The C<insert_flip> deploy script might look something like:
   CREATE FUNCTION insert_flip(
       nickname VARCHAR(512),
       body     VARCHAR(180)
-  ) RETURNS BIGINT SQL SECURITY DEFINER
+  ) RETURNS BIGINT DETERMINISTIC SQL SECURITY DEFINER
   BEGIN
       INSERT INTO flips (nickname, body)
       VALUES (nickname, body);
@@ -1028,7 +1028,7 @@ And the C<delete_flip> deploy script might look something like:
 
   CREATE FUNCTION delete_flip(
       flip_id BIGINT
-  ) RETURNS INTEGER SQL SECURITY DEFINER
+  ) RETURNS INTEGER DETERMINISTIC SQL SECURITY DEFINER
   BEGIN
       DELETE FROM flips WHERE id = flip_id;
       RETURN ROW_COUNT();
@@ -1048,9 +1048,9 @@ The C<verify> scripts are:
   BEGIN;
 
   SELECT sqitch.checkit(COUNT(*), 'Function "insert_flip" does not exist')
-    FROM mysql.proc
-   WHERE db = database()
-     AND specific_name = 'insert_flip';
+    FROM information_schema.routines
+   WHERE routine_schema = database()
+     AND routine_name = 'insert_flip';
 
   ROLLBACK;
 
@@ -1061,9 +1061,9 @@ And:
   BEGIN;
 
   SELECT sqitch.checkit(COUNT(*), 'Function "delete_flip" does not exist')
-    FROM mysql.proc
-   WHERE db = database()
-     AND specific_name = 'delete_flip';
+    FROM information_schema.routines
+   WHERE routine_schema = database()
+     AND routine_name = 'delete_flip';
 
   ROLLBACK;
 
@@ -1398,7 +1398,7 @@ a great idea. So we need to modify the C<insert_user()> and C<change_pass()>
 functions to fix that. How?
 
 We can use MySQL's
-L<C<ENCRYPT()>|https://dev.mysql.com/doc/refman/5.5/en/encryption-functions.html#function_encrypt>
+L<C<ENCRYPT()>|https://dev.mysql.com/doc/refman/5.7/en/encryption-functions.html#function_encrypt>
 function to encrypt passwords with a salt, so that they're all unique. But how
 to deploy the changes to C<insert_user()> and C<change_pass()>?
 
@@ -1559,7 +1559,7 @@ And make this change to F<deploy/change_pass.sql>:
        nickname VARCHAR(512),
        oldpass  VARCHAR(512),
   @@ -13,9 +14,9 @@ CREATE FUNCTION change_pass(
-   ) RETURNS INTEGER SQL SECURITY DEFINER
+   ) RETURNS INTEGER DETERMINISTIC SQL SECURITY DEFINER
    BEGIN
        UPDATE users
   -       SET password = md5(newpass)
@@ -1633,7 +1633,7 @@ in the new script files that include tags.
 But what about the verify script? How can we verify that the functions have
 been modified to use C<ENCRYPT()>? I think the simplest thing to do is to
 examine the body of the function as returned by
-L<C<INFORMATION_SCHEMA.ROUTINES>|https://dev.mysql.com/doc/refman/5.6/en/routines-table.html>
+L<C<INFORMATION_SCHEMA.ROUTINES>|https://dev.mysql.com/doc/refman/5.7/en/information-schema-routines-table.html>
 So the C<insert_user> verify script looks like this:
 
   -- Verify flipr:insert_user on mysql
@@ -1641,10 +1641,10 @@ So the C<insert_user> verify script looks like this:
   BEGIN;
 
   SELECT sqitch.checkit(COUNT(*), 'Procedure "insert_user" does not exist or is not up-to-date')
-    FROM mysql.proc
-   WHERE db = database()
-     AND specific_name = 'insert_user'
-     AND body_utf8 LIKE '%ENCRYPT(md5(password), md5(FLOOR(RAND() * 0xFFFFFFFF))%';
+    FROM information_schema.routines
+   WHERE routine_schema = database()
+     AND routine_name = 'insert_user'
+     AND routine_definition LIKE '%ENCRYPT(md5(password), md5(FLOOR(RAND() * 0xFFFFFFFF))%';
 
   ROLLBACK;
 
@@ -1655,10 +1655,10 @@ And the C<change_pass> verify script looks like this:
   BEGIN;
 
   SELECT sqitch.checkit(COUNT(*), 'Procedure "change_pass" does not exist or is not up-to-date')
-    FROM mysql.proc
-   WHERE db = database()
-     AND specific_name = 'change_pass'
-     AND body_utf8 LIKE '%ENCRYPT(md5(oldpass), password)%';
+    FROM information_schema.routines
+   WHERE routine_schema = database()
+     AND routine_name = 'change_pass'
+     AND routine_definition LIKE '%ENCRYPT(md5(oldpass), password)%';
 
   ROLLBACK;
 
