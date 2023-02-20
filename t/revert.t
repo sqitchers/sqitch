@@ -262,18 +262,17 @@ $orig_method = $mock_cmd->original('parse_args');
 
 # Pass the change.
 ok $revert->execute('@alpha'), 'Execute to "@alpha"';
-ok $target->engine->no_prompt, 'Engine should be no_prompt';
 ok !$target->engine->log_only, 'Engine should not be log_only';
 is $target->engine->lock_timeout, App::Sqitch::Engine::default_lock_timeout(),
     'The engine should have the default lock_timeout';
-is_deeply \@args, ['@alpha'],
+is_deeply \@args, ['@alpha', '', undef],
     '"@alpha" should be passed to the engine';
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
 # Pass nothing.
 @args = ();
 ok $revert->execute, 'Execute';
-is_deeply \@args, [undef],
+is_deeply \@args, [undef, '', undef],
     'undef should be passed to the engine';
 is_deeply {@vars}, { },
     'No vars should have been passed through to the engine';
@@ -281,27 +280,24 @@ is_deeply +MockOutput->get_warn, [], 'Should still have no warnings';
 
 # Pass the target.
 ok $revert->execute('db:sqlite:hi'), 'Execute to target';
-ok $target->engine->no_prompt, 'Engine should be no_prompt';
 ok !$target->engine->log_only, 'Engine should not be log_only';
-is_deeply \@args, [undef],
+is_deeply \@args, [undef, '', undef],
     'undef" should be passed to the engine';
 is $target->name, 'db:sqlite:hi', 'Target name should be as passed';
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
 # Pass them both!
 ok $revert->execute('db:sqlite:lol', 'widgets'), 'Execute with change and target';
-ok $target->engine->no_prompt, 'Engine should be no_prompt';
 ok !$target->engine->log_only, 'Engine should not be log_only';
-is_deeply \@args, ['widgets'],
+is_deeply \@args, ['widgets', '', undef],
     '"widgets" should be passed to the engine';
 is $target->name, 'db:sqlite:lol', 'Target name should be as passed';
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
 # And reverse them.
 ok $revert->execute('db:sqlite:lol', 'widgets'), 'Execute with target and change';
-ok $target->engine->no_prompt, 'Engine should be no_prompt';
 ok !$target->engine->log_only, 'Engine should not be log_only';
-is_deeply \@args, ['widgets'],
+is_deeply \@args, ['widgets', '', undef],
     '"widgets" should be passed to the engine';
 is $target->name, 'db:sqlite:lol', 'Target name should be as passed';
 is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
@@ -318,10 +314,9 @@ isa_ok $revert = $CLASS->new(
 
 @args = ();
 ok $revert->execute, 'Execute again';
-ok !$target->engine->no_prompt, 'Engine should not be no_prompt';
 ok $target->engine->log_only, 'Engine should be log_only';
 is $target->engine->lock_timeout, 30, 'The lock timeout should be set to 30';
-is_deeply \@args, ['foo'],
+is_deeply \@args, ['foo', 1, undef],
     '"foo" and 1 should be passed to the engine';
 is_deeply {@vars}, { foo => 'bar', one => 1 },
     'Vars should have been passed through to the engine';
@@ -330,10 +325,9 @@ is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 
 # Try also passing the target and change.
 ok $revert->execute('db:sqlite:lol', '@alpha'), 'Execute with options and args';
-ok !$target->engine->no_prompt, 'Engine should not be no_prompt';
 ok $target->engine->log_only, 'Engine should be log_only';
 is $target->engine->lock_timeout, 30, 'The lock timeout should be set to 30';
-is_deeply \@args, ['foo'],
+is_deeply \@args, ['foo', 1, undef],
     '"foo" and 1 should be passed to the engine';
 is_deeply {@vars}, { foo => 'bar', one => 1 },
     'Vars should have been passed through to the engine';
@@ -378,6 +372,6 @@ $common_ancestor_id = 42;
 @args = ();
 ok $revert->execute, 'Execute again';
 is $target->name, 'db:sqlite:welp', 'Target name should be from option';
-is_deeply \@args, [$common_ancestor_id], 'the common ancestor id should be passed to the engine revert';
+is_deeply \@args, [$common_ancestor_id, 1, undef], 'the common ancestor id should be passed to the engine revert';
 
 done_testing;

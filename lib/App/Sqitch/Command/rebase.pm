@@ -78,15 +78,15 @@ sub execute {
 
     # Now get to work.
     $engine->with_verify( $self->verify );
-    $engine->no_prompt( $self->no_prompt );
-    $engine->prompt_accept( $self->prompt_accept );
     $engine->log_only( $self->log_only );
     $engine->lock_timeout( $self->lock_timeout );
 
     # Revert.
     $engine->set_variables( $self->_collect_revert_vars($target) );
+    die unless defined $self->no_prompt;
+    die unless defined $self->prompt_accept;
     try {
-        $engine->revert( $onto );
+        $engine->revert( $onto, ! ($self->no_prompt), $self->prompt_accept );
     } catch {
         # Rethrow unknown errors or errors with exitval > 1.
         die $_ if ! eval { $_->isa('App::Sqitch::X') }

@@ -140,12 +140,10 @@ sub execute {
     )) if @{ $changes };
 
     # Now get to work.
-    $engine->no_prompt( $self->no_prompt );
-    $engine->prompt_accept( $self->prompt_accept );
     $engine->log_only( $self->log_only );
     $engine->lock_timeout( $self->lock_timeout );
     $engine->set_variables( $self->_collect_vars($target) );
-    $engine->revert( $change );
+    $engine->revert( $change, ! ($self->no_prompt), $self->prompt_accept );
     return $self;
 }
 

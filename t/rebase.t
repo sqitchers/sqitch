@@ -504,10 +504,13 @@ $config->replace(
     'core.top_dir'   => dir(qw(t sql))->stringify,
     'core.plan_file' => file(qw(t sql sqitch.plan))->stringify,
 );
-$rebase = $CLASS->new( sqitch => $sqitch);
 
 ##############################################################################
 # Test execute().
+$rebase = $CLASS->new(
+    sqitch => $sqitch,
+    %{ $CLASS->configure($config, {}) },
+);
 my $mock_cmd = Test::MockModule->new($CLASS);
 my $orig_method;
 $mock_cmd->mock(parse_args => sub {
@@ -522,9 +525,8 @@ is_deeply \@dep_args, [undef, 'all'],
     'undef, and "all" should be passed to the engine deploy';
 is_deeply \@vars, [[], []],
     'No vars should have been passed through to the engine';
-is_deeply \@rev_args, ['@alpha'],
+is_deeply \@rev_args, ['@alpha', 1, 1],
     '"@alpha" should be passed to the engine revert';
-ok !$target->engine->no_prompt, 'Engine should prompt';
 ok !$target->engine->log_only, 'Engine should no be log only';
 is $target->engine->lock_timeout, App::Sqitch::Engine::default_lock_timeout(),
     'The lock timeout should be set to the default';
@@ -535,11 +537,10 @@ is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 ok $rebase->execute('db:sqlite:yow'), 'Execute with target';
 is_deeply \@dep_args, [undef, 'all'],
     'undef, and "all" should be passed to the engine deploy';
-is_deeply \@rev_args, [undef],
+is_deeply \@rev_args, [undef, 1, 1],
     'undef should be passed to the engine revert';
 is_deeply \@vars, [[], []],
     'No vars should have been passed through to the engine';
-ok !$target->engine->no_prompt, 'Engine should prompt';
 ok !$target->engine->log_only, 'Engine should no be log only';
 is $target->engine->lock_timeout, App::Sqitch::Engine::default_lock_timeout(),
     'The lock timeout should be set to the default';
@@ -551,11 +552,10 @@ is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 ok $rebase->execute('db:sqlite:yow', 'widgets'), 'Execute with onto and target';
 is_deeply \@dep_args, [undef, 'all'],
     'undef, and "all" should be passed to the engine deploy';
-is_deeply \@rev_args, ['widgets'],
+is_deeply \@rev_args, ['widgets', 1, 1],
     '"widgets" should be passed to the engine revert';
 is_deeply \@vars, [[], []],
     'No vars should have been passed through to the engine';
-ok !$target->engine->no_prompt, 'Engine should prompt';
 ok !$target->engine->log_only, 'Engine should no be log only';
 is $target->engine->lock_timeout, App::Sqitch::Engine::default_lock_timeout(),
     'The lock timeout should be set to the default';
@@ -568,11 +568,10 @@ ok $rebase->execute('db:sqlite:yow', 'roles', 'widgets'),
     'Execute with three args';
 is_deeply \@dep_args, ['widgets', 'all'],
     '"widgets", and "all" should be passed to the engine deploy';
-is_deeply \@rev_args, ['roles'],
+is_deeply \@rev_args, ['roles', 1, 1],
     '"roles" should be passed to the engine revert';
 is_deeply \@vars, [[], []],
     'No vars should have been passed through to the engine';
-ok !$target->engine->no_prompt, 'Engine should prompt';
 ok !$target->engine->log_only, 'Engine should no be log only';
 is $target->engine->lock_timeout, App::Sqitch::Engine::default_lock_timeout(),
     'The lock timeout should be set to the default';
@@ -584,7 +583,7 @@ is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 ok $rebase->execute, 'Execute';
 is_deeply \@dep_args, [undef, 'all'],
     'undef and "all" should be passed to the engine deploy';
-is_deeply \@rev_args, [undef],
+is_deeply \@rev_args, [undef, 1, 1],
     'undef and = should be passed to the engine revert';
 is_deeply \@vars, [[], []],
     'No vars should have been passed through to the engine';
@@ -595,6 +594,7 @@ $common_ancestor_id = '42';
 isa_ok $rebase = $CLASS->new(
     target           => 'db:sqlite:lolwut',
     no_prompt        => 1,
+    prompt_accept    => 1,
     log_only         => 1,
     lock_timeout     => 30,
     verify           => 1,
@@ -605,16 +605,16 @@ isa_ok $rebase = $CLASS->new(
 @vars = @dep_args = @rev_args = ();
 ok $rebase->execute, 'Execute again';
 is $target->name, 'db:sqlite:lolwut', 'Target name should be from option';
-ok $target->engine->no_prompt, 'Engine should be no_prompt';
 ok $target->engine->log_only, 'Engine should be log_only';
 is $target->engine->lock_timeout, 30, 'The lock timeout should be set to 30';
 ok $target->engine->with_verify, 'Engine should verify';
-is_deeply \@rev_args, [$common_ancestor_id], 'the common ancestor id should be passed to the engine revert';
+is_deeply \@rev_args, [$common_ancestor_id, '', 1], 'the common ancestor id should be passed to the engine revert';
 
 # Mix it up with options.
 isa_ok $rebase = $CLASS->new(
     target           => 'db:sqlite:lolwut',
     no_prompt        => 1,
+    prompt_accept    => 1,
     log_only         => 1,
     lock_timeout     => 30,
     verify           => 1,
@@ -629,13 +629,12 @@ isa_ok $rebase = $CLASS->new(
 @vars = @dep_args = @rev_args = ();
 ok $rebase->execute, 'Execute again';
 is $target->name, 'db:sqlite:lolwut', 'Target name should be from option';
-ok $target->engine->no_prompt, 'Engine should be no_prompt';
 ok $target->engine->log_only, 'Engine should be log_only';
 is $target->engine->lock_timeout, 30, 'The lock timeout should be set to 30';
 ok $target->engine->with_verify, 'Engine should verify';
 is_deeply \@dep_args, ['bar', 'tag'],
     '"bar", "tag", and 1 should be passed to the engine deploy';
-is_deeply \@rev_args, ['foo'], '"foo" and 1 should be passed to the engine revert';
+is_deeply \@rev_args, ['foo', '', 1], '"foo" should be passed to the engine revert';
 is @vars, 2, 'Variables should have been passed to the engine twice';
 is_deeply { @{ $vars[0] } }, { hey => 'there' },
     'The revert vars should have been passed first';
@@ -648,13 +647,12 @@ is_deeply +MockOutput->get_warn, [], 'Should have no warnings';
 ok $rebase->execute('db:sqlite:yow', 'roles', 'widgets'),
     'Execute with three args';
 is $target->name, 'db:sqlite:lolwut', 'Target name should be from option';
-ok $target->engine->no_prompt, 'Engine should be no_prompt';
 ok $target->engine->log_only, 'Engine should be log_only';
 is $target->engine->lock_timeout, 30, 'The lock timeout should be set to 30';
 ok $target->engine->with_verify, 'Engine should verify';
 is_deeply \@dep_args, ['bar', 'tag'],
     '"bar", "tag", and 1 should be passed to the engine deploy';
-is_deeply \@rev_args, ['foo'], '"foo" and 1 should be passed to the engine revert';
+is_deeply \@rev_args, ['foo', '', 1], '"foo" should be passed to the engine revert';
 is @vars, 2, 'Variables should have been passed to the engine twice';
 is_deeply { @{ $vars[0] } }, { hey => 'there' },
     'The revert vars should have been passed first';
