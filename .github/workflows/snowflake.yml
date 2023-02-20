@@ -11,7 +11,7 @@ jobs:
     name: ❄️ Snowflake
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Setup Clients
         run: .github/ubuntu/snowflake.sh
       - name: Setup Perl
@@ -19,7 +19,7 @@ jobs:
         uses: shogo82148/actions-setup-perl@v1
         with: { perl-version: latest }
       - name: Cache CPAN Modules
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: local
           key: perl-${{ steps.perl.outputs.perl-hash }}
