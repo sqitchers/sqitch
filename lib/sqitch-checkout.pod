@@ -280,6 +280,17 @@ executing the revert should be "yes" or "no". The C<checkout.prompt_accept>
 variable takes precedence over C<revert.prompt_accept>, and both default to
 true, meaning to accept the revert.
 
+=item C<[checkout.strict]>
+
+=item C<[revert.strict]>
+
+A boolean value which, when set to true, completely disables the
+checkout command. The C<checkout.strict> variable takes precedence over
+c<revert.strict>. By default the checkout command is not disabled.
+
+When the checkout command is disabled, use the C<deploy> and C<revert>
+commands directly.
+
 =back
 
 =head1 Sqitch

@@ -8,6 +8,8 @@ use Moo::Role;
 use App::Sqitch::Types qw(Str Int Bool HashRef);
 use Type::Utils qw(enum);
 use namespace::autoclean;
+use Locale::TextDomain qw(App-Sqitch);
+use App::Sqitch::X qw(hurl);
 
 requires 'sqitch';
 requires 'command';
@@ -51,6 +53,22 @@ has no_prompt => (
 has prompt_accept => (
     is  => 'ro',
     isa => Bool
+);
+
+has strict => (
+    is       => 'ro',
+    lazy     => 1,
+    default  => sub {
+        my $self = shift;
+        my $cmd = $self->command;
+        return ($self->sqitch->config->get(
+                    key => "$cmd.strict",
+                    as  => 'bool',
+                ) // $self->sqitch->config->get(
+                    key => 'revert.strict',
+                    as  => 'bool',
+                ) // 0);
+    }
 );
 
 has mode => (
@@ -174,6 +192,22 @@ around configure => sub {
     return $params;
 };
 
+sub BUILD {
+    my ($self, $args) = @_;
+
+    if ($self->strict) {
+        hurl {
+            ident   => 'lax_command',
+            exitval => 1,
+            message => __x(
+                '"{command}" cannot be used when strict mode is enabled.\n'.
+                'Consider using revert and deploy commands directly.',
+                command => $self->command,
+                ),
+        };
+    }
+};
+
 1;
 
 __END__
@@ -227,6 +261,11 @@ the revert.
 
 Boolean value to indicate whether or not the default value for the prompt,
 should the user hit C<return>, is to accept the prompt or deny it.
+
+=head3 C<strict>
+
+Boolean value to indicate whether or not strict mode is enabled; if
+so, use of these commands is prohibited.
 
 =head3 C<target>
 

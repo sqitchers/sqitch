@@ -43,6 +43,16 @@ has prompt_accept => (
     isa => Bool
 );
 
+has strict => (
+    is       => 'ro',
+    lazy     => 1,
+    default  => sub {
+        my $self = shift;
+        return ($self->sqitch->config->get( key => 'revert.strict' )
+                // 0);
+    }
+);
+
 has log_only => (
     is       => 'ro',
     isa      => Bool,
@@ -134,10 +144,29 @@ sub execute {
     my $change = $self->modified
         ? $engine->planned_deployed_common_ancestor_id
         : $self->to_change // shift @{ $changes };
-    $self->warn(__x(
-        'Too many changes specified; reverting to "{change}"',
-        change => $change,
-    )) if @{ $changes };
+
+    if (!defined $change && $self->strict) {
+        hurl {
+            ident   => 'revert:strict',
+            message => __ 'Must specify a target revision in strict mode',
+            exitval => 1,
+        };
+    }
+
+    if (@{ $changes }) {
+        if ($self->strict) {
+            hurl {
+                ident   => 'revert:strict:excess',
+                message => __ 'Too many changes specified',
+                exitval => 1,
+            };
+        }
+
+        $self->warn(__x(
+            'Too many changes specified; reverting to "{change}"',
+            change => $change,
+        ));
+    }
 
     # Now get to work.
     $engine->log_only( $self->log_only );
@@ -202,6 +231,11 @@ the revert.
 
 Boolean value to indicate whether or not the default value for the prompt,
 should the user hit C<return>, is to accept the prompt or deny it.
+
+=head3 C<strict>
+
+Boolean indicating whether or not specification of a target change is
+mandatory.
 
 =head3 C<target>
 
