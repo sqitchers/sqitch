@@ -714,4 +714,41 @@ for my $spec (
         "Should rethrow $spec->[0] exception";
 }
 
+# Should die if running in strict mode.
+ok $config = TestConfig->new(
+    'revert.strict'    => 1
+), 'Create strict config';
+ok $sqitch = App::Sqitch->new(config => $config),
+    'Load a sqitch sqitch object';
+throws_ok {
+    $CLASS->new(
+        sqitch           => $sqitch,
+        ); }
+    'App::Sqitch::X',
+    'Cannot initialize command in strict mode.';
+
+ok $config = TestConfig->new(
+    'rebase.strict'    => 1
+), 'Create strict config';
+ok $sqitch = App::Sqitch->new(config => $config),
+    'Load a sqitch sqitch object';
+throws_ok {
+    $CLASS->new(
+        sqitch           => $sqitch,
+        ); }
+    'App::Sqitch::X',
+    'Cannot initialize command in strict mode.';
+
+# rebase.strict overrides revert.strict
+ok $config = TestConfig->new(
+    'revert.strict'    => 1,
+    'rebase.strict'    => 0
+), 'Create strict config';
+ok $sqitch = App::Sqitch->new(config => $config),
+    'Load a sqitch sqitch object';
+ok $CLASS->new(
+    sqitch           => $sqitch,
+    ),
+   'Okay to initialize because rebase is not in strict mode';
+
 done_testing;

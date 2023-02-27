@@ -207,6 +207,12 @@ are merged in the following priority order:
 
 =back
 
+=item C<revert.strict>
+
+When this setting is enabled, it is mandatory to specify a change to
+which the database should be reverted and the default behavior to
+revert all changes is disabled. This setting is disabled by default.
+
 =item C<[revert.no_prompt]>
 
 A boolean value indicating whether or not to disable the prompt before

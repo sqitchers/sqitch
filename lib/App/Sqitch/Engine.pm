@@ -1786,6 +1786,9 @@ B<may be left in a corrupted state>. Write your revert scripts carefully!
 Reverts the L<App::Sqitch::Plan::Tag> from the database, including all of its
 associated changes.
 
+Note that this method does not obey the C<${cmd}.strict> configuration
+option; that should be checked by callers.
+
 =head3 C<verify>
 
   $engine->verify;

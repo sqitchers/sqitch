@@ -317,6 +317,17 @@ executing the revert should be "yes" or "no". The C<rebase.prompt_accept>
 variable takes precedence over C<revert.prompt_accept>, and both default to
 true, meaning to accept the revert by default.
 
+=item C<[rebase.strict]>
+
+=item C<[revert.strict]>
+
+A boolean value which, when set to true, completely disables the
+rebase command. The C<rebase.strict> variable takes precedence over
+c<revert.strict>. By default the rebase command is not disabled.
+
+When the rebase command is disabled, use the C<deploy> and C<revert>
+commands directly.
+
 =back
 
 =head1 Sqitch

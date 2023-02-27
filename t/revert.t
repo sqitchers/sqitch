@@ -374,4 +374,21 @@ ok $revert->execute, 'Execute again';
 is $target->name, 'db:sqlite:welp', 'Target name should be from option';
 is_deeply \@args, [$common_ancestor_id, 1, undef], 'the common ancestor id should be passed to the engine revert';
 
+# Test strict mode
+$config = TestConfig->new(
+    'core.engine'    => 'sqlite',
+    'core.top_dir'   => dir(qw(t sql))->stringify,
+    'core.plan_file' => file(qw(t sql sqitch.plan))->stringify,
+    'revert.strict'    => 1
+);
+$sqitch = App::Sqitch->new(config => $config);
+isa_ok $revert = $CLASS->new(
+    sqitch    => $sqitch,
+    target    => 'db:sqlite:welp',
+    no_prompt => 1,
+), $CLASS, 'new revert with target';
+throws_ok { $revert->execute() }
+    'App::Sqitch::X',
+    'In strict mode, cannot revert without a specified change.';
+
 done_testing;

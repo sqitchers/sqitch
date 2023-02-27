@@ -682,4 +682,41 @@ for my $spec (
         "Should rethrow $spec->[0] exception";
 }
 
+
+# Should die if running in strict mode.
+ok $config = TestConfig->new(
+    'revert.strict'    => 1
+), 'Create strict config';
+ok $sqitch = App::Sqitch->new(config => $config),
+    'Load a sqitch sqitch object';
+throws_ok {
+    $CLASS->new(
+        sqitch           => $sqitch,
+        ); }
+    'App::Sqitch::X',
+    'Cannot initialize command in strict mode.';
+
+ok $config = TestConfig->new(
+    'checkout.strict'    => 1
+), 'Create strict config';
+ok $sqitch = App::Sqitch->new(config => $config),
+    'Load a sqitch sqitch object';
+throws_ok {
+    $CLASS->new(
+        sqitch           => $sqitch,
+        ); }
+    'App::Sqitch::X',
+    'Cannot initialize command in strict mode.';
+
+ok $config = TestConfig->new(
+    'revert.strict'    => 1,
+    'checkout.strict'  => 0
+), 'Create strict config';
+ok $sqitch = App::Sqitch->new(config => $config),
+    'Load a sqitch sqitch object';
+ok $CLASS->new(
+    sqitch           => $sqitch,
+    ),
+   'Okay to initialize because checkout is not in strict mode';
+
 done_testing;
