@@ -407,6 +407,17 @@ sub _add {
         file  => $file,
         error => $!
     );
+    
+    # Warn if the file name has a double extension
+    if ($file =~ m/\.(\w+)\.\w+$/) {
+        my $ext = $1;
+        $self->warning(__x(
+            'Warning: file {file} has a double extension of {ext}',
+            file => $file,
+            ext  => $ext,
+        ));
+    }
+    
     $self->info(__x 'Created {file}', file => $file);
 }
 
