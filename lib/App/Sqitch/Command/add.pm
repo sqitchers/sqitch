@@ -409,10 +409,10 @@ sub _add {
     );
     
     # Warn if the file name has a double extension
-    if ($file =~ m/\.(\w+)\.\w+$/) {
+    if ($file =~ m/\.(\w+)\.\1+$/) {
         my $ext = $1;
-        $self->warning(__x(
-            'Warning: file {file} has a double extension of {ext}',
+        $self->warn(__x(
+            'File {file} has a double extension of {ext}',
             file => $file,
             ext  => $ext,
         ));
