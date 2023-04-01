@@ -414,6 +414,14 @@ EOF
         'Info should show $out created';
     unlink $out;
 
+    # # Test with file name having a double extension
+    $out = file 'test-add', 'duplicate_extension_test.sql.sql';
+    warning_is {
+        $add->_add('duplicate_extension_test.sql', $out, $tmpl, 'sqlite', 'add')
+    } [qr/double extension of sql/], 'Should get warning for file name with double extension';
+
+    unlink $out;
+    
     # Try with requires and conflicts.
     ok $add =  $CLASS->new(
         sqitch    => $sqitch,
