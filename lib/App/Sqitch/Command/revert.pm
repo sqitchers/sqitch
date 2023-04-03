@@ -48,8 +48,7 @@ has strict => (
     lazy     => 1,
     default  => sub {
         my $self = shift;
-        return ($self->sqitch->config->get( key => 'revert.strict' )
-                // 0);
+        return $self->sqitch->config->get( key => 'revert.strict' ) // 0;
     }
 );
 
@@ -145,22 +144,20 @@ sub execute {
         ? $engine->planned_deployed_common_ancestor_id
         : $self->to_change // shift @{ $changes };
 
-    if (!defined $change && $self->strict) {
-        hurl {
-            ident   => 'revert:strict',
-            message => __ 'Must specify a target revision in strict mode',
-            exitval => 1,
-        };
-    }
+    # Require a change to revert to in strict mode.
+    hurl {
+        ident   => 'revert:strict',
+        message => __ 'Must specify a target revision in strict mode',
+        exitval => 1,
+    } if !defined $change && $self->strict;
 
     if (@{ $changes }) {
-        if ($self->strict) {
-            hurl {
-                ident   => 'revert:strict:excess',
-                message => __ 'Too many changes specified',
-                exitval => 1,
-            };
-        }
+        # Only one change allowed currently; fatal in strict mode.
+        hurl {
+            ident   => 'revert:strict',
+            message => __ 'Too many changes specified',
+            exitval => 2,
+        } if $self->strict;
 
         $self->warn(__x(
             'Too many changes specified; reverting to "{change}"',
@@ -234,8 +231,7 @@ should the user hit C<return>, is to accept the prompt or deny it.
 
 =head3 C<strict>
 
-Boolean indicating whether or not specification of a target change is
-mandatory.
+Boolean to indicate whether or not a change to revert to is required.
 
 =head3 C<target>
 

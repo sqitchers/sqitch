@@ -295,6 +295,26 @@ CONFIG: {
         _params       => [],
         _cx           => [],
     }, 'Should have no_prompt true with -y';
+
+    # Should die in strict mode.
+    for my $cfg (
+        ['revert.strict', 1],
+        ['rebase.strict', 1],
+    ) {
+        throws_ok {
+            $CLASS->configure(TestConfig->new(@{$ cfg}))
+        } 'App::Sqitch::X', "$cfg->[0] should die";
+        is $@->ident, 'rebase', 'Strict err ident should be "rebase"';
+        is $@->message, __x(
+            '"{command}" cannot be used in strict mode.\n'.
+            'Use explicity revert and deploy commands instead.',
+            command => 'rebase',
+        ), 'Should have corect strict error message'
+    }
+
+    lives_ok { $CLASS->configure(
+        TestConfig->new('revert.strict', 1, 'rebase.strict', 0)
+    ) } 'App::Sqitch::X';
 }
 
 ##############################################################################
@@ -670,23 +690,23 @@ is_deeply +MockOutput->get_warn, [[__x(
 # Make sure we get an exception for unknown args.
 throws_ok { $rebase->execute(qw(greg)) } 'App::Sqitch::X',
     'Should get an exception for unknown arg';
-is $@->ident, 'rebase', 'Unknow arg ident should be "rebase"';
+is $@->ident, 'rebase', 'Unknown arg ident should be "rebase"';
 is $@->message, __nx(
     'Unknown argument "{arg}"',
     'Unknown arguments: {arg}',
     1,
     arg => 'greg',
-), 'Should get an exeption for two unknown arg';
+), 'Should get an exception for two unknown arg';
 
 throws_ok { $rebase->execute(qw(greg jon)) } 'App::Sqitch::X',
     'Should get an exception for unknown args';
-is $@->ident, 'rebase', 'Unknow args ident should be "rebase"';
+is $@->ident, 'rebase', 'Unknown args ident should be "rebase"';
 is $@->message, __nx(
     'Unknown argument "{arg}"',
     'Unknown arguments: {arg}',
     2,
     arg => 'greg, jon',
-), 'Should get an exeption for two unknown args';
+), 'Should get an exception for two unknown args';
 
 # If nothing is deployed, or we are already at the revert target, the revert
 # should be skipped.
@@ -713,42 +733,5 @@ for my $spec (
     throws_ok { $rebase->execute } ref $spec->[1],
         "Should rethrow $spec->[0] exception";
 }
-
-# Should die if running in strict mode.
-ok $config = TestConfig->new(
-    'revert.strict'    => 1
-), 'Create strict config';
-ok $sqitch = App::Sqitch->new(config => $config),
-    'Load a sqitch sqitch object';
-throws_ok {
-    $CLASS->new(
-        sqitch           => $sqitch,
-        ); }
-    'App::Sqitch::X',
-    'Cannot initialize command in strict mode.';
-
-ok $config = TestConfig->new(
-    'rebase.strict'    => 1
-), 'Create strict config';
-ok $sqitch = App::Sqitch->new(config => $config),
-    'Load a sqitch sqitch object';
-throws_ok {
-    $CLASS->new(
-        sqitch           => $sqitch,
-        ); }
-    'App::Sqitch::X',
-    'Cannot initialize command in strict mode.';
-
-# rebase.strict overrides revert.strict
-ok $config = TestConfig->new(
-    'revert.strict'    => 1,
-    'rebase.strict'    => 0
-), 'Create strict config';
-ok $sqitch = App::Sqitch->new(config => $config),
-    'Load a sqitch sqitch object';
-ok $CLASS->new(
-    sqitch           => $sqitch,
-    ),
-   'Okay to initialize because rebase is not in strict mode';
 
 done_testing;

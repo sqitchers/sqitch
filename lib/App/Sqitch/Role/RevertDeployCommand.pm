@@ -55,22 +55,6 @@ has prompt_accept => (
     isa => Bool
 );
 
-has strict => (
-    is       => 'ro',
-    lazy     => 1,
-    default  => sub {
-        my $self = shift;
-        my $cmd = $self->command;
-        return ($self->sqitch->config->get(
-                    key => "$cmd.strict",
-                    as  => 'bool',
-                ) // $self->sqitch->config->get(
-                    key => 'revert.strict',
-                    as  => 'bool',
-                ) // 0);
-    }
-);
-
 has mode => (
     is  => 'ro',
     isa => enum([qw(
@@ -137,6 +121,23 @@ around configure => sub {
     my ( $orig, $class, $config, $opt ) = @_;
     my $cmd = $class->command;
 
+    # Command disabled in strict mode.
+    hurl {
+        ident   => $cmd,
+        exitval => 2,
+        message => __x(
+            '"{command}" cannot be used in strict mode.\n'.
+            'Use explicity revert and deploy commands instead.',
+            command => $cmd,
+        ),
+    } if $config->get(
+        key => "$cmd.strict",
+        as  => 'bool',
+    ) // $config->get(
+        key => 'revert.strict',
+        as  => 'bool',
+    );
+
     my $params = $class->$orig($config, $opt);
     for my $key (qw(log_only target lock_timeout)) {
         $params->{$key} = $opt->{$key} if exists $opt->{$key};
@@ -190,22 +191,6 @@ around configure => sub {
     ) // 1;
 
     return $params;
-};
-
-sub BUILD {
-    my ($self, $args) = @_;
-
-    if ($self->strict) {
-        hurl {
-            ident   => 'lax_command',
-            exitval => 1,
-            message => __x(
-                '"{command}" cannot be used when strict mode is enabled.\n'.
-                'Consider using revert and deploy commands directly.',
-                command => $self->command,
-                ),
-        };
-    }
 };
 
 1;

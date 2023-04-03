@@ -209,9 +209,8 @@ are merged in the following priority order:
 
 =item C<revert.strict>
 
-When this setting is enabled, it is mandatory to specify a change to
-which the database should be reverted and the default behavior to
-revert all changes is disabled. This setting is disabled by default.
+A boolean value indicating whether or not the change to revert to must
+be specified.
 
 =item C<[revert.no_prompt]>
 

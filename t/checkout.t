@@ -282,6 +282,26 @@ CONFIG: {
         _params       => [],
         _cx           => [],
     }, 'Should have no_prompt true with -y';
+
+    # Should die in strict mode.
+    for my $cfg (
+        ['revert.strict', 1],
+        ['checkout.strict', 1],
+    ) {
+        throws_ok {
+            $CLASS->configure(TestConfig->new(@{$ cfg}))
+        } 'App::Sqitch::X', "$cfg->[0] should die";
+        is $@->ident, 'checkout', 'Strict err ident should be "checkout"';
+        is $@->message, __x(
+            '"{command}" cannot be used in strict mode.\n'.
+            'Use explicity revert and deploy commands instead.',
+            command => 'checkout',
+        ), 'Should have corect strict error message'
+    }
+
+    lives_ok { $CLASS->configure(
+        TestConfig->new('revert.strict', 1, 'checkout.strict', 0)
+    )  } 'App::Sqitch::X';
 }
 
 ##############################################################################
@@ -653,23 +673,23 @@ is_deeply +MockOutput->get_warn, [[__x(
 # Make sure we get an exception for unknown args.
 throws_ok { $checkout->execute(qw(main greg)) } 'App::Sqitch::X',
     'Should get an exception for unknown arg';
-is $@->ident, 'checkout', 'Unknow arg ident should be "checkout"';
+is $@->ident, 'checkout', 'Unknown arg ident should be "checkout"';
 is $@->message, __nx(
     'Unknown argument "{arg}"',
     'Unknown arguments: {arg}',
     1,
     arg => 'greg',
-), 'Should get an exeption for two unknown arg';
+), 'Should get an exception for two unknown arg';
 
 throws_ok { $checkout->execute(qw(main greg widgets)) } 'App::Sqitch::X',
     'Should get an exception for unknown args';
-is $@->ident, 'checkout', 'Unknow args ident should be "checkout"';
+is $@->ident, 'checkout', 'Unknown args ident should be "checkout"';
 is $@->message, __nx(
     'Unknown argument "{arg}"',
     'Unknown arguments: {arg}',
     2,
     arg => 'greg, widgets',
-), 'Should get an exeption for two unknown args';
+), 'Should get an exception for two unknown args';
 
 # Should die for fatal, unknown, or confirmation errors.
 for my $spec (
@@ -681,42 +701,5 @@ for my $spec (
     throws_ok { $checkout->execute('main') } ref $spec->[1],
         "Should rethrow $spec->[0] exception";
 }
-
-
-# Should die if running in strict mode.
-ok $config = TestConfig->new(
-    'revert.strict'    => 1
-), 'Create strict config';
-ok $sqitch = App::Sqitch->new(config => $config),
-    'Load a sqitch sqitch object';
-throws_ok {
-    $CLASS->new(
-        sqitch           => $sqitch,
-        ); }
-    'App::Sqitch::X',
-    'Cannot initialize command in strict mode.';
-
-ok $config = TestConfig->new(
-    'checkout.strict'    => 1
-), 'Create strict config';
-ok $sqitch = App::Sqitch->new(config => $config),
-    'Load a sqitch sqitch object';
-throws_ok {
-    $CLASS->new(
-        sqitch           => $sqitch,
-        ); }
-    'App::Sqitch::X',
-    'Cannot initialize command in strict mode.';
-
-ok $config = TestConfig->new(
-    'revert.strict'    => 1,
-    'checkout.strict'  => 0
-), 'Create strict config';
-ok $sqitch = App::Sqitch->new(config => $config),
-    'Load a sqitch sqitch object';
-ok $CLASS->new(
-    sqitch           => $sqitch,
-    ),
-   'Okay to initialize because checkout is not in strict mode';
 
 done_testing;

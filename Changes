@@ -19,6 +19,13 @@ Revision history for Perl extension App::Sqitch
        Thanks to @vectro for the PR (#704).
      - Added a warning for a double extension on the file names created
        by the `add` command. Thanks to @blairjordan for the PR (#724)!
+     - Added the `revert.strict` boolean configuration variable which, when
+       set to true, requires that a change to revert to be specified. It also
+       disables the `rebase` and `checkout` commands, though the
+       `rebase.strict` and `checkout.strict` variables, respectively, may
+       override it. Use this variable to prevent accidental reverts in
+       sensitive environments. Thanks to @vectro for the PR (#719; revised in
+       #735)!
 
 1.3.1  2022-10-01T18:49:30Z
      - Fixed a bug introduced in v1.3.0 where the Postgres engine would

@@ -281,7 +281,7 @@ is_deeply +MockOutput->get_warn, [[__x(
 # Make sure we get an exception for unknown args.
 throws_ok { $check->execute(qw(greg)) } 'App::Sqitch::X',
     'Should get an exception for unknown arg';
-is $@->ident, 'check', 'Unknow arg ident should be "check"';
+is $@->ident, 'check', 'Unknown arg ident should be "check"';
 is $@->message, __nx(
     'Unknown argument "{arg}"',
     'Unknown arguments: {arg}',
@@ -291,7 +291,7 @@ is $@->message, __nx(
 
 throws_ok { $check->execute(qw(greg jon)) } 'App::Sqitch::X',
     'Should get an exception for unknown args';
-is $@->ident, 'check', 'Unknow args ident should be "check"';
+is $@->ident, 'check', 'Unknown args ident should be "check"';
 is $@->message, __nx(
     'Unknown argument "{arg}"',
     'Unknown arguments: {arg}',

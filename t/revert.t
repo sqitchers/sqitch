@@ -343,7 +343,7 @@ is_deeply +MockOutput->get_warn, [[__x(
 # Make sure we get an exception for unknown args.
 throws_ok { $revert->execute(qw(greg)) } 'App::Sqitch::X',
     'Should get an exception for unknown arg';
-is $@->ident, 'revert', 'Unknow arg ident should be "revert"';
+is $@->ident, 'revert', 'Unknown arg ident should be "revert"';
 is $@->message, __nx(
     'Unknown argument "{arg}"',
     'Unknown arguments: {arg}',
@@ -353,7 +353,7 @@ is $@->message, __nx(
 
 throws_ok { $revert->execute(qw(greg jon)) } 'App::Sqitch::X',
     'Should get an exception for unknown args';
-is $@->ident, 'revert', 'Unknow args ident should be "revert"';
+is $@->ident, 'revert', 'Unknown args ident should be "revert"';
 is $@->message, __nx(
     'Unknown argument "{arg}"',
     'Unknown arguments: {arg}',
@@ -387,8 +387,22 @@ isa_ok $revert = $CLASS->new(
     target    => 'db:sqlite:welp',
     no_prompt => 1,
 ), $CLASS, 'new revert with target';
-throws_ok { $revert->execute() }
+throws_ok { $revert->execute }
     'App::Sqitch::X',
-    'In strict mode, cannot revert without a specified change.';
+    'In strict mode, cannot revert without a specified change';
+is $@->ident, 'revert:strict',
+    'No change in strict mode ident should be "revert:strict"';
+is $@->message, __ 'Must specify a target revision in strict mode',
+    'Should have expected message for no changes in strict mode error';
+
+# Too many targets also fatal in strict mode.
+$ENV{FOO}= 1;
+throws_ok { $revert->execute('@alpha', '@beta') }
+    'App::Sqitch::X',
+    'In strict mode, too many targets is fatal';
+is $@->ident, 'revert:strict',
+    'Too many targets ident should be "revert:strict"';
+is $@->message, __ 'Too many changes specified',
+    'Should have expected message for too many targets error';
 
 done_testing;

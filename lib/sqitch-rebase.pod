@@ -321,12 +321,8 @@ true, meaning to accept the revert by default.
 
 =item C<[revert.strict]>
 
-A boolean value which, when set to true, completely disables the
-rebase command. The C<rebase.strict> variable takes precedence over
-c<revert.strict>. By default the rebase command is not disabled.
-
-When the rebase command is disabled, use the C<deploy> and C<revert>
-commands directly.
+A boolean value that, when true, disables the C<revert> command. The
+C<revert.strict> variable takes precedence over C<revert.strict>.
 
 =back
 
