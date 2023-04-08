@@ -413,7 +413,7 @@ EOF
     is_deeply +MockOutput->get_info, [[__x 'Created {file}', file => $out ]],
         'Info should show $out created';
     unlink $out;
-    
+
     # Try with requires and conflicts.
     ok $add =  $CLASS->new(
         sqitch    => $sqitch,
