@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 238;
+use Test::More tests => 240;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Target;
@@ -413,7 +413,7 @@ EOF
     is_deeply +MockOutput->get_info, [[__x 'Created {file}', file => $out ]],
         'Info should show $out created';
     unlink $out;
-
+    
     # Try with requires and conflicts.
     ok $add =  $CLASS->new(
         sqitch    => $sqitch,
@@ -440,6 +440,18 @@ BEGIN;
 COMMIT;
 EOF
     unlink $out;
+
+  # Test with file name having a double extension
+  $out = file 'test-add', 'duplicate_extension_test.sql.sql';
+  $add->_add('duplicate_extension_test.sql', $out, $tmpl, 'sqlite', 'add');
+  is_deeply +MockOutput->get_info, [[__x 'Created {file}', file => $out ]],
+      'Info should show $out created';
+  is_deeply +MockOutput->get_warn, [[__x(
+      'File {file} has a double extension of {ext}',
+      file => $out,
+      ext => 'sql',
+  )]], 'Should have warned about double extension';
+  unlink $out;
 };
 
 # First, test  with Template::Tiny.
