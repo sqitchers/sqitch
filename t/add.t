@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 240;
+use Test::More tests => 242;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Target;
@@ -471,7 +471,7 @@ $test_add->('Template::Tiny');
 shift @INC;
 delete $INC{'Template.pm'};
 SKIP: {
-    skip 'Template Toolkit not installed', 14 unless eval 'use Template; 1';
+    skip 'Template Toolkit not installed', 16 unless eval 'use Template; 1';
     $test_add->('Template Toolkit');
 
     # Template Toolkit should throw an error on template syntax errors.
