@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 769;
+use Test::More tests => 773;
 # use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -14,6 +14,7 @@ use Test::Exception;
 use Test::NoWarnings;
 use Test::MockModule;
 use Test::MockObject::Extends;
+use Test::Warn qw(warning_is);
 use Time::HiRes qw(sleep);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
@@ -1911,6 +1912,19 @@ $engine->plan($plan);
 @deployed_changes = ();
 ok $engine->revert(undef, 1, 1),
     'Should return success for no changes to revert';
+is_deeply +MockOutput->get_info, [
+    [__ 'Nothing to revert (nothing deployed)']
+], 'Should have notified that there is nothing to revert';
+is_deeply $engine->seen, [
+    [lock_destination => []],
+    [deployed_changes => undef],
+], 'It should only have called deployed_changes()';
+is_deeply +MockOutput->get_info, [], 'Nothing should have been output';
+
+# Make sure deprecation warning happens.
+warning_is { $engine->revert }
+    "Engine::revert() requires the `prompt` and `prompt_default` arguments.\n",
+    'Should get warning omitting required arguments';
 is_deeply +MockOutput->get_info, [
     [__ 'Nothing to revert (nothing deployed)']
 ], 'Should have notified that there is nothing to revert';

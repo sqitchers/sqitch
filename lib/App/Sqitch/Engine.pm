@@ -72,9 +72,11 @@ has no_prompt => (
     isa     => Bool,
     trigger => sub {
         # Deprecation notice added Feb 2023
-        warnings::warnif("deprecated",
-                         __("Engine::no_prompt is deprecated and will be removed in a future release\n".
-                            "Use direct arguments to revert() instead"));
+        warnings::warnif(
+            "deprecated",
+            "Engine::no_prompt is deprecated and will be removed in a future release\n"
+            . "Use direct arguments to revert() instead",
+        );
     }
 );
 
@@ -83,9 +85,11 @@ has prompt_accept => (
     isa     => Bool,
     trigger => sub {
         # Deprecation notice added Feb 2023
-        warnings::warnif("deprecated",
-                         __("Engine::prompt_accept is deprecated and will be removed in a future release\n".
-                            "Use direct arguments to revert() instead"));
+        warnings::warnif(
+            "deprecated",
+            "Engine::prompt_accept is deprecated and will be removed in a future release\n"
+            . "Use direct arguments to revert() instead",
+        );
     }
 );
 
@@ -300,15 +304,16 @@ sub revert {
     my ( $self, $to, $prompt, $prompt_default ) = @_;
 
     if (defined $prompt) {
-        hurl revert => __('Missing mandatory parameter $prompt_default') unless defined $prompt_default;
+        hurl revert => __('Missing required parameter $prompt_default')
+            unless defined $prompt_default;
     } else {
-        warnings::warnif("deprecated",
-                         __("This calling style of Engine::revert is deprecated.\n".
-                            "In the future `prompt` and `prompt_accept` parameters will be mandatory"));
+        warnings::warnif(
+            "deprecated",
+            "Engine::revert() requires the `prompt` and `prompt_default` arguments.\n"
+            . 'Omitting them will become fatal in a future release.',
+        );
 
-        my $no_prompt = $self->no_prompt // 0;
-        $prompt = ! $no_prompt;
-
+        $prompt = !($self->no_prompt // 0);
         $prompt_default = $self->prompt_accept // 1;
     }
 
