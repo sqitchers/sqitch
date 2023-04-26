@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 170;
+use Test::More tests => 172;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -98,6 +98,9 @@ for my $spec (
     ['%n', { change => 'bar' }, 'bar'],
     ['%o', { project => 'foo' }, 'foo'],
     ['%o', { project => 'bar' }, 'bar'],
+
+    ['%F', { deploy_file => 'deploy/change_file.sql' }, 'deploy/change_file.sql'],
+    ['%F', { deploy_file => 'deploy/change_file_with_tag@tag.sql' }, 'deploy/change_file_with_tag@tag.sql'],
 
     ['%c', { committer_name => 'larry', committer_email => 'larry@example.com'  }, 'larry <larry@example.com>'],
     ['%{n}c', { committer_name => 'damian' }, 'damian'],

@@ -236,6 +236,7 @@ sub execute {
             change_id     => $change->id,
             change        => $change->name,
             note          => $change->note,
+            deploy_file   => $change->deploy_file,
             tags          => [ map { $_->format_name } $change->tags ],
             requires      => [ map { $_->as_string } $change->requires ],
             conflicts     => [ map { $_->as_string } $change->conflicts ],

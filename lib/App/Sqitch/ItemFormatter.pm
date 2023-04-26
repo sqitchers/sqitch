@@ -105,6 +105,7 @@ has formatter => (
                 },
                 n => sub { $_[0]->{change} },
                 o => sub { $_[0]->{project} },
+                F => sub { $_[0]->{deploy_file} },
 
                 c => sub {
                     return "$_[0]->{committer_name} <$_[0]->{committer_email}>"
@@ -439,6 +440,8 @@ The placeholders are:
 =item * C<%n>: Event change name
 
 =item * C<%o>: Event change project name
+
+=item * C<%F>: Deploy file name
 
 =item * C<%($len)h>: abbreviated change of length C<$len>
 
