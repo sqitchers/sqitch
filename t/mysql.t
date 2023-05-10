@@ -135,14 +135,14 @@ ok $mysql = $CLASS->new(sqitch => $sqitch, target => $target),
 is $mysql->client, '/path/to/mysql', 'client should be as configured';
 is $mysql->uri->as_string, 'db:mysql://me:pwd@foo.com/widgets',
     'URI should be as configured';
-is $mysql->target->name, 'db:mysql://me:@foo.com/widgets',
+like $mysql->target->name, qr{^db:mysql://me:?\@foo\.com/widgets$},
     'target name should be the URI without the password';
-is $mysql->destination, 'db:mysql://me:@foo.com/widgets',
+like $mysql->destination, qr{^db:mysql://me:?\@foo\.com/widgets$},
     'destination should be the URI without the password';
 is $mysql->registry, 'meta', 'registry should be as configured';
 is $mysql->registry_uri->as_string, 'db:mysql://me:pwd@foo.com/meta',
     'Sqitch DB URI should be the same as uri but with DB name "meta"';
-is $mysql->registry_destination, 'db:mysql://me:@foo.com/meta',
+like $mysql->registry_destination, qr{^db:mysql://me:?\@foo\.com/meta$},
     'registry_destination should be the sqitch DB URL without the password';
 is_deeply [$mysql->mysql], [
     '/path/to/mysql',

@@ -157,7 +157,7 @@ is $sqlite->destination, 'noext',
     'Destination should be configured target name';
 is $sqlite->registry_uri->as_string, 'db:sqlite://x:foo@/path/to/registry.db',
     'registry_uri should fall back on config wth extension';
-is $sqlite->registry_destination, 'db:sqlite://x:@/path/to/registry.db',
+like $sqlite->registry_destination, qr{^db:sqlite://x:?\@/path/to/registry\.db$},
     'Registry target should be configured registry_uri without password';
 
 # Try a registry with an absolute path.

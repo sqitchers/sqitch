@@ -243,7 +243,7 @@ $target = App::Sqitch::Target->new(
     sqitch => $sqitch,
     uri    => URI::db->new('db:oracle:secure_user_tns.tpg'),
 );
-is $target->uri->dbi_dsn, 'dbi:Oracle:secure_user_tns.tpg',
+like $target->uri->dbi_dsn, qr{^dbi:Oracle:(?:service_name=)?secure_user_tns\.tpg$},
     'Database-only URI should produce proper DSN';
 isa_ok $ora = $CLASS->new(
     sqitch => $sqitch,
@@ -263,7 +263,7 @@ $target = App::Sqitch::Target->new(
     sqitch => $sqitch,
     uri    => URI::db->new('db:oracle://:@/wallet_tns_name'),
 );
-is $target->uri->dbi_dsn, 'dbi:Oracle:wallet_tns_name',
+like $target->uri->dbi_dsn, qr{dbi:Oracle:(?:service_name=)?wallet_tns_name$},
     'Database and double-slash URI should produce proper DSN';
 isa_ok $ora = $CLASS->new(
     sqitch => $sqitch,

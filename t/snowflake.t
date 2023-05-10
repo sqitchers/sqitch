@@ -322,8 +322,8 @@ is $snow->registry, 'meta', 'registry should be as configured';
 is $snow->uri->as_string,
     'db:snowflake://fred:hi@foo.snowflakecomputing.com/try?warehouse=foo;role=yup',
     'URI should be as configured with full domain name';
-is $snow->destination,
-    'db:snowflake://fred:@foo.snowflakecomputing.com/try?warehouse=foo;role=yup',
+like $snow->destination,
+    qr{^db:snowflake://fred:?\@foo\.snowflakecomputing\.com/try\?warehouse=foo;role=yup$},
     'Destination should omit password';
 
 is $snow->client, '/path/to/snowsql', 'client should be as configured';
