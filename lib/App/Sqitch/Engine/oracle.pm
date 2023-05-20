@@ -75,7 +75,7 @@ has tmpdir => (
 sub key    { 'oracle' }
 sub name   { 'Oracle' }
 sub driver { 'DBD::Oracle 1.23' }
-sub default_registry { '' }
+sub default_registry { $_[0]->username || '' }
 
 sub default_client {
     file( ($ENV{ORACLE_HOME} || ()), 'sqlplus' )->stringify
@@ -265,7 +265,7 @@ sub initialized {
           FROM all_tables
          WHERE owner = UPPER(?)
            AND table_name = 'CHANGES'
-    }, undef, $self->registry || $self->username)->[0];
+    }, undef, $self->registry)->[0];
 }
 
 sub _log_event {
