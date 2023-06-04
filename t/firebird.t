@@ -369,7 +369,7 @@ DBH: {
         'Should get undef from change_id_for when no useful params';
 }
 
-# Make sure defaul_client croaks when it finds no client.
+# Make sure default_client croaks when it finds no client.
 FSPEC: {
     # Give it an invalid fbsql file to find.
     my $tmpdir = tempdir(CLEANUP => 1);

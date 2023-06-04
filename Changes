@@ -32,6 +32,12 @@ Revision history for Perl extension App::Sqitch
        URI::Oracle introduced by libwww-perl/URI-db#23.
      - Added a format option `%F` to sqitch plan that prints the path of the
        file used to deploy each migration in the plan.
+     - Changed the default location for the Oracle `sqlplus` client when the
+       `ORACLE_HOME` environment variable is set. It now returns either
+       `$ORACLE_HOME/bin/sqlplus` or `$ORACLE_HOME/sqlplus` if it exists
+       and is executable (and ends in `.exe` on Windows). Otherwise it simply
+       returns `sqlplus` as before, assuming it will be found in the path.
+       Thanks to @vectro for the suggestion (#747).
 
 1.3.1  2022-10-01T18:49:30Z
      - Fixed a bug introduced in v1.3.0 where the Postgres engine would

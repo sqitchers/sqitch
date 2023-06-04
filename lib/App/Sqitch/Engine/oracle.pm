@@ -78,7 +78,14 @@ sub driver { 'DBD::Oracle 1.23' }
 sub default_registry { $_[0]->username || '' }
 
 sub default_client {
-    file( ($ENV{ORACLE_HOME} || ()), 'sqlplus' )->stringify
+    if ($ENV{ORACLE_HOME}) {
+        my $bin = 'sqlplus' . (App::Sqitch::ISWIN || $^O eq 'cygwin' ? '.exe' : '');
+        my $path = file $ENV{ORACLE_HOME}, 'bin', $bin;
+        return $path->stringify if -f $path && -x $path;
+        $path = file $ENV{ORACLE_HOME}, $bin;
+        return $path->stringify if -f $path && -x $path;
+    }
+    return 'sqlplus';
 }
 
 has dbh => (
