@@ -146,11 +146,8 @@ has dbh => (
                     );
                     $dbh->do("ALTER SESSION SET TIME_ZONE='UTC'");
                     if (my $schema = $self->registry) {
-                        try {
-                            $dbh->do("OPEN SCHEMA $schema");
-                            # https://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
-                            $dbh->set_err(undef, undef) if $dbh->err;
-                        };
+                        $dbh->do("OPEN SCHEMA $schema")
+                            or $self->_handle_no_registry($dbh);
                     }
                     return;
                 },
@@ -198,7 +195,7 @@ sub _multi_values {
     return join "\nUNION ALL ", ("SELECT $expr FROM dual") x $count;
 }
 
-sub initialized {
+sub _initialized {
     my $self = shift;
     return $self->dbh->selectcol_arrayref(q{
         SELECT EXISTS(
@@ -320,7 +317,7 @@ sub _registry_variable {
     return "DEFINE registry=$schema;";
 }
 
-sub initialize {
+sub _initialize {
     my $self   = shift;
     my $schema = $self->registry;
     hurl engine => __ 'Sqitch already initialized' if $self->initialized;

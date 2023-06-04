@@ -184,7 +184,7 @@ sub is_deployed_tag {
     }, undef, $tag->id)->[0];
 }
 
-sub initialized {
+sub _initialized {
     my $self = shift;
 
     # Try to connect.
@@ -201,7 +201,7 @@ sub initialized {
     }, undef, 'CHANGES')->[0];
 }
 
-sub initialize {
+sub _initialize {
     my $self = shift;
     my $uri  = $self->registry_uri;
     hurl engine => __x(

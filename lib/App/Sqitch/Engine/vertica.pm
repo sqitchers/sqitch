@@ -98,13 +98,8 @@ has dbh => (
             Callbacks         => {
                 connected => sub {
                     my $dbh = shift;
-                    try {
-                        $dbh->do(
-                            'SET search_path = ' . $dbh->quote($self->registry)
-                        );
-                        # https://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
-                        $dbh->set_err(undef, undef) if $dbh->err;
-                    };
+                    $dbh->do('SET search_path = ' . $dbh->quote($self->registry))
+                        or $self->_handle_no_registry($dbh);
                     return;
                 },
             },
@@ -128,7 +123,7 @@ sub _client_opts {
     );
 }
 
-sub initialized {
+sub _initialized {
     my $self = shift;
     return $self->dbh->selectcol_arrayref(q{
         SELECT EXISTS(
@@ -137,7 +132,7 @@ sub initialized {
     }, undef, $self->registry)->[0];
 }
 
-sub initialize {
+sub _initialize {
     my $self   = shift;
     my $schema = $self->registry;
     hurl engine => __x(

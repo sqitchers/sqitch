@@ -137,14 +137,13 @@ has dbh => (
                 connected => sub {
                     my $dbh = shift;
                     $dbh->do('SET client_min_messages = WARNING');
-                    try {
-                        $dbh->do(
-                            'SET search_path = ?',
-                            undef, $self->registry
-                        );
-                        # https://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
-                        $dbh->set_err(undef, undef) if $dbh->err;
-                    };
+                    # Setting search currently never fails, but call
+                    # _handle_no_registry in case that changes in the future.
+                    $dbh->do(
+                        'SET search_path = ?',
+                        undef, $self->registry
+                    ) or $self->_handle_no_registry($dbh);
+
                     # Determine the provider. Yugabyte says this is the right way to do it.
                     # https://yugabyte-db.slack.com/archives/CG0KQF0GG/p1653762283847589
                     my $v = $dbh->selectcol_arrayref(
@@ -198,7 +197,7 @@ sub _regex_op { '~' }
 
 sub _version_query { 'SELECT MAX(version)::TEXT FROM releases' }
 
-sub initialized {
+sub _initialized {
     my $self = shift;
     return $self->dbh->selectcol_arrayref(q{
         SELECT EXISTS(
@@ -208,7 +207,7 @@ sub initialized {
     }, undef, $self->registry, 'changes')->[0];
 }
 
-sub initialize {
+sub _initialize {
     my $self   = shift;
     hurl engine => __x(
         'Sqitch schema "{schema}" already exists',

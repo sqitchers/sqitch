@@ -207,20 +207,18 @@ has dbh => (
             Callbacks         => {
                 connected => sub {
                     my $dbh = shift;
-                    try {
-                        my $wh = $dbh->quote_identifier($self->warehouse);
-                        my $role = $self->role;
-                        $dbh->do($_) for (
-                            ($role ? ("USE ROLE " . $dbh->quote_identifier($role)) : ()),
-                            "ALTER WAREHOUSE $wh RESUME IF SUSPENDED",
-                            "USE WAREHOUSE $wh",
-                            'USE SCHEMA ' . $dbh->quote_identifier($self->registry),
-                            'ALTER SESSION SET TIMESTAMP_TYPE_MAPPING=TIMESTAMP_LTZ',
-                            "ALTER SESSION SET TIMESTAMP_OUTPUT_FORMAT='YYYY-MM-DD HH24:MI:SS'",
-                            "ALTER SESSION SET TIMEZONE='UTC'",
-                        );
-                        $dbh->set_err(undef, undef) if $dbh->err;
-                    };
+                    my $wh = $dbh->quote_identifier($self->warehouse);
+                    my $role = $self->role;
+                    $dbh->do($_) or return for (
+                        ($role ? ("USE ROLE " . $dbh->quote_identifier($role)) : ()),
+                        "ALTER WAREHOUSE $wh RESUME IF SUSPENDED",
+                        "USE WAREHOUSE $wh",
+                        'ALTER SESSION SET TIMESTAMP_TYPE_MAPPING=TIMESTAMP_LTZ',
+                        "ALTER SESSION SET TIMESTAMP_OUTPUT_FORMAT='YYYY-MM-DD HH24:MI:SS'",
+                        "ALTER SESSION SET TIMEZONE='UTC'",
+                    );
+                    $dbh->do('USE SCHEMA ' . $dbh->quote_identifier($self->registry))
+                        or $self->_handle_no_registry($dbh);
                     return;
                 },
                 disconnect => sub {
@@ -286,7 +284,7 @@ sub _listagg_format {
 
 sub _ts_default { 'current_timestamp' }
 
-sub initialized {
+sub _initialized {
     my $self = shift;
     return $self->dbh->selectcol_arrayref(q{
         SELECT true
@@ -297,7 +295,7 @@ sub initialized {
      }, undef, $self->registry, 'changes')->[0];
 }
 
-sub initialize {
+sub _initialize {
     my $self   = shift;
     my $schema = $self->registry;
     hurl engine => __x(

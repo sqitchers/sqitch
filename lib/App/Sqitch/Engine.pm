@@ -145,6 +145,12 @@ has _locked => (
     default => 0,
 );
 
+has _no_registry => (
+    is      => 'rw',
+    isa     => Bool,
+    default => 0,
+);
+
 sub variables       { %{ shift->_variables }       }
 sub set_variables   {    shift->_variables({ @_ }) }
 sub clear_variables { %{ shift->_variables } = ()  }
@@ -977,7 +983,10 @@ sub _sync_plan {
     my $self = shift;
     my $plan = $self->plan;
 
-    if (my $state = $self->current_state) {
+    if ($self->_no_registry) {
+        # No registry found on connection, so no records in the database.
+        $plan->reset;
+    } elsif (my $state = $self->current_state) {
         my $idx = $plan->index_of($state->{change_id}) // hurl plan => __x(
             'Cannot find change {id} ({change}) in {file}',
             id     => $state->{change_id},
@@ -1312,11 +1321,23 @@ sub check {
 }
 
 sub initialized {
+    return 0 if $_[0]->_no_registry;
+    return $_[0]->_initialized;
+}
+
+sub _initialized {
     my $class = ref $_[0] || $_[0];
     hurl "$class has not implemented initialized()";
 }
 
 sub initialize {
+    my $self = shift;
+    $self->_initialize || return;
+    $self->_no_registry(0);
+    return $self;
+}
+
+sub _initialize {
     my $class = ref $_[0] || $_[0];
     hurl "$class has not implemented initialize()";
 }
@@ -2071,6 +2092,21 @@ The default implementation is effectively a no-op; consult the documentation
 for specific engines to determine whether they have implemented support for
 destination locking (by overriding C<try_lock()> and C<wait_lock()>).
 
+=head3 C<initialized>
+
+  $engine->initialize unless $engine->initialized;
+
+Returns true if the database has been initialized for Sqitch, and false if it
+has not.
+
+=head3 C<initialize>
+
+  $engine->initialize;
+
+Initializes the target database for Sqitch by installing the Sqitch registry
+schema and/or tables. Should be overridden by subclasses. This implementation
+throws an exception
+
 =head2 Abstract Instance Methods
 
 These methods must be overridden in subclasses.
@@ -2120,20 +2156,16 @@ This method is called after a change has been deployed or reverted and the
 logging of that change has failed. It should rollback changes started by
 C<begin_work>.
 
-=head3 C<initialized>
-
-  $engine->initialize unless $engine->initialized;
+=head3 C<_initialized>
 
 Returns true if the database has been initialized for Sqitch, and false if it
 has not.
 
-=head3 C<initialize>
-
-  $engine->initialize;
+=head3 C<_initialize>
 
 Initializes the target database for Sqitch by installing the Sqitch registry
 schema and/or tables. Should be overridden by subclasses. This implementation
-throws an exception
+throws an exception.
 
 =head3 C<register_project>
 

@@ -117,11 +117,8 @@ has dbh => (
                         nls_timestamp_tz_format
                     );
                     if (my $schema = $self->registry) {
-                        try {
-                            $dbh->do("ALTER SESSION SET CURRENT_SCHEMA = $schema");
-                            # https://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
-                            $dbh->set_err(undef, undef) if $dbh->err;
-                        };
+                        $dbh->do("ALTER SESSION SET CURRENT_SCHEMA = $schema")
+                            or $self->_handle_no_registry($dbh);
                     }
                     return;
                 },
@@ -265,7 +262,7 @@ sub is_deployed_change {
     )->[0];
 }
 
-sub initialized {
+sub _initialized {
     my $self = shift;
     return $self->dbh->selectcol_arrayref(q{
         SELECT 1
@@ -459,7 +456,7 @@ sub _registry_variable {
     );
 }
 
-sub initialize {
+sub _initialize {
     my $self   = shift;
     my $schema = $self->registry;
     hurl engine => __ 'Sqitch already initialized' if $self->initialized;

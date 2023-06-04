@@ -38,6 +38,18 @@ Revision history for Perl extension App::Sqitch
        and is executable (and ends in `.exe` on Windows). Otherwise it simply
        returns `sqlplus` as before, assuming it will be found in the path.
        Thanks to @vectro for the suggestion (#747).
+     - Require DBI 1.631 or higher and remove MySQL engine workaround for
+       older versions.
+     - Detect missing registry schema on connect and don't bother trying to
+       query it when it does not exist. Done by adding an error handler to
+       DBIEngine.pm and calling it from the connection callback, and moving
+       the initialization queries into private methods, now called by
+       `initialized()` and `initialize()`. Fixes an issue where Sqitch might
+       find a project record in the current schema instead of the expected
+       registry schema. Thanks to @vectro for the report and investigation
+       (#668)!
+     - Fixed Snowflake and MySQL to properly raise errors on session query
+       failures immediately after connection.
 
 1.3.1  2022-10-01T18:49:30Z
      - Fixed a bug introduced in v1.3.0 where the Postgres engine would

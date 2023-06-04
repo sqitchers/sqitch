@@ -143,7 +143,7 @@ sub sqlite3 { @{ shift->_sqlite3 } }
 
 sub _version_query { 'SELECT CAST(ROUND(MAX(version), 1) AS TEXT) FROM releases' }
 
-sub initialized {
+sub _initialized {
     my $self = shift;
     return $self->dbh->selectcol_arrayref(q{
         SELECT EXISTS(
@@ -152,7 +152,7 @@ sub initialized {
     }, undef, 'changes')->[0];
 }
 
-sub initialize {
+sub _initialize {
     my $self   = shift;
     hurl engine => __x(
         'Sqitch database {database} already initialized',

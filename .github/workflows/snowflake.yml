@@ -29,5 +29,5 @@ jobs:
         env:
           PERL5LIB: "${{ github.workspace }}/local/lib/perl5"
           LIVE_SNOWFLAKE_REQUIRED: true
-          SQITCH_TEST_SNOWFLAKE_URI: db:snowflake://${{ secrets.SNOWFLAKE_USERNAME }}:${{ secrets.SNOWFLAKE_PASSWORD }}@sra81677.us-east-1/sqitchtest?Driver=Snowflake;warehouse=compute_wh
+          SQITCH_TEST_SNOWFLAKE_URI: db:snowflake://${{ secrets.SNOWFLAKE_USERNAME }}:${{ secrets.SNOWFLAKE_PASSWORD }}@sra81677.us-east-1/sqitchtest?Driver=Snowflake;warehouse=COMPUTE_WH
         run: prove -lvr t/snowflake.t
