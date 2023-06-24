@@ -162,9 +162,6 @@ sub _run_registry_file {
     );
     (my $sql = scalar $file->slurp) =~ s{:"registry"}{$schema}g;
 
-    # No LONG VARCHAR before Vertica 7.
-    $sql =~ s/LONG //g if $maj < 7;
-
     # Write out the temporary file.
     require File::Temp;
     my $fh = File::Temp->new;
@@ -181,6 +178,10 @@ sub _no_table_error  {
 
 sub _no_column_error  {
     return $DBI::state && $DBI::state eq '42703'; # ERRCODE_UNDEFINED_COLUMN
+}
+
+sub _unique_error  {
+    return $DBI::state && $DBI::state eq '23505'; # ERRCODE_UNIQUE_VIOLATION
 }
 
 sub _dt($) {

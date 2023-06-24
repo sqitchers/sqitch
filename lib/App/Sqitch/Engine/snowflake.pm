@@ -316,6 +316,13 @@ sub _no_column_error  {
     return $DBI::state && $DBI::state eq '42703'; # ERRCODE_UNDEFINED_COLUMN
 }
 
+sub _unique_error  {
+    # https://docs.snowflake.com/en/sql-reference/constraints-overview
+    # Snowflake supports defining and maintaining constraints, but does not
+    # enforce them, except for NOT NULL constraints, which are always enforced.
+    return 0;
+}
+
 sub _ts2char_format {
     # The colon has to be inside the quotation marks, because otherwise it
     # generates wayward single quotation marks. Bug report:

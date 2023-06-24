@@ -468,6 +468,11 @@ sub _no_column_error  {
     return $DBI::errstr && $DBI::errstr =~ /object \w+ not found/m;
 }
 
+sub _unique_error  {
+    # Unique constraints not supported by Exasol
+    return 0;
+}
+
 sub _script {
     my $self = shift;
     my $uri  = $self->uri;

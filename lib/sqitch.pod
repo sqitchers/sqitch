@@ -20,7 +20,7 @@ Sqitch is a database change management application. It currently supports:
 
 =item * L<CockroachDB|https://www.cockroachlabs.com/product/> 21+
 
-=item * L<SQLite|https://sqlite.org/> 3.7.11+
+=item * L<SQLite|https://sqlite.org/> 3.8.6+
 
 =item * L<MySQL|https://dev.mysql.com/> 5.1+
 
@@ -30,7 +30,7 @@ Sqitch is a database change management application. It currently supports:
 
 =item * L<Firebird|https://www.firebirdsql.org/> 2.0+
 
-=item * L<Vertica|https://www.vertica.com/> 6.0+
+=item * L<Vertica|https://www.vertica.com/> 7.2+
 
 =item * L<Exasol|https://www.exasol.com/> 6.0+
 

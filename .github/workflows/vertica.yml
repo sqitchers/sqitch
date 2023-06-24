@@ -20,7 +20,6 @@ jobs:
          - { label: '8.1',  version: 8.1.1-0,  image: cjonesy/docker-vertica, db: docker }
          - { label: '8.0',  version: 8.0.0-0,  image: cjonesy/docker-vertica, db: docker }
          - { label: '7.2',  version: 7.2.3-18, image: cjonesy/docker-vertica, db: docker }
-         - { label: '7.1',  version: 7.1.2-21, image: cjonesy/docker-vertica, db: docker }
     name: 🔺 Vertica ${{ matrix.label }}
     runs-on: ubuntu-latest
     services:

@@ -462,8 +462,13 @@ sub _no_table_error  {
     return 1;
 }
 
+# https://www.postgresql.org/docs/current/errcodes-appendix.html
 sub _no_column_error  {
     return $DBI::state && $DBI::state eq '42703'; # undefined_column
+}
+
+sub _unique_error {
+    return $DBI::state && $DBI::state eq '23505'; # unique_violation
 }
 
 sub _in_expr {

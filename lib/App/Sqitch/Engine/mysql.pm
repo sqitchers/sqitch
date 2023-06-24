@@ -358,6 +358,10 @@ sub _no_column_error  {
     return $DBI::state && $DBI::state eq '42S22' && $DBI::err == '1054'; # ER_BAD_FIELD_ERROR
 }
 
+sub _unique_error  {
+    return $DBI::state && $DBI::state eq '23000' && $DBI::err == '1062'; # ER_DUP_ENTRY
+}
+
 sub _regex_op { 'REGEXP' }
 
 sub _limit_default { '18446744073709551615' }
