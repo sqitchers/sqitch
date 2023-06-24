@@ -14,12 +14,12 @@ App/Sqitch version v1.3.2-dev
 *   [PostgreSQL] 8.4+
 *   [YugabyteDB] 2.6+
 *   [CockroachDB] 21+
-*   [SQLite][lite] 3.7.11+
+*   [SQLite][lite] 3.8.6+
 *   [MySQL][my] 5.1+
 *   [MariaDB] 10.0+
 *   [Oracle][orcl] 10g+,
 *   [Firebird][bird] 2.0+
-*   [Vertica][vert] 6.0+
+*   [Vertica][vert] 7.2+
 *   [Exasol][exa] 6.0+
 *   [Snowflake][flake]
 
@@ -181,7 +181,7 @@ SOFTWARE.
   [MySQL]:     https://github.com/sqitchers/sqitch/actions/workflows/mysql.yml/badge.svg
   [🐬]:        https://github.com/sqitchers/sqitch/actions/workflows/mysql.yml "Tested with MySQL 5.5–8 and MariaDB 10.0–10.6"
   [SQLite]:    https://github.com/sqitchers/sqitch/actions/workflows/sqlite.yml/badge.svg
-  [💡]:        https://github.com/sqitchers/sqitch/actions/workflows/sqlite.yml "Tested with SQLite 3.7–3.36"
+  [💡]:        https://github.com/sqitchers/sqitch/actions/workflows/sqlite.yml "Tested with SQLite 3.8.6–3.40"
   [Debian]:    https://img.shields.io/debian/v/sqitch?label=%F0%9F%8D%A5%20Debian
   [🍥]:        https://packages.debian.org/stable/sqitch "Latest version on Debian"
   [Postgres]:  https://github.com/sqitchers/sqitch/actions/workflows/pg.yml/badge.svg
@@ -189,7 +189,7 @@ SOFTWARE.
   [Yugabyte]:  https://github.com/sqitchers/sqitch/actions/workflows/yugabyte.yml/badge.svg
   [💫]:        https://github.com/sqitchers/sqitch/actions/workflows/yugabyte.yml "Tested with YugabyteDB 2.6–2.13"
   [Vertica]:   https://github.com/sqitchers/sqitch/actions/workflows/vertica.yml/badge.svg
-  [🔺]:        https://github.com/sqitchers/sqitch/actions/workflows/vertica.yml "Tested with Vertica 7.1–11.0"
+  [🔺]:        https://github.com/sqitchers/sqitch/actions/workflows/vertica.yml "Tested with Vertica 7.2–12.0"
   [Cockroach]: https://github.com/sqitchers/sqitch/actions/workflows/cockroach.yml/badge.svg
   [🪳]:        https://github.com/sqitchers/sqitch/actions/workflows/cockroach.yml "Tested with CockroachDB v21-22"
 

@@ -95,9 +95,9 @@ has dbh => (
         # Make sure we support this version.
         my @v = split /[.]/ => $dbh->{sqlite_version};
         hurl sqlite => __x(
-            'Sqitch requires SQLite 3.7.11 or later; DBD::SQLite was built with {version}',
+            'Sqitch requires SQLite 3.8.6 or later; DBD::SQLite was built with {version}',
             version => $dbh->{sqlite_version}
-        ) unless $v[0] > 3 || ($v[0] == 3 && ($v[1] > 7 || ($v[1] == 7 && $v[2] >= 11)));
+        ) unless $v[0] > 3 || ($v[0] == 3 && ($v[1] > 8 || ($v[1] == 8 && $v[2] >= 6)));
 
         return $dbh;
     }
@@ -173,6 +173,10 @@ sub _no_table_error  {
 
 sub _no_column_error  {
     return $DBI::errstr && $DBI::errstr =~ /^\Qno such column:/;
+}
+
+sub _unique_error  {
+    return $DBI::errstr && $DBI::errstr =~ /^\QUNIQUE constraint failed:/;
 }
 
 sub _regex_op { 'REGEXP' }

@@ -42,7 +42,7 @@ CREATE TABLE &registry..changes (
     planned_at      TIMESTAMP WITH LOCAL TIME ZONE NOT NULL,
     planner_name    VARCHAR2(512 CHAR)       NOT NULL,
     planner_email   VARCHAR2(512 CHAR)       NOT NULL
-    -- UNIQUE(project, script_hash)
+    -- UNIQUE(project, script_hash) -- not supported in EXASOL
 );
 
 COMMENT ON TABLE  &registry..changes                 IS 'Tracks the changes currently deployed to the database.';

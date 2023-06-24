@@ -21,6 +21,7 @@ requires '_ts2char_format';
 requires '_char2ts';
 requires '_listagg_format';
 requires '_no_table_error';
+requires '_unique_error';
 requires '_handle_lookup_index';
 
 after use_driver => sub {
@@ -492,23 +493,31 @@ sub log_deploy_change {
     ));
 
     $self->_prepare_to_log(changes => $change);
-    $dbh->do(qq{
-        INSERT INTO changes (
-            $cols
+    try {
+        $dbh->do(qq{
+            INSERT INTO changes (
+                $cols
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, $ts)
+        }, undef,
+            $id,
+            $change->script_hash,
+            $name,
+            $proj,
+            $change->note,
+            $user,
+            $email,
+            $self->_char2ts( $change->timestamp ),
+            $change->planner_name,
+            $change->planner_email,
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, $ts)
-    }, undef,
-        $id,
-        $change->script_hash,
-        $name,
-        $proj,
-        $change->note,
-        $user,
-        $email,
-        $self->_char2ts( $change->timestamp ),
-        $change->planner_name,
-        $change->planner_email,
-    );
+    } catch {
+        hurl engine => __x(
+            'Cannot log change "{change}": The deploy script is not unique',
+            change => $name,
+        ) if $self->_unique_error;
+        die $_;
+    };
 
     if ( my @deps = $change->dependencies ) {
         $dbh->do(q{

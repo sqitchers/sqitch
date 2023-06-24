@@ -698,6 +698,10 @@ sub _no_column_error  {
     return $DBI::err && $DBI::err == 904; # ORA-00904: invalid identifier
 }
 
+sub _unique_error  {
+    return $DBI::err && $DBI::err == 1; # ORA-00001: unique constraint violated
+}
+
 sub _script {
     my $self = shift;
     my $uri  = $self->uri;

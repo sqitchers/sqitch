@@ -294,6 +294,10 @@ sub _no_column_error  {
     return $DBI::errstr && $DBI::errstr =~ /^-Column unknown/m;
 }
 
+sub _unique_error  {
+    return $DBI::errstr && $DBI::errstr =~ /no 2 table rows can have duplicate column values$/m;
+}
+
 sub _regex_op { 'SIMILAR TO' }               # NOT good match for
                                              # REGEXP :(
 
@@ -812,23 +816,31 @@ sub log_deploy_change {
         planner_email
         committed_at
     ));
-    $dbh->do(qq{
-        INSERT INTO changes (
-            $cols
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, $ts)
-    }, undef,
-        $id,
-        $change->script_hash,
-        $name,
-        $proj,
-        $change->note,
-        $user,
-        $email,
-        $self->_char2ts( $change->timestamp ),
-        $change->planner_name,
-        $change->planner_email,
-    );
+    try {
+        $dbh->do(qq{
+            INSERT INTO changes (
+                $cols
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, $ts)
+        }, undef,
+            $id,
+            $change->script_hash,
+            $name,
+            $proj,
+            $change->note,
+            $user,
+            $email,
+            $self->_char2ts( $change->timestamp ),
+            $change->planner_name,
+            $change->planner_email,
+        );
+    } catch {
+        hurl engine => __x(
+            'Cannot log change "{change}": The deploy script is not unique',
+            change => $name,
+        ) if $self->_unique_error;
+        die $_;
+    };
 
     if ( my @deps = $change->dependencies ) {
         foreach my $dep (@deps) {

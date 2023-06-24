@@ -450,6 +450,7 @@ DBIEngineTest->run(
         is $dbh->selectcol_arrayref('SELECT current_schema')->[0],
             uc($reg2), 'The Sqitch schema should be the current schema';
     },
+    no_unique => 1,
 );
 
 done_testing;

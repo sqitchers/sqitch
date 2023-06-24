@@ -331,11 +331,10 @@ sub run {
         is_deeply all_changes($engine), [[
             $change->id, 'users', 'engine', 'User roles', $sqitch->user_name, $sqitch->user_email,
             $change->planner_name, $change->planner_email,
-        ]],'A record should have been inserted into the changes table';
+        ]], 'A record should have been inserted into the changes table';
         is_deeply get_dependencies($engine, $change->id), [], 'Should have no dependencies';
         is_deeply [ $engine->changes_requiring_change($change) ], [],
             'Change should not be required';
-
 
         my @event_data = ([
             'deploy',
@@ -1605,19 +1604,45 @@ sub run {
 
         ######################################################################
         # Add a reworked change.
-        ok my $rev_change = $plan->rework( name => 'users' ), 'Rework change "users"';
+        my $name = $change2->name;
+        ok my $rev_change = $plan->rework( name => $name ), qq{Rework change "$name"};
+        $_->resolved_id( $engine->change_id_for_depend($_) ) for $rev_change->requires;
+
+        # Should get an error for identical deploy script except on engines
+        # that don't support unique constraints.
+        is $rev_change->script_hash, $change2->script_hash,
+            'It should have the same script hash';
+        unless ($p{no_unique}) {
+            throws_ok { $engine->log_deploy_change($rev_change) } 'App::Sqitch::X',
+                'Should die on unchanged rework deploy script';
+            # diag "ERR: ", ($DBI::err // ''), " (", ($DBI::state // ''), "): ", $DBI::errstr // '';
+            is $@->ident, 'engine', 'Mode should be "engine"';
+            is $@->message, __x(
+                'Cannot log change "{change}": The deploy script is not unique',
+                change => $name,
+            ), 'And it should report the script is not unique';
+        }
+
+        # Make a temporary copy of the deploy file so we can restore it later.
         my $deploy_file = $rev_change->deploy_file;
         my $tmp_dir = dir( tempdir CLEANUP => 1 );
-        $deploy_file->copy_to($tmp_dir);
+        my $backup = $tmp_dir->file($deploy_file->basename);
+        ok $deploy_file->copy_to($backup), 'Back up deploy file';
+
+        # Modify the file so that its hash digest will vary.
+        delete $rev_change->{script_hash};
         my $fh = $deploy_file->opena or die "Cannot open $deploy_file: $!\n";
         try {
             say $fh '-- Append line to reworked script so it gets a new SHA-1 hash';
             close $fh;
-            $_->resolved_id( $engine->change_id_for_depend($_) ) for $rev_change->requires;
-            ok $engine->log_deploy_change($rev_change),  'Deploy the reworked change';
+            isnt $rev_change->script_hash, $change2->script_hash,
+                'It should no longer have the same script hash';
+            lives_ok {
+                ok $engine->log_deploy_change($rev_change), 'Deploy the reworked change';
+            } 'The deploy should not fail';
         } finally {
             # Restore the reworked script.
-            $tmp_dir->file( $deploy_file->basename )->copy_to($deploy_file);
+            $backup->copy_to($deploy_file);
         };
 
         # Make sure that change_id_for() chokes on the dupe.
@@ -1625,7 +1650,7 @@ sub run {
             my $sqitch_mocker = Test::MockModule->new(ref $sqitch);
             my @args;
             $sqitch_mocker->mock(vent => sub { shift; push @args => \@_ });
-            throws_ok { $engine->change_id_for( change => 'users') } 'App::Sqitch::X',
+            throws_ok { $engine->change_id_for( change => $name) } 'App::Sqitch::X',
                 'Should die on ambiguous change spec';
             is $@->ident, 'engine', 'Mode should be "engine"';
             is $@->message, __ 'Change Lookup Failed',
@@ -1633,36 +1658,42 @@ sub run {
             is_deeply \@args, [
                 [__x(
                     'Change "{change}" is ambiguous. Please specify a tag-qualified change:',
-                    change => 'users',
+                    change => $name,
                 )],
                 [ '  * ', $rev_change->format_name . '@HEAD' ],
-                [ '  * ', $change->format_tag_qualified_name ],
+                [ '  * ', $change2->format_tag_qualified_name ],
             ], 'Should have vented output for lookup failure';
 
             # But it should work okay if we ask for the first ID.
-            ok my $id = $engine->change_id_for(change => 'users', first => 1),
+            ok my $id = $engine->change_id_for(change => $name, first => 1),
                 'Should get ID for first of ambiguous change spec';
-            is $id, $change->id, 'Should now have first change id';
+            is $id, $change2->id, 'Should now have first change id';
         }
 
-        is $engine->change_id_for( change => 'users', tag => 'alpha'), $change->id,
+        is $engine->change_id_for( change => $change->name, tag => 'alpha'),
+            $change->id,
             'change_id_for() should find the tag-qualified change ID';
-        is $engine->change_id_for( change => 'users', tag => 'HEAD'), $rev_change->id,
+        is $engine->change_id_for( change => $name, tag => 'HEAD'),
+            $rev_change->id,
             'change_id_for() should find the reworked change ID @HEAD';
+
 
         ######################################################################
         # Tag and Rework the change again.
         ok $plan->tag(name => 'theta'), 'Tag the plan "theta"';
         ok $engine->log_new_tags($rev_change), 'Log new tag';
 
-        ok my $rev_change2 = $plan->rework( name => 'users' ),
-            'Rework change "users" again';
+        ok my $rev_change2 = $plan->rework( name => $name ),
+            qq{Rework change "$name" again};
         $fh = $deploy_file->opena or die "Cannot open $deploy_file: $!\n";
         try {
             say $fh '-- Append another line to reworked script for a new SHA-1 hash';
             close $fh;
             $_->resolved_id( $engine->change_id_for_depend($_) ) for $rev_change2->requires;
-            ok $engine->log_deploy_change($rev_change2),  'Deploy the reworked change';
+            lives_ok {
+                ok $engine->log_deploy_change($rev_change2),
+                    'Deploy the reworked change';
+            } 'Should not die deploying the reworked change';
         } finally {
             # Restore the reworked script.
             $tmp_dir->file( $deploy_file->basename )->copy_to($deploy_file);
@@ -1671,18 +1702,19 @@ sub run {
         # make sure that change_id_for is still good with things.
         for my $spec (
             [
-                'alpha instance of change',
-                { change => 'users', tag => 'alpha' },
-                $change->id,
+
+                'beta instance of change',
+                { change => $name, tag => 'beta' },
+                $change2->id,
             ],
             [
                 'HEAD instance of change',
-                { change => 'users', tag => 'HEAD' },
+                { change => $name, tag => 'HEAD' },
                 $rev_change2->id,
             ],
             [
                 'second instance of change by tag',
-                { change => 'users', tag => 'theta' },
+                { change => $name, tag => 'theta' },
                 $rev_change->id,
             ],
         ) {

@@ -574,7 +574,7 @@ DBIEngineTest->run(
             uc($reg2), 'The Sqitch schema should be the current schema';
     },
     add_second_format => 'dateadd(second, 1, %s)',
-
+    no_unique => 1,
 );
 
 done_testing;
