@@ -207,23 +207,23 @@ has dbh => (
             Callbacks         => {
                 connected => sub {
                     my $dbh = shift;
-                    my $wh = $dbh->quote_identifier($self->warehouse);
+                    my $wh = _quote_ident($dbh, $self->warehouse);
                     my $role = $self->role;
                     $dbh->do($_) or return for (
-                        ($role ? ("USE ROLE " . $dbh->quote_identifier($role)) : ()),
+                        ($role ? ("USE ROLE " . _quote_ident($dbh, $role)) : ()),
                         "ALTER WAREHOUSE $wh RESUME IF SUSPENDED",
                         "USE WAREHOUSE $wh",
                         'ALTER SESSION SET TIMESTAMP_TYPE_MAPPING=TIMESTAMP_LTZ',
                         "ALTER SESSION SET TIMESTAMP_OUTPUT_FORMAT='YYYY-MM-DD HH24:MI:SS'",
                         "ALTER SESSION SET TIMEZONE='UTC'",
                     );
-                    $dbh->do('USE SCHEMA ' . $dbh->quote_identifier($self->registry))
+                    $dbh->do('USE SCHEMA ' . _quote_ident($dbh, $self->registry))
                         or $self->_handle_no_registry($dbh);
                     return;
                 },
                 disconnect => sub {
                     my $dbh = shift;
-                    my $wh = $dbh->quote_identifier($self->warehouse);
+                    my $wh = _quote_ident($dbh, $self->warehouse);
                     $dbh->do("ALTER WAREHOUSE $wh SUSPEND");
                     return;
                 },
@@ -231,6 +231,14 @@ has dbh => (
         });
     }
 );
+
+sub _quote_ident {
+    my ($dbh, $ident) = @_;
+    # https://docs.snowflake.com/en/sql-reference/identifiers-syntax
+    return $ident if $ident =~ /^[_a-zA-Z][_a-zA-Z0-9\$]*$/;
+    return $ident if $ident =~ /^"/ && $ident =~ /"$/;
+    return $dbh->quote_identifier($ident);
+}
 
 # Need to wait until dbh is defined.
 with 'App::Sqitch::Role::DBIEngine';

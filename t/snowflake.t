@@ -515,6 +515,22 @@ is $snow->_char2ts($now), $now->as_string(format => 'iso'),
     'Should get ISO output from _char2ts';
 
 ##############################################################################
+# Test _quote_ident.
+# Mock DBI method.
+sub quote_identifier { qq{"$_[1]"} }
+
+ok my $quote_ident = $CLASS->can('_quote_ident'), 'Should have _quote_ident sub';
+# https://docs.snowflake.com/en/sql-reference/identifiers-syntax#unquoted-identifiers
+for my $ident (qw(foo FOO _xXx _ a id1 My$Thing), "foo") {
+    is $quote_ident->(__PACKAGE__, $ident), $ident, "Should not quote “$ident”";
+}
+
+for my $ident (qw(my.thing 1go $foo идентификатор), 'hi there', qq{'thing'}) {
+    is $quote_ident->(__PACKAGE__, $ident), quote_identifier(__PACKAGE__, $ident),
+        "Should quote “$ident”";
+}
+
+##############################################################################
 # Can we do live tests?
 my $dbh;
 my $id = DBIEngineTest->randstr;
