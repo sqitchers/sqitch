@@ -23,6 +23,7 @@ use constant ENGINES => qw(
     vertica
     exasol
     snowflake
+    cockroach
 );
 
 has sqitch => (
