@@ -82,7 +82,10 @@ engine, thanks to the C<--engine pg> option, and saved it to the file.
 Furthermore, it wrote a commented-out C<[engine "pg"]> section with all the
 available PostgreSQL engine-specific settings commented out and ready to be
 edited as appropriate. This configuration will also fork for
-L<YugabyteDB|https://www.yugabyte.com/yugabytedb/> and L<CockroachDB|https://www.cockroachlabs.com/product/> databases, too.
+L<YugabyteDB|https://www.yugabyte.com/yugabytedb/> databases, too. For
+L<CockroachDB|https://www.cockroachlabs.com/product/>, use
+C<--engine cockroach>, instead, and replace any instance of C<pg> with
+C<cockroach> in the rest of this document.
 
 By default, Sqitch will read F<sqitch.conf> in the current directory for
 settings. But it will also read F<~/.sqitch/sqitch.conf> for user-specific
