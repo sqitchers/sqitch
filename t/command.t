@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 198;
+use Test::More tests => 199;
 #use Test::More 'no_plan';
 use Test::NoWarnings;
 use List::Util qw(first);
@@ -130,6 +130,15 @@ DEBUG: {
     like $debug, qr{^Can't locate App/Sqitch/Command/_nonesuch\.pm in \@INC},
         'Should have sent error to debug';
 }
+
+##############################################################################
+# Test ENGINES.
+my $dir = Path::Class::Dir->new(
+    Path::Class::File->new($INC{"App/Sqitch.pm"})->dir,
+    qw(Sqitch Engine),
+);
+my @exp = sort grep { s/\.pm$// } map { $_->basename } $dir->children;
+is_deeply [sort $CLASS->ENGINES], \@exp, 'ENGINES should include all engines';
 
 ##############################################################################
 # Test load().

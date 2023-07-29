@@ -64,6 +64,9 @@ Revision history for Perl extension App::Sqitch
        enforcement was added.
      - Removed remaining uses of the smartmatch operator, thus eliminating
        the Perl 5.38 warnings about its deprecation. (#769)
+     - Added Cockroach to the list of valid engines recognized in command-line
+       arguments (and a test to ensure new engines won't be omitted in the
+       future). Thanks to @NOBLES5E for the spot (#772)!
 
 1.3.1  2022-10-01T18:49:30Z
      - Fixed a bug introduced in v1.3.0 where the Postgres engine would

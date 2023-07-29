@@ -23,6 +23,7 @@ use constant ENGINES => qw(
     vertica
     exasol
     snowflake
+    cockroach
 );
 
 has sqitch => (
@@ -368,6 +369,8 @@ Returns the list of supported engines, currently:
 =item * C<exasol>
 
 =item * C<snowflake>
+
+=item * C<cockroach>
 
 =back
 
