@@ -50,51 +50,46 @@ has formatter => (
     isa     => class_type('String::Formatter'),
     default => sub {
         my $self = shift;
-        no if $] >= 5.017011, warnings => 'experimental::smartmatch';
         String::Formatter->new({
             input_processor => 'require_single_input',
             string_replacer => 'method_replace',
             codes => {
                 e => sub { $_[0]->{event} },
                 L => sub {
-                    given ($_[0]->{event}) {
-                        when ('deploy') { return __ 'Deploy' }
-                        when ('revert') { return __ 'Revert' }
-                        when ('fail')   { return __ 'Fail'   }
-                    }
+                    my $e = $_[0]->{event};
+                    return $e eq 'deploy' ? __ 'Deploy'
+                         : $e eq 'revert' ? __ 'Revert'
+                         : $e eq 'fail'   ? __ 'Fail'
+                         : hurl "Unknown event type $e"; # should not happen
                 },
                 l => sub {
-                    given ($_[0]->{event}) {
-                        when ('deploy') { return __ 'deploy' }
-                        when ('revert') { return __ 'revert' }
-                        when ('fail')   { return __ 'fail'   }
-                    }
+                    my $e = $_[0]->{event};
+                    return $e eq 'deploy' ? __ 'deploy'
+                         : $e eq 'revert' ? __ 'revert'
+                         : $e eq 'fail'   ? __ 'fail'
+                         : hurl "Unknown event type $e"; # should not happen
                 },
                 _ => sub {
-                    given ($_[1]) {
-                        when ('event')     { return __ 'Event:    ' }
-                        when ('change')    { return __ 'Change:   ' }
-                        when ('committer') { return __ 'Committer:' }
-                        when ('planner')   { return __ 'Planner:  ' }
-                        when ('by')        { return __ 'By:       ' }
-                        when ('date')      { return __ 'Date:     ' }
-                        when ('committed') { return __ 'Committed:' }
-                        when ('planned')   { return __ 'Planned:  ' }
-                        when ('name')      { return __ 'Name:     ' }
-                        when ('project')   { return __ 'Project:  ' }
-                        when ('email')     { return __ 'Email:    ' }
-                        when ('requires')  { return __ 'Requires: ' }
-                        when ('conflicts') { return __ 'Conflicts:' }
-                        when (undef)       {
-                            hurl format => __ 'No label passed to the _ format';
-                        }
-                        default {
-                            hurl format => __x(
-                                'Unknown label "{label}" passed to the _ format',
-                                label => $_[1],
-                            );
-                        }
-                    };
+                    my $x = $_[1];
+                    hurl format => __ 'No label passed to the _ format'
+                        unless defined $x;
+                    return $x eq 'event'     ? __ 'Event:    '
+                         : $x eq 'change'    ? __ 'Change:   '
+                         : $x eq 'committer' ? __ 'Committer:'
+                         : $x eq 'planner'   ? __ 'Planner:  '
+                         : $x eq 'by'        ? __ 'By:       '
+                         : $x eq 'date'      ? __ 'Date:     '
+                         : $x eq 'committed' ? __ 'Committed:'
+                         : $x eq 'planned'   ? __ 'Planned:  '
+                         : $x eq 'name'      ? __ 'Name:     '
+                         : $x eq 'project'   ? __ 'Project:  '
+                         : $x eq 'email'     ? __ 'Email:    '
+                         : $x eq 'requires'  ? __ 'Requires: '
+                         : $x eq 'conflicts' ? __ 'Conflicts:'
+                         : hurl format => __x(
+                               'Unknown label "{label}" passed to the _ format',
+                               label => $x,
+                           );
                 },
                 H => sub { $_[0]->{change_id} },
                 h => sub {
@@ -110,8 +105,8 @@ has formatter => (
                 c => sub {
                     return "$_[0]->{committer_name} <$_[0]->{committer_email}>"
                         unless defined $_[1];
-                    return $_[0]->{committer_name}  if $_[1] ~~ [qw(n name)];
-                    return $_[0]->{committer_email} if $_[1] ~~ [qw(e email)];
+                    return $_[0]->{committer_name}  if $_[1] =~ /\An(?:ame)?\z/;
+                    return $_[0]->{committer_email} if $_[1] =~ /\Ae(?:mail)?\z/;
                     return $_[0]->{committed_at}->as_string(
                         format => $_[1] || $self->date_format
                     ) if $_[1] =~ s/^d(?:ate)?(?::|$)//;
@@ -120,8 +115,8 @@ has formatter => (
                 p => sub {
                     return "$_[0]->{planner_name} <$_[0]->{planner_email}>"
                         unless defined $_[1];
-                    return $_[0]->{planner_name}  if $_[1] ~~ [qw(n name)];
-                    return $_[0]->{planner_email} if $_[1] ~~ [qw(e email)];
+                    return $_[0]->{planner_name}  if $_[1] =~ /\An(?:ame)?\z/;
+                    return $_[0]->{planner_email} if $_[1] =~ /\Ae(?:mail)?\z/;
                     return $_[0]->{planned_at}->as_string(
                         format => $_[1] || $self->date_format
                     ) if $_[1] =~ s/^d(?:ate)?(?::|$)//;
