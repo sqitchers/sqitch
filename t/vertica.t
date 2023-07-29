@@ -217,7 +217,8 @@ is_deeply \@capture, [$vta->vsql, qw(foo bar baz)],
     'Command should be passed to capture()';
 
 ok $vta->_probe(qw(hi there)), 'Call _probe';
-is_deeply \@probe, [$vta->vsql, qw(hi there)];
+is_deeply \@probe, [$vta->vsql, qw(hi there)],
+    'Should have expected arguments to _probe';
 
 # Without password.
 $target = App::Sqitch::Target->new( sqitch => $sqitch );
@@ -236,8 +237,9 @@ ok $vta->_capture(qw(foo bar baz)), 'Call _capture again';
 is_deeply \@capture, [$vta->vsql, qw(foo bar baz)],
     'Command should be passed to capture() again';
 
-ok $vta->_probe(qw(go there)), 'Call _probe';
-is_deeply \@probe, [$vta->vsql, qw(go there)];
+ok $vta->_probe(qw(go there)), 'Call _probe again';
+is_deeply \@probe, [$vta->vsql, qw(go there)],
+    'Should again have expected arguments to _probe';
 
 ##############################################################################
 # Test file and handle running.

@@ -44,6 +44,9 @@ jobs:
         image: vertica/vertica-ce:latest
         ports: [ 5433 ]
     steps:
+      # https://github.com/orgs/community/discussions/25678#discussioncomment-5242449
+      - name: Free Disk Space
+        run: rm -rf /opt/hostedtoolcache
       - name: Start CockroachDB
         run: docker run -d -p 26257:26257 cockroachdb/cockroach:latest start-single-node --insecure
       - uses: actions/checkout@v3
