@@ -105,7 +105,7 @@ Revision history for Perl extension App::Sqitch
      - Now require URI::db v0.20 for Cockroach and Yugabyte URI support.
      - Dropped support for MySQL 5.0.
      - Added explicit sorting for aggregated lists (such as the tags associated
-       with a commit) to the MySQL, Exasol, Snowflake, and Postgres (8.4 and
+       with a commit) to the MySQL, Exasol, Snowflake, and Postgres (9.0 and
        higher) engines.
      - Fixed slow deploys on MariaDB thanks to fractional timestamp support
        added in 5.03.05. Thanks to @rbrigot for the PR (#658)!

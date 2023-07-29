@@ -12,10 +12,14 @@ jobs:
     strategy:
       matrix:
         include:
+          # curl https://registry.hub.docker.com/v2/repositories/library/mysql/tags\?page_size\=10000 | jq '.results[].name
           - { version: '8.0',  icon: 🐬, name: MySQL,   image: mysql   }
           - { version: '5.7',  icon: 🐬, name: MySQL,   image: mysql   }
           - { version: '5.6',  icon: 🐬, name: MySQL,   image: mysql   }
           - { version: '5.5',  icon: 🐬, name: MySQL,   image: mysql   }
+          # https://registry.hub.docker.com/v2/repositories/library/mariadb/tags\?page_size\=10000 | jq '.results[].name'
+          - { version: '11.0', icon: 🦭, name: MariaDB, image: mariadb }
+          - { version: '10.9', icon: 🦭, name: MariaDB, image: mariadb }
           - { version: '10.6', icon: 🦭, name: MariaDB, image: mariadb }
           - { version: '10.5', icon: 🦭, name: MariaDB, image: mariadb }
           - { version: '10.4', icon: 🦭, name: MariaDB, image: mariadb }
@@ -33,7 +37,7 @@ jobs:
         image: "${{ matrix.image }}:${{ matrix.version }}"
         env: { MYSQL_ALLOW_EMPTY_PASSWORD: yes }
         ports: [ 3306 ]
-        options: --health-cmd="mysqladmin ping" --health-interval=5s --health-timeout=2s --health-retries=3
+        options: --health-cmd="healthcheck.sh --innodb_initialized || mysqladmin ping --protocol=tcp" --health-interval=5s --health-timeout=2s --health-retries=3
     steps:
       - uses: actions/checkout@v3
       - name: Setup Clients

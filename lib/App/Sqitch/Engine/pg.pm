@@ -186,9 +186,9 @@ sub _listagg_format {
     return q{array_remove(array_agg(%1$s ORDER BY %1$s), NULL)}
         if $dbh->{pg_server_version} >= 90300;
 
-    # Since 8.4 we can use ORDER BY.
+    # Since 9.0 we can use ORDER BY.
     return q{ARRAY(SELECT * FROM UNNEST( array_agg(%1$s ORDER BY %1$s) ) a WHERE a IS NOT NULL)}
-        if $dbh->{pg_server_version} >= 80400;
+        if $dbh->{pg_server_version} >= 90000;
 
     return q{ARRAY(SELECT * FROM UNNEST( array_agg(%s) ) a WHERE a IS NOT NULL)};
 }

@@ -11,7 +11,8 @@ jobs:
   Cockroach:
     strategy:
       matrix:
-        version: ['22.1', '21.2']
+        # curl https://registry.hub.docker.com/v2/repositories/cockroachdb/cockroach/tags\?page_size\=10000 | jq '.results[].name
+        version: ['23.1', '22.2', '21.2']
     name: 🪳 Cockroach ${{ matrix.version }}
     runs-on: ubuntu-latest
     steps:

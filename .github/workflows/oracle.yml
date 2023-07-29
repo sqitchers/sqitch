@@ -20,6 +20,7 @@ jobs:
           # * Image Source:      https://github.com/gvenzl/oci-oracle-xe/
           # * Image Issue:       https://github.com/gvenzl/oci-oracle-xe/issues/46
           # * DBD::Oracle Issue: https://github.com/perl5-dbi/DBD-Oracle/issues/131
+          # https://registry.hub.docker.com/v2/repositories/gvenzl/oracle-xe/tags\?page_size\=10000 | jq '.results[].name
           - { version: 21c, tag: 21,      service: XE, altUser: dbsnmp    }
           - { version: 18c, tag: 18-slim, service: XE, altUser: gsmuser    }
           - { version: 11g, tag: 11-slim, service: XE, altuser: sqitchtest }
