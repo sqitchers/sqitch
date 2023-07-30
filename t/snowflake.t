@@ -354,6 +354,7 @@ DBI: {
     $DBI::state = '42703';
     ok !$snow->_no_table_error, 'Should again have no table error';
     ok $snow->_no_column_error, 'Should now have no column error';
+    ok !$snow->_unique_error, 'Unique constraints not supported by Snowflake';
 }
 
 is_deeply [$snow->_limit_offset(8, 4)],

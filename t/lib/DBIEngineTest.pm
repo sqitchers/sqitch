@@ -1621,6 +1621,16 @@ sub run {
                 'Cannot log change "{change}": The deploy script is not unique',
                 change => $name,
             ), 'And it should report the script is not unique';
+
+            # Make sure log_deploy_change dies on any other error.
+            MOCKPROJECT: {
+                my $engine_mocker = Test::MockModule->new(ref $engine);
+                $engine_mocker->mock(_unique_error => 0);
+                throws_ok { $engine->log_deploy_change($rev_change) } 'App::Sqitch::X',
+                    'Should re-throw if not a unique erorr';
+                is $@->ident, $DBI::state, 'Mode should be the error state';
+                is $@->message, $DBI::errstr, 'Should not have the underlying DB error';
+            }
         }
 
         # Make a temporary copy of the deploy file so we can restore it later.

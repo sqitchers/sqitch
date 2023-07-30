@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 773;
+use Test::More tests => 775;
 # use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -972,6 +972,12 @@ is_deeply $engine->seen, [
 ], 'Should have ugpraded the registry';
 is $state->{script_hash}, $latest_change_id,
     'The script hash should have been set to the change ID';
+
+# Have _no_registry return true.
+$mock_engine->mock(_no_registry => 1);
+ok $engine->_sync_plan, 'Sync the plan with no registry';
+is $plan->position, -1, 'Plan should start at position -1';
+$mock_engine->unmock('_no_registry');
 
 ##############################################################################
 # Test deploy.
