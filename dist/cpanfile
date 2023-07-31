@@ -54,7 +54,6 @@ requires "URI::QueryParam" => "0";
 requires "URI::db" => "0.20";
 requires "User::pwent" => "0";
 requires "constant" => "0";
-requires "if" => "0";
 requires "namespace::autoclean" => "0.16";
 requires "overload" => "0";
 requires "parent" => "0";

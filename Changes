@@ -6,49 +6,46 @@ Revision history for Perl extension App::Sqitch
        @marc-marketparts for the report (#685).
      - Fixed a bug reworking a change when a rework directory is configured
        but not created. Thanks to @jfeaver for the report (#686).
-     - Output the list of changes to be deployed or reverted when --verbose is
-       specified at least twice. Thanks to @vectro for the PR (#702).
+     - Output the list of changes to be deployed or reverted when `--verbose`
+       is specified at least twice. Thanks to @vectro for the PR (#702).
      - Fixed the formatting of the log and plan commands to allow empty or `0`
        separators in lists of things (such as `%{0}t` for a list of tags).
        Thanks to @web-vertalo for the pull request (#703).
-       Updated the MySQL Tutorial to use 5.7 features. Thanks to Vlad
+     - Updated the MySQL Tutorial to use 5.7 features. Thanks to Vlad
        Safronov for the PR (#705).
      - Deprecated the `no_prompt` and `no_prompt` attributes of
-       App::Sqitch::Engine in favor of passing booleans to the revert and
-       verify methods. The attributes still exist for reverse compatibility,
+       App::Sqitch::Engine in favor of passing booleans to the `revert` and
+       `verify` methods. The attributes still exist for reverse compatibility,
        but now emit warnings and will be removed in the future. Thanks to
        Thanks to @vectro for the PR (#704).
      - Added a warning for a double extension on the file names created
        by the `add` command. Thanks to @blairjordan for the PR (#724)!
      - Added the `revert.strict` boolean configuration variable which, when
-       set to true, requires that a change to revert to be specified. It also
-       disables the `rebase` and `checkout` commands, though the
+       set to true, requires the specification of a change to revert to. It
+       also disables the `rebase` and `checkout` commands, though the
        `rebase.strict` and `checkout.strict` variables, respectively, may
-       override it. Use this variable to prevent accidental reverts in
+       override it. Use `revert.strict` to prevent accidental reverts in
        sensitive environments. Thanks to @vectro for the PR (#719; revised in
        #735)!
      - Fixed test failures due to a bug fix in the Perl URI module
        (libwww-perl/URI#13). Thanks to @bobfang for the report (#744)!
      - Fixed test failures due to a change in the generation of DBI DSN by
        URI::Oracle introduced by libwww-perl/URI-db#23.
-     - Added a format option `%F` to sqitch plan that prints the path of the
-       file used to deploy each migration in the plan.
+     - Added a format option `%F` to `sqitch plan` that prints the path for
+       the deploy file for each migration in the plan.
      - Changed the default location for the Oracle `sqlplus` client when the
        `ORACLE_HOME` environment variable is set. It now returns either
        `$ORACLE_HOME/bin/sqlplus` or `$ORACLE_HOME/sqlplus` if it exists
        and is executable (and ends in `.exe` on Windows). Otherwise it simply
        returns `sqlplus` as before, assuming it will be found in the path.
        Thanks to @vectro for the suggestion (#747).
-     - Require DBI 1.631 or higher and remove MySQL engine workaround for
-       older versions.
-     - Detect missing registry schema on connect and don't bother trying to
-       query it when it does not exist. Done by adding an error handler to
-       DBIEngine.pm and calling it from the connection callback, and moving
-       the initialization queries into private methods, now called by
-       `initialized()` and `initialize()`. Fixes an issue where Sqitch might
-       find a project record in the current schema instead of the expected
-       registry schema. Thanks to @vectro for the report and investigation
-       (#668)!
+     - Increased the required version of DBI to 1.631 or higher and removed
+       a MySQL engine workaround for older versions.
+     - Added detection of a missing registry schema on connect and conditions
+       to avoid querying it when it does not exist. Fixes an issue where
+       Sqitch might find a project record in the current schema instead of the
+       expected registry schema. Thanks to @vectro for the report and
+       investigation (#668)!
      - Fixed Snowflake and MySQL to properly raise errors on session query
        failures immediately after connection.
      - Fixed the handling of unique violations for deploy script hash

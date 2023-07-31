@@ -6,7 +6,7 @@ use the `$VERSION` environment variable for consistency. The assumption is that
 it's set to the new version being released, e.g.,
 
 ``` sh
-export VERSION=1.3.1
+export VERSION=1.4.0
 ```
 
 Preparation
@@ -40,7 +40,7 @@ First, update the sources so that everything is up-to-date.
 *   Update copyright dates if a year has turned over since the last release:
 
     ``` sh
-    grep -ril copyright . | xargs perl -i -pe "s/-2022/-$(date +%Y)/g"
+    grep -ril copyright . | xargs perl -i -pe "s/-2023/-$(date +%Y)/g"
     ```
 
 *   Make a build and run `xt/dependency_report`:
@@ -51,13 +51,13 @@ First, update the sources so that everything is up-to-date.
     ```
 
     Review the build-time dependency list it outputs to ensure that they are
-    well and truly build-time-only. Also, check the runtime list to ensure that
-    they are runtime-only. And finally, review the overlapping list to ensure
-    that all of the items there are used at runtime. If it all checks out and
-    looks reasonable, copy the list of build-time-only dependencies into the
-    `__DATA__` section of `inc/Menlo/Sqitch.pm` and commit. This allows the
-    `./Build bundle` command to remove any build-only dependencies from the
-    bundle.
+    well and truly build-time-only. Copy the lists of dependencies into the
+    `__DATA__` section of `inc/Menlo/Sqitch.pm` and `git diff` to inspect the
+    changes.  Check the runtime list to ensure that they are runtime-only, and
+    review the overlapping list to ensure that all of the items there are used
+    at runtime. Commit the changes if it all checks out and looks reasonable.
+    This allows the `./Build bundle` command to remove any build-only
+    dependencies from the bundle.
 
 *   Add any new dependencies to `dist/sqitch.spec` and add a new entry to the
     top of the `%changelog` section for the new version.
@@ -213,15 +213,15 @@ Finishing Up
 
 Time to get things started for the next version. Switch back to the `develop`
 branch, merge `main`, and change the version to a pre-release version. For
-example, if you've just released `v1.2.0`, change the version to `v1.2.1-dev`.
+example, if you've just released `v1.4.0`, change the version to `v1.4.1-dev`.
 
 ``` sh
 git checkout develop
 git merge main
-perl -i -pe 's/^(version\s*=).+/$1 v1.3.1-dev/' dist.ini
-perl -i -pe 's{(App/Sqitch version).+}{$1 v1.3.1-dev}' README.md
-perl -i -pe 's/(Project-Id-Version: App-Sqitch)[^\\n]+/$1 v1.3.1-dev/' po/App-Sqitch.pot
-perl -i -pe 's/(Version:\s*).+/${1}1.3.1-dev/' dist/sqitch.spec
+perl -i -pe 's/^(version\s*=).+/$1 v1.4.1-dev/' dist.ini
+perl -i -pe 's{(App/Sqitch version).+}{$1 v1.4.1-dev}' README.md
+perl -i -pe 's/(Project-Id-Version: App-Sqitch)[^\\n]+/$1 v1.4.1-dev/' po/App-Sqitch.pot
+perl -i -pe 's/(Version:\s*).+/${1}1.4.1-dev/' dist/sqitch.spec
 ```
 
 Also add a line for the new version (without the pre-release part) to the top of

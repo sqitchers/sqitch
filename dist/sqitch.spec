@@ -1,5 +1,5 @@
 Name:           sqitch
-Version:        1.3.2-dev
+Version:        1.4.0
 Release:        1%{?dist}
 Summary:        Sensible database change management
 License:        MIT
@@ -19,7 +19,7 @@ BuildRequires:  perl(Config::GitLike) >= 1.15
 BuildRequires:  perl(constant)
 BuildRequires:  perl(DateTime) >= 1.04
 BuildRequires:  perl(DateTime::TimeZone)
-BuildRequires:  perl(DBI)
+BuildRequires:  perl(DBI) >= 1.631
 BuildRequires:  perl(Devel::StackTrace) >= 1.30
 BuildRequires:  perl(Digest::SHA)
 BuildRequires:  perl(Encode)
@@ -188,7 +188,7 @@ Summary:        Sensible database change management for PostgreSQL, YugabyteDB, 
 Group:          Development/Libraries
 Requires:       sqitch >= %{version}
 Requires:       postgresql >= 8.4.0
-Requires:       perl(DBI)
+Requires:       perl(DBI) >= 1.631
 Requires:       perl(DBD::Pg) >= 2.0.0
 Provides:       sqitch-pg
 
@@ -205,7 +205,7 @@ Summary:        Sensible database change management for SQLite
 Group:          Development/Libraries
 Requires:       sqitch >= %{version}
 Requires:       sqlite
-Requires:       perl(DBI)
+Requires:       perl(DBI) >= 1.631
 Requires:       perl(DBD::SQLite) >= 1.37
 Provides:       sqitch-sqlite
 
@@ -222,7 +222,7 @@ Summary:        Sensible database change management for Oracle
 Group:          Development/Libraries
 Requires:       sqitch >= %{version}
 Requires:       oracle-instantclient11.2-sqlplus
-Requires:       perl(DBI)
+Requires:       perl(DBI) => 1.631
 Requires:       perl(DBD::Oracle) >= 1.23
 Provides:       sqitch-oracle
 
@@ -239,7 +239,7 @@ Summary:        Sensible database change management for MySQL
 Group:          Development/Libraries
 Requires:       sqitch >= %{version}
 Requires:       mysql >= 5.1.0
-Requires:       perl(DBI)
+Requires:       perl(DBI) >= 1.631
 Requires:       perl(DBD::mysql) >= 4.018
 Requires:       perl(MySQL::Config)
 Provides:       sqitch-mysql
@@ -257,7 +257,7 @@ Summary:        Sensible database change management for Firebird
 Group:          Development/Libraries
 Requires:       sqitch >= %{version}
 Requires:       firebird >= 2.5.0
-Requires:       perl(DBI)
+Requires:       perl(DBI) >= 1.631
 Requires:       perl(DBD::Firebird) >= 1.11
 Requires:       perl(Time::HiRes)
 Requires:       perl(Time::Local)
@@ -278,7 +278,7 @@ Group:          Development/Libraries
 Requires:       sqitch >= %{version}
 Requires:       libverticaodbc.so
 Requires:       /opt/vertica/bin/vsql
-Requires:       perl(DBI)
+Requires:       perl(DBI) >= 1.631
 Requires:       perl(DBD::ODBC) >= 1.59
 Provides:       sqitch-vertica
 
@@ -295,7 +295,7 @@ Summary:        Sensible database change management for Snowflake
 Group:          Development/Libraries
 Requires:       sqitch >= %{version}
 Requires:       snowflake-odbc
-Requires:       perl(DBI)
+Requires:       perl(DBI) => 1.631
 Requires:       perl(DBD::ODBC) >= 1.59
 Provides:       sqitch-snowflake
 
@@ -309,6 +309,10 @@ also be installed.
 # No additional files required.
 
 %changelog
+* Mon Jul 31 2023 David E. Wheeler <david@justatheory.com> 1.4.0-1
+- Upgrade to v1.4.0.
+- Incrmented minimal DBI to 1.631.
+
 * Sat Oct 1 2022 David E. Wheeler <david@justatheory.com> 1.3.1-1
 - Upgrade to v1.3.1.
 
