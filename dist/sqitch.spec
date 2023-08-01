@@ -309,7 +309,7 @@ also be installed.
 # No additional files required.
 
 %changelog
-* Mon Jul 31 2023 David E. Wheeler <david@justatheory.com> 1.4.0-1
+* Mon Aug 1 2023 David E. Wheeler <david@justatheory.com> 1.4.0-1
 - Upgrade to v1.4.0.
 - Incrmented minimal DBI to 1.631.
 

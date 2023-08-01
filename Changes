@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-1.3.2
+1.4.0 2023-08-01T23:37:30Z
      - Fixed Snowflake warehouse and role setup to properly quote identifiers
        unless they're valid unquoted identifiers or already quoted. Thanks to
        @marc-marketparts for the report (#685).
