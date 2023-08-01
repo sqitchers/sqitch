@@ -4,6 +4,11 @@ use strict;
 use Test::More;
 use Test::Spelling;
 
+# Suppress `Wide character in print`, which is emitted because
+# Pod::Spelling::invalid_words_in sets no encoding $handle. Would go away with:
+#     open my $handle, '>:utf8', \$document;
+$SIG{__WARN__} = sub { warn @_ if $_[0] !~ /^Wide character in print/ };
+
 add_stopwords(<DATA>);
 all_pod_files_spelling_ok();
 
