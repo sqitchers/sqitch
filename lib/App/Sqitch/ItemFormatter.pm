@@ -50,51 +50,46 @@ has formatter => (
     isa     => class_type('String::Formatter'),
     default => sub {
         my $self = shift;
-        no if $] >= 5.017011, warnings => 'experimental::smartmatch';
         String::Formatter->new({
             input_processor => 'require_single_input',
             string_replacer => 'method_replace',
             codes => {
                 e => sub { $_[0]->{event} },
                 L => sub {
-                    given ($_[0]->{event}) {
-                        when ('deploy') { return __ 'Deploy' }
-                        when ('revert') { return __ 'Revert' }
-                        when ('fail')   { return __ 'Fail'   }
-                    }
+                    my $e = $_[0]->{event};
+                    return $e eq 'deploy' ? __ 'Deploy'
+                         : $e eq 'revert' ? __ 'Revert'
+                         : $e eq 'fail'   ? __ 'Fail'
+                         : hurl "Unknown event type $e"; # should not happen
                 },
                 l => sub {
-                    given ($_[0]->{event}) {
-                        when ('deploy') { return __ 'deploy' }
-                        when ('revert') { return __ 'revert' }
-                        when ('fail')   { return __ 'fail'   }
-                    }
+                    my $e = $_[0]->{event};
+                    return $e eq 'deploy' ? __ 'deploy'
+                         : $e eq 'revert' ? __ 'revert'
+                         : $e eq 'fail'   ? __ 'fail'
+                         : hurl "Unknown event type $e"; # should not happen
                 },
                 _ => sub {
-                    given ($_[1]) {
-                        when ('event')     { return __ 'Event:    ' }
-                        when ('change')    { return __ 'Change:   ' }
-                        when ('committer') { return __ 'Committer:' }
-                        when ('planner')   { return __ 'Planner:  ' }
-                        when ('by')        { return __ 'By:       ' }
-                        when ('date')      { return __ 'Date:     ' }
-                        when ('committed') { return __ 'Committed:' }
-                        when ('planned')   { return __ 'Planned:  ' }
-                        when ('name')      { return __ 'Name:     ' }
-                        when ('project')   { return __ 'Project:  ' }
-                        when ('email')     { return __ 'Email:    ' }
-                        when ('requires')  { return __ 'Requires: ' }
-                        when ('conflicts') { return __ 'Conflicts:' }
-                        when (undef)       {
-                            hurl format => __ 'No label passed to the _ format';
-                        }
-                        default {
-                            hurl format => __x(
-                                'Unknown label "{label}" passed to the _ format',
-                                label => $_[1],
-                            );
-                        }
-                    };
+                    my $x = $_[1];
+                    hurl format => __ 'No label passed to the _ format'
+                        unless defined $x;
+                    return $x eq 'event'     ? __ 'Event:    '
+                         : $x eq 'change'    ? __ 'Change:   '
+                         : $x eq 'committer' ? __ 'Committer:'
+                         : $x eq 'planner'   ? __ 'Planner:  '
+                         : $x eq 'by'        ? __ 'By:       '
+                         : $x eq 'date'      ? __ 'Date:     '
+                         : $x eq 'committed' ? __ 'Committed:'
+                         : $x eq 'planned'   ? __ 'Planned:  '
+                         : $x eq 'name'      ? __ 'Name:     '
+                         : $x eq 'project'   ? __ 'Project:  '
+                         : $x eq 'email'     ? __ 'Email:    '
+                         : $x eq 'requires'  ? __ 'Requires: '
+                         : $x eq 'conflicts' ? __ 'Conflicts:'
+                         : hurl format => __x(
+                               'Unknown label "{label}" passed to the _ format',
+                               label => $x,
+                           );
                 },
                 H => sub { $_[0]->{change_id} },
                 h => sub {
@@ -105,12 +100,13 @@ has formatter => (
                 },
                 n => sub { $_[0]->{change} },
                 o => sub { $_[0]->{project} },
+                F => sub { $_[0]->{deploy_file} },
 
                 c => sub {
                     return "$_[0]->{committer_name} <$_[0]->{committer_email}>"
                         unless defined $_[1];
-                    return $_[0]->{committer_name}  if $_[1] ~~ [qw(n name)];
-                    return $_[0]->{committer_email} if $_[1] ~~ [qw(e email)];
+                    return $_[0]->{committer_name}  if $_[1] =~ /\An(?:ame)?\z/;
+                    return $_[0]->{committer_email} if $_[1] =~ /\Ae(?:mail)?\z/;
                     return $_[0]->{committed_at}->as_string(
                         format => $_[1] || $self->date_format
                     ) if $_[1] =~ s/^d(?:ate)?(?::|$)//;
@@ -119,8 +115,8 @@ has formatter => (
                 p => sub {
                     return "$_[0]->{planner_name} <$_[0]->{planner_email}>"
                         unless defined $_[1];
-                    return $_[0]->{planner_name}  if $_[1] ~~ [qw(n name)];
-                    return $_[0]->{planner_email} if $_[1] ~~ [qw(e email)];
+                    return $_[0]->{planner_name}  if $_[1] =~ /\An(?:ame)?\z/;
+                    return $_[0]->{planner_email} if $_[1] =~ /\Ae(?:mail)?\z/;
                     return $_[0]->{planned_at}->as_string(
                         format => $_[1] || $self->date_format
                     ) if $_[1] =~ s/^d(?:ate)?(?::|$)//;
@@ -128,12 +124,12 @@ has formatter => (
 
                 t => sub {
                     @{ $_[0]->{tags} }
-                        ? ' ' . join $_[1] || ', ' => @{ $_[0]->{tags} }
+                        ? ' ' . join defined $_[1] ? $_[1] : ', ' => @{ $_[0]->{tags} }
                         : '';
                 },
                 T => sub {
                     @{ $_[0]->{tags} }
-                        ? ' (' . join($_[1] || ', ' => @{ $_[0]->{tags} }) . ')'
+                        ? ' (' . join(defined $_[1] ? $_[1] : ', ' => @{ $_[0]->{tags} }) . ')'
                         : '';
                 },
                 v => sub { "\n" },
@@ -168,24 +164,24 @@ has formatter => (
                 },
                 r => sub {
                     @{ $_[0]->{requires} }
-                        ? ' ' . join $_[1] || ', ' => @{ $_[0]->{requires} }
+                        ? ' ' . join defined $_[1] ? $_[1] : ', ' => @{ $_[0]->{requires} }
                         : '';
                 },
                 R => sub {
                     return '' unless @{ $_[0]->{requires} };
                     return __ ('Requires: ') . ' ' . join(
-                        $_[1] || ', ' => @{ $_[0]->{requires} }
+                        defined $_[1] ? $_[1] : ', ' => @{ $_[0]->{requires} }
                     ) . "\n";
                 },
                 x => sub {
                     @{ $_[0]->{conflicts} }
-                        ? ' ' . join $_[1] || ', ' => @{ $_[0]->{conflicts} }
+                        ? ' ' . join defined $_[1] ? $_[1] : ', ' => @{ $_[0]->{conflicts} }
                         : '';
                 },
                 X => sub {
                     return '' unless @{ $_[0]->{conflicts} };
                     return __('Conflicts:') . ' ' . join(
-                        $_[1] || ', ' => @{ $_[0]->{conflicts} }
+                        defined $_[1] ? $_[1] : ', ' => @{ $_[0]->{conflicts} }
                     ) . "\n";
                 },
                 a => sub {
@@ -440,6 +436,8 @@ The placeholders are:
 
 =item * C<%o>: Event change project name
 
+=item * C<%F>: Deploy file name
+
 =item * C<%($len)h>: abbreviated change of length C<$len>
 
 =item * C<%e>: Event type (deploy, revert, fail)
@@ -584,7 +582,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2022 iovation Inc., David E. Wheeler
+Copyright (c) 2012-2023 iovation Inc., David E. Wheeler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

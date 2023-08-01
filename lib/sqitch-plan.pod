@@ -294,6 +294,8 @@ The placeholders are:
 
 =item * C<%o>: Event change project name
 
+=item * C<%F>: Deploy file name
+
 =item * C<%($len)h>: abbreviated change of length C<$len>
 
 =item * C<%e>: Event type (deploy, revert, fail)

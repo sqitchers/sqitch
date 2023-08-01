@@ -43,6 +43,15 @@ has prompt_accept => (
     isa => Bool
 );
 
+has strict => (
+    is       => 'ro',
+    lazy     => 1,
+    default  => sub {
+        my $self = shift;
+        return $self->sqitch->config->get( key => 'revert.strict' ) // 0;
+    }
+);
+
 has log_only => (
     is       => 'ro',
     isa      => Bool,
@@ -134,18 +143,33 @@ sub execute {
     my $change = $self->modified
         ? $engine->planned_deployed_common_ancestor_id
         : $self->to_change // shift @{ $changes };
-    $self->warn(__x(
-        'Too many changes specified; reverting to "{change}"',
-        change => $change,
-    )) if @{ $changes };
+
+    # Require a change to revert to in strict mode.
+    hurl {
+        ident   => 'revert:strict',
+        message => __ 'Must specify a target revision in strict mode',
+        exitval => 1,
+    } if !defined $change && $self->strict;
+
+    if (@{ $changes }) {
+        # Only one change allowed currently; fatal in strict mode.
+        hurl {
+            ident   => 'revert:strict',
+            message => __ 'Too many changes specified',
+            exitval => 2,
+        } if $self->strict;
+
+        $self->warn(__x(
+            'Too many changes specified; reverting to "{change}"',
+            change => $change,
+        ));
+    }
 
     # Now get to work.
-    $engine->no_prompt( $self->no_prompt );
-    $engine->prompt_accept( $self->prompt_accept );
     $engine->log_only( $self->log_only );
     $engine->lock_timeout( $self->lock_timeout );
     $engine->set_variables( $self->_collect_vars($target) );
-    $engine->revert( $change );
+    $engine->revert( $change, ! ($self->no_prompt), $self->prompt_accept );
     return $self;
 }
 
@@ -205,6 +229,10 @@ the revert.
 Boolean value to indicate whether or not the default value for the prompt,
 should the user hit C<return>, is to accept the prompt or deny it.
 
+=head3 C<strict>
+
+Boolean to indicate whether or not a change to revert to is required.
+
 =head3 C<target>
 
 The deployment target URI.
@@ -241,7 +269,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2022 iovation Inc., David E. Wheeler
+Copyright (c) 2012-2023 iovation Inc., David E. Wheeler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

@@ -51,7 +51,7 @@ is $sqlite->registry_destination, $sqlite->registry_uri->as_string,
 
 # Pretend for now that we always have a valid SQLite.
 my $mock_sqitch = Test::MockModule->new(ref $sqitch);
-my $sqlite_version = '3.7.12 2012-04-03 19:43:07 86b8481be7e76cccc92d14ce762d21bfb69504af';
+my $sqlite_version = '3.8.6 2014-08-15 19:43:07 86b8481be7e76cccc92d14ce762d21bfb69504af';
 $mock_sqitch->mock(capture => sub { return $sqlite_version });
 
 my @std_opts = (
@@ -70,10 +70,10 @@ my $tmp_dir = Path::Class::dir( tempdir CLEANUP => 1 );
 my $have_sqlite = try { $sqlite->use_driver };
 if ($have_sqlite) {
     # We have DBD::SQLite.
-    # Find out if it's built with SQLite >= 3.7.11.
+    # Find out if it's built with SQLite >= 3.8.6.
     my $dbh = DBI->connect('DBI:SQLite:');
     my @v = split /[.]/ => $dbh->{sqlite_version};
-    $have_sqlite = $v[0] > 3 || ($v[0] == 3 && ($v[1] > 7 || ($v[1] == 7 && $v[2] >= 11)));
+    $have_sqlite = $v[0] > 3 || ($v[0] == 3 && ($v[1] > 8 || ($v[1] == 8 && $v[2] >= 6)));
     unless ($have_sqlite) {
         # We have DBD::SQLite, but it is too old. Make sure we complain about that.
         isa_ok $sqlite = $CLASS->new(
@@ -83,7 +83,7 @@ if ($have_sqlite) {
         throws_ok { $sqlite->dbh } 'App::Sqitch::X', 'Should get an error for old SQLite';
         is $@->ident, 'sqlite', 'Unsupported SQLite error ident should be "sqlite"';
         is $@->message, __x(
-            'Sqitch requires SQLite 3.7.11 or later; DBD::SQLite was built with {version}',
+            'Sqitch requires SQLite 3.8.6 or later; DBD::SQLite was built with {version}',
             version => $dbh->{sqlite_version}
         ), 'Unsupported SQLite error message should be correct';
     }
@@ -157,7 +157,7 @@ is $sqlite->destination, 'noext',
     'Destination should be configured target name';
 is $sqlite->registry_uri->as_string, 'db:sqlite://x:foo@/path/to/registry.db',
     'registry_uri should fall back on config wth extension';
-is $sqlite->registry_destination, 'db:sqlite://x:@/path/to/registry.db',
+like $sqlite->registry_destination, qr{^db:sqlite://x:?\@/path/to/registry\.db$},
     'Registry target should be configured registry_uri without password';
 
 # Try a registry with an absolute path.

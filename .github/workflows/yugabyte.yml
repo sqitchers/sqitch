@@ -12,25 +12,35 @@ jobs:
     strategy:
       matrix:
         include:
+          # curl https://registry.hub.docker.com/v2/repositories/yugabytedb/yugabyte/tags\?page_size\=10000 | jq '.results[].name' | sort
+          - { version: '2.19', tag: 2.19.0.0-b190 }
+          - { version: '2.18', tag: 2.18.1.0-b84  }
+          - { version: '2.17', tag: 2.17.3.0-b152 }
+          - { version: '2.16', tag: 2.16.6.0-b43  }
+          - { version: '2.15', tag: 2.15.3.2-b1   }
+          - { version: '2.14', tag: 2.14.11.0-b35 }
           - { version: '2.13', tag: 2.13.2.0-b135 }
-          - { version: '2.12', tag: 2.12.5.0-b24  }
-          - { version: '2.8',  tag: 2.8.6.0-b12   }
-          - { version: '2.6',  tag: 2.6.18.0-b3   }
+          - { version: '2.12', tag: 2.12.12.0-b12 }
+          - { version: '2.11', tag: 2.11.2.0-b89  }
+          - { version: '2.8',  tag: 2.8.12.0-b5   }
+          - { version: '2.6',  tag: 2.6.20.0-b10  }
     name: 💫 Yugabyte ${{ matrix.version }}
     runs-on: ubuntu-latest
     steps:
       - name: Setup YugabyteDB cluster
         id: yugabyte
-        uses: yugabyte/yugabyte-db-action@master
+        # https://github.com/yugabyte/yugabyte-db-action/issues/5
+        # uses: yugabyte/yugabyte-db-action@master
+        uses: jameshartig/yugabyte-db-action@master
         with:
           yb_image_tag: "${{ matrix.tag }}"
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Setup Perl
         id: perl
         uses: shogo82148/actions-setup-perl@v1
         with: { perl-version: latest }
       - name: Cache CPAN Modules
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: local
           key: perl-${{ steps.perl.outputs.perl-hash }}

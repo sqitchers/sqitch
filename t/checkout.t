@@ -282,6 +282,26 @@ CONFIG: {
         _params       => [],
         _cx           => [],
     }, 'Should have no_prompt true with -y';
+
+    # Should die in strict mode.
+    for my $cfg (
+        ['revert.strict', 1],
+        ['checkout.strict', 1],
+    ) {
+        throws_ok {
+            $CLASS->configure(TestConfig->new(@{$ cfg}))
+        } 'App::Sqitch::X', "$cfg->[0] should die";
+        is $@->ident, 'checkout', 'Strict err ident should be "checkout"';
+        is $@->message, __x(
+            '"{command}" cannot be used in strict mode.\n'.
+            'Use explicity revert and deploy commands instead.',
+            command => 'checkout',
+        ), 'Should have corect strict error message'
+    }
+
+    lives_ok { $CLASS->configure(
+        TestConfig->new('revert.strict', 1, 'checkout.strict', 0)
+    )  } 'App::Sqitch::X';
 }
 
 ##############################################################################
@@ -583,7 +603,7 @@ is_deeply +MockOutput->get_info, [[__x(
 )]], 'Should have emitted info identifying the last common change';
 
 # Did it revert?
-is_deeply \@rev_args, [$checkout->default_target->plan->get('users')->id],
+is_deeply \@rev_args, [$checkout->default_target->plan->get('users')->id, 1, undef],
     '"users" ID and 1 should be passed to the engine revert';
 is_deeply \@rev_changes, [qw(roles users widgets)],
     'Should have had the current changes for revision';
@@ -653,23 +673,23 @@ is_deeply +MockOutput->get_warn, [[__x(
 # Make sure we get an exception for unknown args.
 throws_ok { $checkout->execute(qw(main greg)) } 'App::Sqitch::X',
     'Should get an exception for unknown arg';
-is $@->ident, 'checkout', 'Unknow arg ident should be "checkout"';
+is $@->ident, 'checkout', 'Unknown arg ident should be "checkout"';
 is $@->message, __nx(
     'Unknown argument "{arg}"',
     'Unknown arguments: {arg}',
     1,
     arg => 'greg',
-), 'Should get an exeption for two unknown arg';
+), 'Should get an exception for two unknown arg';
 
 throws_ok { $checkout->execute(qw(main greg widgets)) } 'App::Sqitch::X',
     'Should get an exception for unknown args';
-is $@->ident, 'checkout', 'Unknow args ident should be "checkout"';
+is $@->ident, 'checkout', 'Unknown args ident should be "checkout"';
 is $@->message, __nx(
     'Unknown argument "{arg}"',
     'Unknown arguments: {arg}',
     2,
     arg => 'greg, widgets',
-), 'Should get an exeption for two unknown args';
+), 'Should get an exception for two unknown args';
 
 # Should die for fatal, unknown, or confirmation errors.
 for my $spec (

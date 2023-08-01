@@ -11,17 +11,17 @@ jobs:
   Postgres:
     strategy:
       matrix:
-        pg: [14, 13, 12, 11, 10, 9.6, 9.5, 9.4, 9.3] #, 9.2, 9.1, 9.0, 8.4] https://github.com/bucardo/dbdpg/issues/84
+        pg: [16, 15, 14, 13, 12, 11, 10, 9.6, 9.5, 9.4, 9.3, 9.2, 9.1, '9.0', 8.4]
     name: 🐘 Postgres ${{ matrix.pg }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Setup Perl
         id: perl
         uses: shogo82148/actions-setup-perl@v1
         with: { perl-version: latest }
       - name: Cache CPAN Modules
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: local
           key: perl-${{ steps.perl.outputs.perl-hash }}

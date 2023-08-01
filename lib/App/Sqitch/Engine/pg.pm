@@ -137,14 +137,13 @@ has dbh => (
                 connected => sub {
                     my $dbh = shift;
                     $dbh->do('SET client_min_messages = WARNING');
-                    try {
-                        $dbh->do(
-                            'SET search_path = ?',
-                            undef, $self->registry
-                        );
-                        # https://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
-                        $dbh->set_err(undef, undef) if $dbh->err;
-                    };
+                    # Setting search currently never fails, but call
+                    # _handle_no_registry in case that changes in the future.
+                    $dbh->do(
+                        'SET search_path = ?',
+                        undef, $self->registry
+                    ) or $self->_handle_no_registry($dbh);
+
                     # Determine the provider. Yugabyte says this is the right way to do it.
                     # https://yugabyte-db.slack.com/archives/CG0KQF0GG/p1653762283847589
                     my $v = $dbh->selectcol_arrayref(
@@ -187,9 +186,9 @@ sub _listagg_format {
     return q{array_remove(array_agg(%1$s ORDER BY %1$s), NULL)}
         if $dbh->{pg_server_version} >= 90300;
 
-    # Since 8.4 we can use ORDER BY.
+    # Since 9.0 we can use ORDER BY.
     return q{ARRAY(SELECT * FROM UNNEST( array_agg(%1$s ORDER BY %1$s) ) a WHERE a IS NOT NULL)}
-        if $dbh->{pg_server_version} >= 80400;
+        if $dbh->{pg_server_version} >= 90000;
 
     return q{ARRAY(SELECT * FROM UNNEST( array_agg(%s) ) a WHERE a IS NOT NULL)};
 }
@@ -198,7 +197,7 @@ sub _regex_op { '~' }
 
 sub _version_query { 'SELECT MAX(version)::TEXT FROM releases' }
 
-sub initialized {
+sub _initialized {
     my $self = shift;
     return $self->dbh->selectcol_arrayref(q{
         SELECT EXISTS(
@@ -208,7 +207,7 @@ sub initialized {
     }, undef, $self->registry, 'changes')->[0];
 }
 
-sub initialize {
+sub _initialize {
     my $self   = shift;
     hurl engine => __x(
         'Sqitch schema "{schema}" already exists',
@@ -463,8 +462,13 @@ sub _no_table_error  {
     return 1;
 }
 
+# https://www.postgresql.org/docs/current/errcodes-appendix.html
 sub _no_column_error  {
     return $DBI::state && $DBI::state eq '42703'; # undefined_column
+}
+
+sub _unique_error {
+    return $DBI::state && $DBI::state eq '23505'; # unique_violation
 }
 
 sub _in_expr {
@@ -550,7 +554,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2022 iovation Inc., David E. Wheeler
+Copyright (c) 2012-2023 iovation Inc., David E. Wheeler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

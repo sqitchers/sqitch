@@ -70,13 +70,27 @@ has start_at => (
 has no_prompt => (
     is      => 'rw',
     isa     => Bool,
-    default => 0,
+    trigger => sub {
+        # Deprecation notice added Feb 2023
+        warnings::warnif(
+            "deprecated",
+            "Engine::no_prompt is deprecated and will be removed in a future release\n"
+            . "Use direct arguments to revert() instead",
+        );
+    }
 );
 
 has prompt_accept => (
     is      => 'rw',
     isa     => Bool,
-    default => 1,
+    trigger => sub {
+        # Deprecation notice added Feb 2023
+        warnings::warnif(
+            "deprecated",
+            "Engine::prompt_accept is deprecated and will be removed in a future release\n"
+            . "Use direct arguments to revert() instead",
+        );
+    }
 );
 
 has log_only => (
@@ -126,6 +140,12 @@ has lock_timeout => (
 );
 
 has _locked => (
+    is      => 'rw',
+    isa     => Bool,
+    default => 0,
+);
+
+has _no_registry => (
     is      => 'rw',
     isa     => Bool,
     default => 0,
@@ -249,6 +269,11 @@ sub deploy {
         )
     );
 
+    $sqitch->debug(__ "Will deploy the following changes:");
+    foreach my $will_deploy_position ($plan->position .. $to_index) {
+        $sqitch->debug($plan->change_at($will_deploy_position)->format_name_with_tags);
+    }
+
     # Check that all dependencies will be satisfied.
     $self->check_deploy_dependencies($plan, $to_index);
 
@@ -269,8 +294,34 @@ sub deploy {
     $self->$meth( $plan, $to_index );
 }
 
+# Do a thing similar to Sqitch::Plan::Change::format_name_with_tags,
+# but for an output from $self->deployed_changes or
+# $self->deployed_changes_since.
+sub _format_deployed_change_name_with_tags($) {
+    my ( $self, $change ) = @_;
+
+    return join ' ', $change->{name}, map { '@' . $_ } @{$change->{tags}};
+}
+
 sub revert {
-    my ( $self, $to ) = @_;
+    # $to = revert up to (but not including) this change. May be undefined.
+    # $prompt = If true, we ask for confirmation; if false, we don't.
+    # $prompt_default = Default if the user just hits enter at the prompt.
+    my ( $self, $to, $prompt, $prompt_default ) = @_;
+
+    if (defined $prompt) {
+        hurl revert => __('Missing required parameter $prompt_default')
+            unless defined $prompt_default;
+    } else {
+        warnings::warnif(
+            "deprecated",
+            "Engine::revert() requires the `prompt` and `prompt_default` arguments.\n"
+            . 'Omitting them will become fatal in a future release.',
+        );
+
+        $prompt = !($self->no_prompt // 0);
+        $prompt_default = $self->prompt_accept // 1;
+    }
 
     # Check the registry and, once we know it's there, lock the destination.
     $self->_check_registry;
@@ -299,6 +350,8 @@ sub revert {
             );
         };
 
+        # NB this is an array of unblessed references, not of
+        # Sqitch::Plan::Change references.
         @changes = $self->deployed_changes_since(
             $self->_load_changes($change)
         ) or do {
@@ -308,14 +361,20 @@ sub revert {
             ));
             return $self;
         };
+        my @change_descriptions =
+            map { $self->_format_deployed_change_name_with_tags($_) } @changes;
 
-        if ($self->no_prompt) {
+        unless ($prompt) {
             $sqitch->info(__x(
                 'Reverting changes to {change} from {destination}',
                 change      => $change->format_name_with_tags,
                 destination => $self->destination,
             ));
+            $sqitch->info(__ 'Will revert the following changes:');
+            map { $sqitch->info($_) } @change_descriptions;
         } else {
+            $sqitch->info(__ 'Would revert the following changes:');
+            map { $sqitch->info($_) } @change_descriptions;
             hurl {
                 ident   => 'revert:confirm',
                 message => __ 'Nothing reverted',
@@ -324,21 +383,28 @@ sub revert {
                 'Revert changes to {change} from {destination}?',
                 change      => $change->format_name_with_tags,
                 destination => $self->destination,
-            ), $self->prompt_accept );
+            ), $prompt_default );
         }
-
     } else {
+        # NB this is an array of unblessed references, not of
+        # Sqitch::Plan::Change references.
         @changes = $self->deployed_changes or do {
             $sqitch->info(__ 'Nothing to revert (nothing deployed)');
             return $self;
         };
+        my @change_descriptions =
+            map { $self->_format_deployed_change_name_with_tags($_) } @changes;
 
-        if ($self->no_prompt) {
+        unless ($prompt) {
             $sqitch->info(__x(
                 'Reverting all changes from {destination}',
                 destination => $self->destination,
             ));
+            $sqitch->info(__ 'Will revert the following changes:');
+            map { $sqitch->info($_) } @change_descriptions;
         } else {
+            $sqitch->info(__ 'Would revert the following changes:');
+            map { $sqitch->info($_) } @change_descriptions;
             hurl {
                 ident   => 'revert',
                 message => __ 'Nothing reverted',
@@ -346,7 +412,7 @@ sub revert {
             } unless $sqitch->ask_yes_no(__x(
                 'Revert all changes from {destination}?',
                 destination => $self->destination,
-            ), $self->prompt_accept );
+            ), $prompt_default );
         }
     }
 
@@ -369,6 +435,9 @@ sub revert {
 
 sub verify {
     my ( $self, $from, $to ) = @_;
+    # $from = verify changes after and including this one, or if undefined starting from the first change.
+    # $to = verify changes up to but not including this one, or if undefined up to all changes.
+
     $self->_check_registry;
     my $sqitch   = $self->sqitch;
     my $plan     = $self->plan;
@@ -914,7 +983,10 @@ sub _sync_plan {
     my $self = shift;
     my $plan = $self->plan;
 
-    if (my $state = $self->current_state) {
+    if ($self->_no_registry) {
+        # No registry found on connection, so no records in the database.
+        $plan->reset;
+    } elsif (my $state = $self->current_state) {
         my $idx = $plan->index_of($state->{change_id}) // hurl plan => __x(
             'Cannot find change {id} ({change}) in {file}',
             id     => $state->{change_id},
@@ -1249,11 +1321,23 @@ sub check {
 }
 
 sub initialized {
+    return 0 if $_[0]->_no_registry;
+    return $_[0]->_initialized;
+}
+
+sub _initialized {
     my $class = ref $_[0] || $_[0];
     hurl "$class has not implemented initialized()";
 }
 
 sub initialize {
+    my $self = shift;
+    $self->_initialize || return;
+    $self->_no_registry(0);
+    return $self;
+}
+
+sub _initialize {
     my $class = ref $_[0] || $_[0];
     hurl "$class has not implemented initialize()";
 }
@@ -1572,10 +1656,6 @@ The name of the registry schema or database.
 
 The point in the plan from which to start deploying changes.
 
-=head3 C<no_prompt>
-
-Boolean indicating whether or not to prompt for reverts. False by default.
-
 =head3 C<log_only>
 
 Boolean indicating whether or not to log changes I<without running deploy or
@@ -1731,6 +1811,9 @@ B<may be left in a corrupted state>. Write your revert scripts carefully!
 
 Reverts the L<App::Sqitch::Plan::Tag> from the database, including all of its
 associated changes.
+
+Note that this method does not respect the C<$cmd.strict> configuration
+variables, which therefore must be checked by the caller.
 
 =head3 C<verify>
 
@@ -2009,6 +2092,21 @@ The default implementation is effectively a no-op; consult the documentation
 for specific engines to determine whether they have implemented support for
 destination locking (by overriding C<try_lock()> and C<wait_lock()>).
 
+=head3 C<initialized>
+
+  $engine->initialize unless $engine->initialized;
+
+Returns true if the database has been initialized for Sqitch, and false if it
+has not.
+
+=head3 C<initialize>
+
+  $engine->initialize;
+
+Initializes the target database for Sqitch by installing the Sqitch registry
+schema and/or tables. Should be overridden by subclasses. This implementation
+throws an exception
+
 =head2 Abstract Instance Methods
 
 These methods must be overridden in subclasses.
@@ -2058,20 +2156,16 @@ This method is called after a change has been deployed or reverted and the
 logging of that change has failed. It should rollback changes started by
 C<begin_work>.
 
-=head3 C<initialized>
-
-  $engine->initialize unless $engine->initialized;
+=head3 C<_initialized>
 
 Returns true if the database has been initialized for Sqitch, and false if it
 has not.
 
-=head3 C<initialize>
-
-  $engine->initialize;
+=head3 C<_initialize>
 
 Initializes the target database for Sqitch by installing the Sqitch registry
 schema and/or tables. Should be overridden by subclasses. This implementation
-throws an exception
+throws an exception.
 
 =head3 C<register_project>
 
@@ -2666,7 +2760,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2022 iovation Inc., David E. Wheeler
+Copyright (c) 2012-2023 iovation Inc., David E. Wheeler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

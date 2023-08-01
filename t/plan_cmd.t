@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 232;
+use Test::More tests => 234;
 # use Test::More 'no_plan';
 use App::Sqitch;
 use Locale::TextDomain qw(App-Sqitch);
@@ -19,7 +19,7 @@ use MockOutput;
 use TestConfig;
 use LC;
 
-local $ENV{TZ} = 'America/Sao_Paolo';
+local $ENV{TZ} = 'Asia/Tokyo';
 my $CLASS = 'App::Sqitch::Command::plan';
 require_ok $CLASS;
 
@@ -313,6 +313,9 @@ for my $spec (
     ['%o', { project => 'foo' }, 'foo'],
     ['%o', { project => 'bar' }, 'bar'],
 
+    ['%F', { deploy_file => 'deploy/change_file.sql' }, 'deploy/change_file.sql'],
+    ['%F', { deploy_file => 'deploy/change_file_with_tag@tag.sql' }, 'deploy/change_file_with_tag@tag.sql'],
+
     ['%p', { planner_name => 'larry', planner_email => 'larry@example.com'  }, 'larry <larry@example.com>'],
     ['%{n}p', { planner_name => 'damian' }, 'damian'],
     ['%{name}p', { planner_name => 'chip' }, 'chip'],
@@ -564,6 +567,7 @@ my $fmt_params = {
     change_id     => $change->id,
     change        => $change->name,
     note          => $change->note,
+    deploy_file   => $change->deploy_file,
     tags          => [ map { $_->format_name } $change->tags ],
     requires      => [ map { $_->as_string } $change->requires ],
     conflicts     => [ map { $_->as_string } $change->conflicts ],
@@ -579,8 +583,6 @@ is_deeply +MockOutput->get_page, [
 ], 'The event should have been paged';
 
 # Set attributes and add more events.
-my $change2 = $plan->change_at(1);
-push @changes => $change, $change2;
 isa_ok $cmd = $CLASS->new(
     sqitch            => $sqitch,
     event             => 'deploy',
@@ -592,7 +594,11 @@ isa_ok $cmd = $CLASS->new(
     reverse           => 1,
     headers           => 0,
 ), $CLASS, 'plan with attributes';
+$plan = $cmd->default_target->plan;
 
+$change = $plan->change_at(0);
+my $change2 = $plan->change_at(1);
+push @changes => $change, $change2;
 ok $cmd->execute, 'Execute plan with attributes';
 is_deeply $search_args, [
     operation => 'deploy',
@@ -609,6 +615,7 @@ my $fmt_params2 = {
     change_id     => $change2->id,
     change        => $change2->name,
     note          => $change2->note,
+    deploy_file   => $change2->deploy_file,
     tags          => [ map { $_->format_name } $change2->tags ],
     requires      => [ map { $_->as_string } $change2->requires ],
     conflicts     => [ map { $_->as_string } $change2->conflicts ],
@@ -626,8 +633,9 @@ is_deeply +MockOutput->get_page, [
 my $cfg = $CLASS->configure( $config, { format => 'raw' } );
 ok $cmd = $CLASS->new( sqitch => $sqitch, %{ $cfg } ),
     'Create command with raw format';
-push @changes => $plan->changes;
+$plan = $cmd->default_target->plan;
 
+push @changes => $plan->changes;
 ok $cmd->execute, 'Execute plan with all changes';
 is_deeply +MockOutput->get_page, [
     ['# ', __x 'Project: {project}', project => $plan->project ],
@@ -639,6 +647,7 @@ is_deeply +MockOutput->get_page, [
         change_id     => $_->id,
         change        => $_->name,
         note          => $_->note,
+        deploy_file   => $_->deploy_file,
         tags          => [ map { $_->format_name } $_->tags ],
         requires      => [ map { $_->as_string } $_->requires ],
         conflicts     => [ map { $_->as_string } $_->conflicts ],
@@ -653,7 +662,9 @@ isa_ok $cmd = $CLASS->new(
     sqitch => $sqitch,
     format => '%Z',
 ), $CLASS, 'plan with bad format';
+$plan = $cmd->default_target->plan;
 
+$change = $plan->change_at(0);
 push @changes, $change;
 throws_ok { $cmd->execute } 'App::Sqitch::X',
     'Should get an exception for a bad format code';

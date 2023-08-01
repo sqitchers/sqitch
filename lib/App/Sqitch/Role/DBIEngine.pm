@@ -4,7 +4,7 @@ use 5.010;
 use strict;
 use warnings;
 use utf8;
-use DBI;
+use DBI 1.631;
 use Moo::Role;
 use Try::Tiny;
 use App::Sqitch::X qw(hurl);
@@ -21,7 +21,19 @@ requires '_ts2char_format';
 requires '_char2ts';
 requires '_listagg_format';
 requires '_no_table_error';
+requires '_unique_error';
 requires '_handle_lookup_index';
+requires '_no_registry';
+requires 'initialized';
+
+# Called on connect if the registry schema does not exist.
+sub _handle_no_registry {
+    my ($self, $dbh) = @_;
+    # https://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
+    $dbh->set_err(undef, undef);
+    $self->_no_registry(1);
+    return;
+}
 
 after use_driver => sub {
     DBI->trace(1) if $_[0]->sqitch->verbosity > 2;
@@ -492,23 +504,31 @@ sub log_deploy_change {
     ));
 
     $self->_prepare_to_log(changes => $change);
-    $dbh->do(qq{
-        INSERT INTO changes (
-            $cols
+    try {
+        $dbh->do(qq{
+            INSERT INTO changes (
+                $cols
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, $ts)
+        }, undef,
+            $id,
+            $change->script_hash,
+            $name,
+            $proj,
+            $change->note,
+            $user,
+            $email,
+            $self->_char2ts( $change->timestamp ),
+            $change->planner_name,
+            $change->planner_email,
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, $ts)
-    }, undef,
-        $id,
-        $change->script_hash,
-        $name,
-        $proj,
-        $change->note,
-        $user,
-        $email,
-        $self->_char2ts( $change->timestamp ),
-        $change->planner_name,
-        $change->planner_email,
-    );
+    } catch {
+        hurl engine => __x(
+            'Cannot log change "{change}": The deploy script is not unique',
+            change => $name,
+        ) if $self->_unique_error;
+        die $_;
+    };
 
     if ( my @deps = $change->dependencies ) {
         $dbh->do(q{
@@ -1113,7 +1133,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2022 iovation Inc., David E. Wheeler
+Copyright (c) 2012-2023 iovation Inc., David E. Wheeler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

@@ -8,6 +8,8 @@ use Moo::Role;
 use App::Sqitch::Types qw(Str Int Bool HashRef);
 use Type::Utils qw(enum);
 use namespace::autoclean;
+use Locale::TextDomain qw(App-Sqitch);
+use App::Sqitch::X qw(hurl);
 
 requires 'sqitch';
 requires 'command';
@@ -119,6 +121,23 @@ around configure => sub {
     my ( $orig, $class, $config, $opt ) = @_;
     my $cmd = $class->command;
 
+    # Command disabled in strict mode.
+    hurl {
+        ident   => $cmd,
+        exitval => 2,
+        message => __x(
+            '"{command}" cannot be used in strict mode.\n'.
+            'Use explicity revert and deploy commands instead.',
+            command => $cmd,
+        ),
+    } if $config->get(
+        key => "$cmd.strict",
+        as  => 'bool',
+    ) // $config->get(
+        key => 'revert.strict',
+        as  => 'bool',
+    );
+
     my $params = $class->$orig($config, $opt);
     for my $key (qw(log_only target lock_timeout)) {
         $params->{$key} = $opt->{$key} if exists $opt->{$key};
@@ -228,6 +247,11 @@ the revert.
 Boolean value to indicate whether or not the default value for the prompt,
 should the user hit C<return>, is to accept the prompt or deny it.
 
+=head3 C<strict>
+
+Boolean value to indicate whether or not strict mode is enabled; if
+so, use of these commands is prohibited.
+
 =head3 C<target>
 
 The deployment target URI.
@@ -263,7 +287,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2022 iovation Inc., David E. Wheeler
+Copyright (c) 2012-2023 iovation Inc., David E. Wheeler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

@@ -44,9 +44,24 @@ jobs:
         image: vertica/vertica-ce:latest
         ports: [ 5433 ]
     steps:
+      # https://github.com/orgs/community/discussions/25678#discussioncomment-5242449
+      - name: Free Disk Space
+        run: rm -rf /opt/hostedtoolcache
       - name: Start CockroachDB
         run: docker run -d -p 26257:26257 cockroachdb/cockroach:latest start-single-node --insecure
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+      - name: Setup Perl
+        id: perl
+        uses: shogo82148/actions-setup-perl@v1
+        with: { perl-version: latest }
+      - name: Cache CPAN Modules
+        uses: actions/cache@v3
+        with:
+          path: local
+          key: perl-${{ steps.perl.outputs.perl-hash }}
+      - name: Install SQLite
+        env: { PERL5LIB: "${{ github.workspace }}/local/lib/perl5" }
+        run: .github/ubuntu/sqlite.sh
       - name: Setup Clients
         env:
           SKIP_DEPENDS: true
@@ -59,20 +74,8 @@ jobs:
           .github/ubuntu/pg.sh
           .github/ubuntu/snowflake.sh
           .github/ubuntu/vertica.sh
-      - name: Setup Perl
-        id: perl
-        uses: shogo82148/actions-setup-perl@v1
-        with: { perl-version: latest }
-      - name: Cache CPAN Modules
-        uses: actions/cache@v2
-        with:
-          path: local
-          key: perl-${{ steps.perl.outputs.perl-hash }}
       - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends --cpanfile dist/cpanfile
       - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends DBI DBD::ODBC DBD::Firebird DBD::Oracle DBD::mysql DBD::Pg Devel::Cover Devel::Cover::Report::Coveralls
-      - name: Install SQLite
-        env: { PERL5LIB: "${{ github.workspace }}/local/lib/perl5" }
-        run: .github/ubuntu/sqlite.sh
       - name: Run Tests
         env:
           PERL5LIB: "${{ github.workspace }}/local/lib/perl5"

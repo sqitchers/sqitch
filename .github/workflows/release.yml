@@ -10,13 +10,13 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
     - name: Check out the repo
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
     - name: Setup Perl
       id: perl
       uses: shogo82148/actions-setup-perl@v1
       with: { perl-version: latest }
     - name: Cache CPAN Modules
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: local
         key: perl-${{ steps.perl.outputs.perl-hash }}
@@ -47,7 +47,7 @@ jobs:
         DZIL_CONFIRMRELEASE_DEFAULT: "yes"
       run: |
         local/bin/dzil release
-        echo "::set-output name=tarball::$( ls App-Sqitch-*.tar.gz )"
+        echo "tarball=$( ls App-Sqitch-*.tar.gz )" >> $GITHUB_OUTPUT
     - name: Generate Release Changes
       run: xt/gen_release_changes
     - name: Create GitHub Release

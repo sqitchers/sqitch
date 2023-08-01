@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 238;
+use Test::More tests => 242;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Target;
@@ -440,6 +440,18 @@ BEGIN;
 COMMIT;
 EOF
     unlink $out;
+
+  # Test with file name having a double extension
+  $out = file 'test-add', 'duplicate_extension_test.sql.sql';
+  $add->_add('duplicate_extension_test.sql', $out, $tmpl, 'sqlite', 'add');
+  is_deeply +MockOutput->get_info, [[__x 'Created {file}', file => $out ]],
+      'Info should show $out created';
+  is_deeply +MockOutput->get_warn, [[__x(
+      'File {file} has a double extension of {ext}',
+      file => $out,
+      ext => 'sql',
+  )]], 'Should have warned about double extension';
+  unlink $out;
 };
 
 # First, test  with Template::Tiny.
@@ -459,7 +471,7 @@ $test_add->('Template::Tiny');
 shift @INC;
 delete $INC{'Template.pm'};
 SKIP: {
-    skip 'Template Toolkit not installed', 14 unless eval 'use Template; 1';
+    skip 'Template Toolkit not installed', 16 unless eval 'use Template; 1';
     $test_add->('Template Toolkit');
 
     # Template Toolkit should throw an error on template syntax errors.

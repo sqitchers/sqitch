@@ -363,6 +363,7 @@ DBI: {
     $DBI::errstr = 'object foo not found';
     ok $exa->_no_table_error, 'Should now have table error';
     ok $exa->_no_column_error, 'Should now have no column error';
+    ok !$exa->_unique_error, 'Unique constraints not supported by Exasol';
 }
 
 is_deeply [$exa->_limit_offset(8, 4)],
@@ -450,6 +451,7 @@ DBIEngineTest->run(
         is $dbh->selectcol_arrayref('SELECT current_schema')->[0],
             uc($reg2), 'The Sqitch schema should be the current schema';
     },
+    no_unique => 1,
 );
 
 done_testing;

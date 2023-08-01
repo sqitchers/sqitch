@@ -20,6 +20,7 @@ jobs:
           # * Image Source:      https://github.com/gvenzl/oci-oracle-xe/
           # * Image Issue:       https://github.com/gvenzl/oci-oracle-xe/issues/46
           # * DBD::Oracle Issue: https://github.com/perl5-dbi/DBD-Oracle/issues/131
+          # https://registry.hub.docker.com/v2/repositories/gvenzl/oracle-xe/tags\?page_size\=10000 | jq '.results[].name
           - { version: 21c, tag: 21,      service: XE, altUser: dbsnmp    }
           - { version: 18c, tag: 18-slim, service: XE, altUser: gsmuser    }
           - { version: 11g, tag: 11-slim, service: XE, altuser: sqitchtest }
@@ -39,7 +40,7 @@ jobs:
           --health-timeout 10s
           --health-retries 10
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Setup Clients
         run: .github/ubuntu/oracle.sh
       - name: Setup Perl
@@ -47,7 +48,7 @@ jobs:
         uses: shogo82148/actions-setup-perl@v1
         with: { perl-version: latest }
       - name: Cache CPAN Modules
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: local
           key: perl-${{ steps.perl.outputs.perl-hash }}

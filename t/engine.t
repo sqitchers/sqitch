@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 769;
+use Test::More tests => 775;
 # use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -14,6 +14,7 @@ use Test::Exception;
 use Test::NoWarnings;
 use Test::MockModule;
 use Test::MockObject::Extends;
+use Test::Warn qw(warning_is);
 use Time::HiRes qw(sleep);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
@@ -34,7 +35,7 @@ BEGIN {
     delete $ENV{USER};
 }
 
-can_ok $CLASS, qw(load new name no_prompt run_deploy run_revert run_verify uri);
+can_ok $CLASS, qw(load new name run_deploy run_revert run_verify uri);
 
 my ($is_deployed_tag, $is_deployed_change) = (0, 0);
 my @deployed_changes;
@@ -281,7 +282,7 @@ $engine->seen;
 
 # Make sure it's checked on revert and verify.
 for my $meth (qw(revert verify)) {
-    throws_ok { $engine->$meth } 'App::Sqitch::X', "Should get error from $meth";
+    throws_ok { $engine->$meth(undef, 1, 1) } 'App::Sqitch::X', "Should get error from $meth";
     is $@->ident, 'engine', qq{$meth registry error ident should be "engine"};
     is $@->message, __x(
         'No registry found in {destination}. Have you ever deployed?',
@@ -972,6 +973,12 @@ is_deeply $engine->seen, [
 is $state->{script_hash}, $latest_change_id,
     'The script hash should have been set to the change ID';
 
+# Have _no_registry return true.
+$mock_engine->mock(_no_registry => 1);
+ok $engine->_sync_plan, 'Sync the plan with no registry';
+is $plan->position, -1, 'Plan should start at position -1';
+$mock_engine->unmock('_no_registry');
+
 ##############################################################################
 # Test deploy.
 can_ok $CLASS, 'deploy';
@@ -1159,8 +1166,6 @@ is_deeply $engine->seen, [
 ], 'Should have deployed to change 2';
 is_deeply +MockOutput->get_info, [
     [__x 'Deploying changes to {destination}', destination =>  $engine->destination ],
-    # [__ 'ok'],
-    # [__ 'ok'],
 ], 'Should have emitted deploy announcement and successes';
 
 # Make sure we can deploy everything by change.
@@ -1911,7 +1916,7 @@ $engine->plan($plan);
 
 # Start with no deployed IDs.
 @deployed_changes = ();
-ok $engine->revert,
+ok $engine->revert(undef, 1, 1),
     'Should return success for no changes to revert';
 is_deeply +MockOutput->get_info, [
     [__ 'Nothing to revert (nothing deployed)']
@@ -1922,8 +1927,21 @@ is_deeply $engine->seen, [
 ], 'It should only have called deployed_changes()';
 is_deeply +MockOutput->get_info, [], 'Nothing should have been output';
 
+# Make sure deprecation warning happens.
+warning_is { $engine->revert }
+    "Engine::revert() requires the `prompt` and `prompt_default` arguments.\n",
+    'Should get warning omitting required arguments';
+is_deeply +MockOutput->get_info, [
+    [__ 'Nothing to revert (nothing deployed)']
+], 'Should have notified that there is nothing to revert';
+is_deeply $engine->seen, [
+    [lock_destination => []],
+    [deployed_changes => undef],
+], 'It should only have called deployed_changes()';
+is_deeply +MockOutput->get_info, [], 'Nothing should have been output';
+
 # Try reverting to an unknown change.
-throws_ok { $engine->revert('nonexistent') } 'App::Sqitch::X',
+throws_ok { $engine->revert('nonexistent', 1, 1) } 'App::Sqitch::X',
     'Revert should die on unknown change';
 is $@->ident, 'revert', 'Should be another "revert" error';
 is $@->message, __x(
@@ -1939,7 +1957,7 @@ is_deeply $engine->seen, [ [lock_destination => []], ['change_id_for', {
 is_deeply +MockOutput->get_info, [], 'Nothing should have been output';
 
 # Try reverting to an unknown change ID.
-throws_ok { $engine->revert('8d77c5f588b60bc0f2efcda6369df5cb0177521d') } 'App::Sqitch::X',
+throws_ok { $engine->revert('8d77c5f588b60bc0f2efcda6369df5cb0177521d', 1, 1) } 'App::Sqitch::X',
     'Revert should die on unknown change ID';
 is $@->ident, 'revert', 'Should be another "revert" error';
 is $@->message, __x(
@@ -1955,7 +1973,7 @@ is_deeply $engine->seen, [ [lock_destination => []], ['change_id_for', {
 is_deeply +MockOutput->get_info, [], 'Nothing should have been output';
 
 # Revert an undeployed change.
-throws_ok { $engine->revert('@alpha') } 'App::Sqitch::X',
+throws_ok { $engine->revert('@alpha', 1, 1) } 'App::Sqitch::X',
     'Revert should die on undeployed change';
 is $@->ident, 'revert', 'Should be another "revert" error';
 is $@->message, __x(
@@ -1973,7 +1991,7 @@ is_deeply +MockOutput->get_info, [], 'Nothing should have been output';
 # Revert to a point with no following changes.
 $offset_change = $changes[0];
 push @resolved => $offset_change->id;
-ok $engine->revert($changes[0]->id),
+ok $engine->revert($changes[0]->id, 1, 1),
     'Should return success for revert even with no changes';
 is_deeply +MockOutput->get_info, [
     [__x(
@@ -1996,7 +2014,7 @@ is_deeply $engine->seen, [
 ], 'Should have called change_id_for and deployed_changes_since';
 
 # Revert with nothing deployed.
-ok $engine->revert,
+ok $engine->revert(undef, 1, 1),
     'Should return success for known but undeployed change';
 is_deeply +MockOutput->get_info, [
     [__ 'Nothing to revert (nothing deployed)']
@@ -2033,7 +2051,7 @@ my @dbchanges;
 } @changes[0..3];
 
 MockOutput->ask_yes_no_returns(1);
-is $engine->revert, $engine, 'Revert all changes';
+is $engine->revert(undef, 1, 1), $engine, 'Revert all changes';
 is_deeply $engine->seen, [
     [lock_destination => []],
     [deployed_changes => undef],
@@ -2060,6 +2078,11 @@ is_deeply +MockOutput->get_info_literal, [
     ['  - roles ..', '........', ' '],
 ], 'It should have said it was reverting all changes and listed them';
 is_deeply +MockOutput->get_info, [
+    [__ 'Would revert the following changes:'],
+    ['roles'],
+    ['users @alpha'],
+    ['widgets @beta'],
+    ['lolz'],
     [__ 'ok'],
     [__ 'ok'],
     [__ 'ok'],
@@ -2068,7 +2091,7 @@ is_deeply +MockOutput->get_info, [
 
 # Try with log-only.
 ok $engine->log_only(1), 'Enable log_only';
-ok $engine->revert(undef, 1), 'Revert all changes log-only';
+ok $engine->revert(undef, 1, 1), 'Revert all changes log-only';
 delete @{ $_ }{qw(_path_segments _rework_tags)} for @dbchanges; # These need to be invisible.
 is_deeply $engine->seen, [
     [lock_destination => []],
@@ -2092,6 +2115,11 @@ is_deeply +MockOutput->get_info_literal, [
     ['  - roles ..', '........', ' '],
 ], 'It should have said it was reverting all changes and listed them';
 is_deeply +MockOutput->get_info, [
+    [__ 'Would revert the following changes:'],
+    ['roles'],
+    ['users @alpha'],
+    ['widgets @beta'],
+    ['lolz'],
     [__ 'ok'],
     [__ 'ok'],
     [__ 'ok'],
@@ -2100,7 +2128,7 @@ is_deeply +MockOutput->get_info, [
 
 # Should exit if the revert is declined.
 MockOutput->ask_yes_no_returns(0);
-throws_ok { $engine->revert } 'App::Sqitch::X', 'Should abort declined revert';
+throws_ok { $engine->revert(undef, 1, 1) } 'App::Sqitch::X', 'Should abort declined revert';
 is $@->ident, 'revert', 'Declined revert ident should be "revert"';
 is $@->exitval, 1, 'Should have exited with value 1';
 is $@->message, __ 'Nothing reverted', 'Should have exited with proper message';
@@ -2115,13 +2143,17 @@ is_deeply +MockOutput->get_ask_yes_no, [
     ), 1],
 ], 'Should have prompt to revert all changes';
 is_deeply +MockOutput->get_info, [
+    [__ 'Would revert the following changes:'],
+    ['roles'],
+    ['users @alpha'],
+    ['widgets @beta'],
+    ['lolz'],
 ], 'It should have emitted nothing else';
 
 # Revert all changes with no prompt.
 MockOutput->ask_yes_no_returns(1);
 $engine->log_only(0);
-$engine->no_prompt(1);
-ok $engine->revert, 'Revert all changes with no prompt';
+ok $engine->revert(undef, 0, 1), 'Revert all changes with no prompt';
 is_deeply $engine->seen, [
     [lock_destination => []],
     [deployed_changes => undef],
@@ -2148,6 +2180,11 @@ is_deeply +MockOutput->get_info, [
         'Reverting all changes from {destination}',
         destination => $engine->destination,
     )],
+    [__ 'Will revert the following changes:'],
+    ['roles'],
+    ['users @alpha'],
+    ['widgets @beta'],
+    ['lolz'],
     [__ 'ok'],
     [__ 'ok'],
     [__ 'ok'],
@@ -2155,11 +2192,10 @@ is_deeply +MockOutput->get_info, [
 ], 'And the revert successes should be emitted';
 
 # Now just revert to an earlier change.
-$engine->no_prompt(0);
 $offset_change = $dbchanges[1];
 push @resolved => $offset_change->id;
 @deployed_changes = @deployed_changes[2..3];
-ok $engine->revert('@alpha'), 'Revert to @alpha';
+ok $engine->revert('@alpha', 1, 1), 'Revert to @alpha';
 
 delete $dbchanges[1]->{_rework_tags}; # These need to be invisible.
 is_deeply $engine->seen, [
@@ -2185,6 +2221,9 @@ is_deeply +MockOutput->get_info_literal, [
     ['  - widgets @beta ..', '', ' '],
 ], 'Output should show what it reverts to';
 is_deeply +MockOutput->get_info, [
+    [__ 'Would revert the following changes:'],
+    ['widgets @beta'],
+    ['lolz'],
     [__ 'ok'],
     [__ 'ok'],
 ], 'And the revert successes should be emitted';
@@ -2192,7 +2231,7 @@ is_deeply +MockOutput->get_info, [
 MockOutput->ask_yes_no_returns(0);
 $offset_change = $dbchanges[1];
 push @resolved => $offset_change->id;
-throws_ok { $engine->revert('@alpha') } 'App::Sqitch::X',
+throws_ok { $engine->revert('@alpha', 1, 1) } 'App::Sqitch::X',
     'Should abort declined revert to @alpha';
 is $@->ident, 'revert:confirm', 'Declined revert ident should be "revert:confirm"';
 is $@->exitval, 1, 'Should have exited with value 1';
@@ -2211,17 +2250,19 @@ is_deeply +MockOutput->get_ask_yes_no, [
     ), 1],
 ], 'Should have prompt to revert to @alpha';
 is_deeply +MockOutput->get_info, [
-], 'It should have emitted nothing else';
+    [__ 'Would revert the following changes:'],
+    ['widgets @beta'],
+    ['lolz'],
+], 'Should emit a detailed prompt.';
 
 # Try to revert just the last change with no prompt
 MockOutput->ask_yes_no_returns(1);
-$engine->no_prompt(1);
 my $rev_file = $dbchanges[-1]->revert_file; # Grab before deleting _rework_tags.
 my $rtags = delete $dbchanges[-1]->{_rework_tags}; # These need to be invisible.
 $offset_change = $dbchanges[-1];
 push @resolved => $offset_change->id;
 @deployed_changes = $deployed_changes[-1];
-ok $engine->revert('@HEAD^'), 'Revert to @HEAD^';
+ok $engine->revert('@HEAD^', 0, 1), 'Revert to @HEAD^';
 is_deeply $engine->seen, [
     [lock_destination => []],
     [change_id_for => { change_id => undef, change => '', tag => 'HEAD', project => 'sql' }],
@@ -2241,6 +2282,8 @@ is_deeply +MockOutput->get_info, [
         destination => $engine->destination,
         change      => $dbchanges[-1]->format_name_with_tags,
     )],
+    [__ 'Will revert the following changes:'],
+    ['lolz'],
     [__ 'ok'],
 ], 'And the header and "ok" should be emitted';
 

@@ -95,9 +95,9 @@ has dbh => (
         # Make sure we support this version.
         my @v = split /[.]/ => $dbh->{sqlite_version};
         hurl sqlite => __x(
-            'Sqitch requires SQLite 3.7.11 or later; DBD::SQLite was built with {version}',
+            'Sqitch requires SQLite 3.8.6 or later; DBD::SQLite was built with {version}',
             version => $dbh->{sqlite_version}
-        ) unless $v[0] > 3 || ($v[0] == 3 && ($v[1] > 7 || ($v[1] == 7 && $v[2] >= 11)));
+        ) unless $v[0] > 3 || ($v[0] == 3 && ($v[1] > 8 || ($v[1] == 8 && $v[2] >= 6)));
 
         return $dbh;
     }
@@ -143,7 +143,7 @@ sub sqlite3 { @{ shift->_sqlite3 } }
 
 sub _version_query { 'SELECT CAST(ROUND(MAX(version), 1) AS TEXT) FROM releases' }
 
-sub initialized {
+sub _initialized {
     my $self = shift;
     return $self->dbh->selectcol_arrayref(q{
         SELECT EXISTS(
@@ -152,7 +152,7 @@ sub initialized {
     }, undef, 'changes')->[0];
 }
 
-sub initialize {
+sub _initialize {
     my $self   = shift;
     hurl engine => __x(
         'Sqitch database {database} already initialized',
@@ -173,6 +173,10 @@ sub _no_table_error  {
 
 sub _no_column_error  {
     return $DBI::errstr && $DBI::errstr =~ /^\Qno such column:/;
+}
+
+sub _unique_error  {
+    return $DBI::errstr && $DBI::errstr =~ /^\QUNIQUE constraint failed:/;
 }
 
 sub _regex_op { 'REGEXP' }
@@ -284,7 +288,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2022 iovation Inc., David E. Wheeler
+Copyright (c) 2012-2023 iovation Inc., David E. Wheeler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

@@ -98,13 +98,8 @@ has dbh => (
             Callbacks         => {
                 connected => sub {
                     my $dbh = shift;
-                    try {
-                        $dbh->do(
-                            'SET search_path = ' . $dbh->quote($self->registry)
-                        );
-                        # https://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
-                        $dbh->set_err(undef, undef) if $dbh->err;
-                    };
+                    $dbh->do('SET search_path = ' . $dbh->quote($self->registry))
+                        or $self->_handle_no_registry($dbh);
                     return;
                 },
             },
@@ -128,7 +123,7 @@ sub _client_opts {
     );
 }
 
-sub initialized {
+sub _initialized {
     my $self = shift;
     return $self->dbh->selectcol_arrayref(q{
         SELECT EXISTS(
@@ -137,7 +132,7 @@ sub initialized {
     }, undef, $self->registry)->[0];
 }
 
-sub initialize {
+sub _initialize {
     my $self   = shift;
     my $schema = $self->registry;
     hurl engine => __x(
@@ -167,9 +162,6 @@ sub _run_registry_file {
     );
     (my $sql = scalar $file->slurp) =~ s{:"registry"}{$schema}g;
 
-    # No LONG VARCHAR before Vertica 7.
-    $sql =~ s/LONG //g if $maj < 7;
-
     # Write out the temporary file.
     require File::Temp;
     my $fh = File::Temp->new;
@@ -186,6 +178,10 @@ sub _no_table_error  {
 
 sub _no_column_error  {
     return $DBI::state && $DBI::state eq '42703'; # ERRCODE_UNDEFINED_COLUMN
+}
+
+sub _unique_error  {
+    return $DBI::state && $DBI::state eq '23505'; # ERRCODE_UNIQUE_VIOLATION
 }
 
 sub _dt($) {
@@ -563,7 +559,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2022 iovation Inc., David E. Wheeler
+Copyright (c) 2012-2023 iovation Inc., David E. Wheeler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

@@ -88,7 +88,7 @@ has dbh => (
             Callbacks             => {
                 connected => sub {
                     my $dbh = shift;
-                    $dbh->do("SET SESSION $_") for (
+                    $dbh->do("SET SESSION $_") or return for (
                         q{character_set_client   = 'utf8'},
                         q{character_set_server   = 'utf8'},
                         ($dbh->{mysql_serverversion} || 0 < 50500 ? () : (q{default_storage_engine = 'InnoDB'})),
@@ -104,15 +104,6 @@ has dbh => (
                             error_for_division_by_zero
                         )) . q{'},
                     );
-                    if (!$dbh->{mysql_serverversion} && DBI->VERSION < 1.631) {
-                        # Prior to 1.631, callbacks were inner handles and
-                        # mysql_* aren't set yet. So set InnoDB in a try block.
-                        try {
-                            $dbh->do(q{SET SESSION default_storage_engine = 'InnoDB'});
-                        };
-                        # https://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
-                        $dbh->set_err(undef, undef) if $dbh->err;
-                    }
                     return;
                 },
             },
@@ -277,7 +268,7 @@ has initialized => (
     }
 );
 
-sub initialize {
+sub _initialize {
     my $self   = shift;
     hurl engine => __x(
         'Sqitch database {database} already initialized',
@@ -365,6 +356,10 @@ sub _no_table_error  {
 
 sub _no_column_error  {
     return $DBI::state && $DBI::state eq '42S22' && $DBI::err == '1054'; # ER_BAD_FIELD_ERROR
+}
+
+sub _unique_error  {
+    return $DBI::state && $DBI::state eq '23000' && $DBI::err == '1062'; # ER_DUP_ENTRY
 }
 
 sub _regex_op { 'REGEXP' }
@@ -571,7 +566,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2022 iovation Inc., David E. Wheeler
+Copyright (c) 2012-2023 iovation Inc., David E. Wheeler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

@@ -1,5 +1,70 @@
 Revision history for Perl extension App::Sqitch
 
+1.4.0 2023-08-01T23:37:30Z
+     - Fixed Snowflake warehouse and role setup to properly quote identifiers
+       unless they're valid unquoted identifiers or already quoted. Thanks to
+       @marc-marketparts for the report (#685).
+     - Fixed a bug reworking a change when a rework directory is configured
+       but not created. Thanks to @jfeaver for the report (#686).
+     - Output the list of changes to be deployed or reverted when `--verbose`
+       is specified at least twice. Thanks to @vectro for the PR (#702).
+     - Fixed the formatting of the log and plan commands to allow empty or `0`
+       separators in lists of things (such as `%{0}t` for a list of tags).
+       Thanks to @web-vertalo for the pull request (#703).
+     - Updated the MySQL Tutorial to use 5.7 features. Thanks to Vlad
+       Safronov for the PR (#705).
+     - Deprecated the `no_prompt` and `no_prompt` attributes of
+       App::Sqitch::Engine in favor of passing booleans to the `revert` and
+       `verify` methods. The attributes still exist for reverse compatibility,
+       but now emit warnings and will be removed in the future. Thanks to
+       Thanks to @vectro for the PR (#704).
+     - Added a warning for a double extension on the file names created
+       by the `add` command. Thanks to @blairjordan for the PR (#724)!
+     - Added the `revert.strict` boolean configuration variable which, when
+       set to true, requires the specification of a change to revert to. It
+       also disables the `rebase` and `checkout` commands, though the
+       `rebase.strict` and `checkout.strict` variables, respectively, may
+       override it. Use `revert.strict` to prevent accidental reverts in
+       sensitive environments. Thanks to @vectro for the PR (#719; revised in
+       #735)!
+     - Fixed test failures due to a bug fix in the Perl URI module
+       (libwww-perl/URI#13). Thanks to @bobfang for the report (#744)!
+     - Fixed test failures due to a change in the generation of DBI DSN by
+       URI::Oracle introduced by libwww-perl/URI-db#23.
+     - Added a format option `%F` to `sqitch plan` that prints the path for
+       the deploy file for each migration in the plan.
+     - Changed the default location for the Oracle `sqlplus` client when the
+       `ORACLE_HOME` environment variable is set. It now returns either
+       `$ORACLE_HOME/bin/sqlplus` or `$ORACLE_HOME/sqlplus` if it exists
+       and is executable (and ends in `.exe` on Windows). Otherwise it simply
+       returns `sqlplus` as before, assuming it will be found in the path.
+       Thanks to @vectro for the suggestion (#747).
+     - Increased the required version of DBI to 1.631 or higher and removed
+       a MySQL engine workaround for older versions.
+     - Added detection of a missing registry schema on connect and conditions
+       to avoid querying it when it does not exist. Fixes an issue where
+       Sqitch might find a project record in the current schema instead of the
+       expected registry schema. Thanks to @vectro for the report and
+       investigation (#668)!
+     - Fixed Snowflake and MySQL to properly raise errors on session query
+       failures immediately after connection.
+     - Fixed the handling of unique violations for deploy script hash
+       uniqueness so that it no longer returns a database error but properly
+       reports the issue in a more human-friendly error message. Thanks to
+       Stefan Badenhorst for the reminder (#630).
+     - Updated the registry SQL scripts for Vertica to always enable primary
+       key and unique constraints. Unique constraints are now enabled for
+       all database engines except Exasol and Snowflake.
+     - Dropped support for Vertica 7.1, as unique constraint enforcement was
+       not added until Vertica 7.2.
+     - Increased minimum SQLite versions to 3.8.6, when unique constraint
+       enforcement was added.
+     - Removed remaining uses of the smartmatch operator, thus eliminating
+       the Perl 5.38 warnings about its deprecation. (#769)
+     - Added Cockroach to the list of valid engines recognized in command-line
+       arguments (and a test to ensure new engines won't be omitted in the
+       future). Thanks to @NOBLES5E for the spot (#772)!
+
 1.3.1  2022-10-01T18:49:30Z
      - Fixed a bug introduced in v1.3.0 where the Postgres engine would
        always pass the port to `psql`, thus ignoring the `PGPORT` environment
@@ -37,7 +102,7 @@ Revision history for Perl extension App::Sqitch
      - Now require URI::db v0.20 for Cockroach and Yugabyte URI support.
      - Dropped support for MySQL 5.0.
      - Added explicit sorting for aggregated lists (such as the tags associated
-       with a commit) to the MySQL, Exasol, Snowflake, and Postgres (8.4 and
+       with a commit) to the MySQL, Exasol, Snowflake, and Postgres (9.0 and
        higher) engines.
      - Fixed slow deploys on MariaDB thanks to fractional timestamp support
        added in 5.03.05. Thanks to @rbrigot for the PR (#658)!

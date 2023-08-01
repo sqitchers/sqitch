@@ -12,14 +12,14 @@ jobs:
     strategy:
       matrix:
         include:
-         - { label: '11.0', version: 11.0.0-0, image: vertica/vertica-ce,     db: VMart }
+         - { label: '12.0', version: 12.0.4-0, image: vertica/vertica-ce,     db: VMart }
+         - { label: '11.0', version: 11.1.1-0, image: vertica/vertica-ce,     db: VMart }
          - { label: '10.1', version: 10.1.1-0, image: vertica/vertica-ce,     db: VMart }
          - { label: '9.2',  version: 9.2.1-0,  image: cjonesy/docker-vertica, db: docker }
          - { label: '9.1',  version: 9.1.1-0,  image: cjonesy/docker-vertica, db: docker }
          - { label: '8.1',  version: 8.1.1-0,  image: cjonesy/docker-vertica, db: docker }
          - { label: '8.0',  version: 8.0.0-0,  image: cjonesy/docker-vertica, db: docker }
          - { label: '7.2',  version: 7.2.3-18, image: cjonesy/docker-vertica, db: docker }
-         - { label: '7.1',  version: 7.1.2-21, image: cjonesy/docker-vertica, db: docker }
     name: 🔺 Vertica ${{ matrix.label }}
     runs-on: ubuntu-latest
     services:
@@ -27,7 +27,7 @@ jobs:
         image: ${{ matrix.image }}:${{ matrix.version }}
         ports: [ 5433 ]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Setup Clients
         run: .github/ubuntu/vertica.sh
       - name: Setup Perl
@@ -35,7 +35,7 @@ jobs:
         uses: shogo82148/actions-setup-perl@v1
         with: { perl-version: latest }
       - name: Cache CPAN Modules
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: local
           key: perl-${{ steps.perl.outputs.perl-hash }}

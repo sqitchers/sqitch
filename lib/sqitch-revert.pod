@@ -207,6 +207,11 @@ are merged in the following priority order:
 
 =back
 
+=item C<revert.strict>
+
+A boolean value indicating whether or not the change to revert to must
+be specified.
+
 =item C<[revert.no_prompt]>
 
 A boolean value indicating whether or not to disable the prompt before

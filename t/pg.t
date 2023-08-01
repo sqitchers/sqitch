@@ -345,15 +345,15 @@ DBI: {
         q{ARRAY(SELECT * FROM UNNEST( array_agg(%1$s ORDER BY %1$s) ) a WHERE a IS NOT NULL)},
         'Should use ORDER BY in listagg_format on v9.2';
 
-    $dbh->{pg_server_version} = 80400;
+    $dbh->{pg_server_version} = 90000;
     is $pg->_listagg_format,
         q{ARRAY(SELECT * FROM UNNEST( array_agg(%1$s ORDER BY %1$s) ) a WHERE a IS NOT NULL)},
-        'Should use ORDER BY in listagg_format on v8.4';
+        'Should use ORDER BY in listagg_format on v9.0';
 
-    $dbh->{pg_server_version} = 80300;
+    $dbh->{pg_server_version} = 80400;
     is $pg->_listagg_format,
         q{ARRAY(SELECT * FROM UNNEST( array_agg(%s) ) a WHERE a IS NOT NULL)},
-        'Should not use ORDER BY in listagg_format on v8.3';
+        'Should not use ORDER BY in listagg_format on v8.4';
 }
 
 ##############################################################################

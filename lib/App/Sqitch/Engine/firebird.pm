@@ -184,7 +184,7 @@ sub is_deployed_tag {
     }, undef, $tag->id)->[0];
 }
 
-sub initialized {
+sub _initialized {
     my $self = shift;
 
     # Try to connect.
@@ -201,7 +201,7 @@ sub initialized {
     }, undef, 'CHANGES')->[0];
 }
 
-sub initialize {
+sub _initialize {
     my $self = shift;
     my $uri  = $self->registry_uri;
     hurl engine => __x(
@@ -292,6 +292,10 @@ sub _no_table_error  {
 
 sub _no_column_error  {
     return $DBI::errstr && $DBI::errstr =~ /^-Column unknown/m;
+}
+
+sub _unique_error  {
+    return $DBI::errstr && $DBI::errstr =~ /no 2 table rows can have duplicate column values$/m;
 }
 
 sub _regex_op { 'SIMILAR TO' }               # NOT good match for
@@ -812,23 +816,31 @@ sub log_deploy_change {
         planner_email
         committed_at
     ));
-    $dbh->do(qq{
-        INSERT INTO changes (
-            $cols
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, $ts)
-    }, undef,
-        $id,
-        $change->script_hash,
-        $name,
-        $proj,
-        $change->note,
-        $user,
-        $email,
-        $self->_char2ts( $change->timestamp ),
-        $change->planner_name,
-        $change->planner_email,
-    );
+    try {
+        $dbh->do(qq{
+            INSERT INTO changes (
+                $cols
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, $ts)
+        }, undef,
+            $id,
+            $change->script_hash,
+            $name,
+            $proj,
+            $change->note,
+            $user,
+            $email,
+            $self->_char2ts( $change->timestamp ),
+            $change->planner_name,
+            $change->planner_email,
+        );
+    } catch {
+        hurl engine => __x(
+            'Cannot log change "{change}": The deploy script is not unique',
+            change => $name,
+        ) if $self->_unique_error;
+        die $_;
+    };
 
     if ( my @deps = $change->dependencies ) {
         foreach my $dep (@deps) {
@@ -984,7 +996,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2022 iovation Inc., David E. Wheeler
+Copyright (c) 2012-2023 iovation Inc., David E. Wheeler
 
 Copyright (c) 2013 Ștefan Suciu
 

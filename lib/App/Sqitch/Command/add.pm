@@ -407,6 +407,17 @@ sub _add {
         file  => $file,
         error => $!
     );
+    
+    # Warn if the file name has a double extension
+    if ($file =~ m/\.(\w+)\.\1+$/) {
+        my $ext = $1;
+        $self->warn(__x(
+            'File {file} has a double extension of {ext}',
+            file => $file,
+            ext  => $ext,
+        ));
+    }
+    
     $self->info(__x 'Created {file}', file => $file);
 }
 
@@ -532,7 +543,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2022 iovation Inc., David E. Wheeler
+Copyright (c) 2012-2023 iovation Inc., David E. Wheeler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

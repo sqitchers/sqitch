@@ -113,6 +113,7 @@ use Try::Tiny;
 use App::Sqitch;
 use App::Sqitch::Target;
 use App::Sqitch::Plan;
+use File::Temp 'tempdir';
 use lib 't/lib';
 use DBIEngineTest;
 use TestConfig;
@@ -142,11 +143,36 @@ is $ora->name, 'Oracle', 'Name should be "Oracle"';
 my $client = 'sqlplus' . (App::Sqitch::ISWIN ? '.exe' : '');
 is $ora->client, $client, 'client should default to sqlplus';
 ORACLE_HOME: {
-    local $ENV{ORACLE_HOME} = '/foo/bar';
+    my $iswin = App::Sqitch::ISWIN || $^O eq 'cygwin';
+    my $cli = 'sqlplus' . ($iswin ? '.exe' : '');
+
+    # Start with no ORACLE_HOME.
     my $target = App::Sqitch::Target->new(sqitch => $sqitch);
     isa_ok my $ora = $CLASS->new(sqitch => $sqitch, target => $target), $CLASS;
-    is $ora->client, Path::Class::file('/foo/bar', $client)->stringify,
-        'client should use $ORACLE_HOME';
+    is $ora->client, $cli, 'client should default to sqlplus';
+
+    # Put client in ORACLE_HOME.
+    my $tmpdir = tempdir(CLEANUP => 1);
+    my $tmp = Path::Class::Dir->new("$tmpdir");
+    my $sqlplus = $tmp->file($cli);
+    $sqlplus->touch;
+    chmod '0755', $sqlplus unless $iswin;
+
+    local $ENV{ORACLE_HOME} = "$tmpdir";
+    $target = App::Sqitch::Target->new(sqitch => $sqitch);
+    isa_ok $ora = $CLASS->new(sqitch => $sqitch, target => $target), $CLASS;
+    is $ora->client, $sqlplus, 'client should use $ORACLE_HOME';
+
+    # ORACLE_HOME/bin takes precedence.
+    my $bin = Path::Class::Dir->new("$tmpdir", 'bin');
+    $bin->mkpath;
+    $sqlplus = $bin->file($cli);
+    $sqlplus->touch;
+    chmod '0755', $sqlplus unless $iswin;
+
+    $target = App::Sqitch::Target->new(sqitch => $sqitch);
+    isa_ok $ora = $CLASS->new(sqitch => $sqitch, target => $target), $CLASS;
+    is $ora->client, $sqlplus, 'client should use $ORACLE_HOME/bin';
 }
 
 is $ora->registry, '', 'registry default should be empty';
@@ -243,7 +269,7 @@ $target = App::Sqitch::Target->new(
     sqitch => $sqitch,
     uri    => URI::db->new('db:oracle:secure_user_tns.tpg'),
 );
-is $target->uri->dbi_dsn, 'dbi:Oracle:secure_user_tns.tpg',
+like $target->uri->dbi_dsn, qr{^dbi:Oracle:(?:service_name=)?secure_user_tns\.tpg$},
     'Database-only URI should produce proper DSN';
 isa_ok $ora = $CLASS->new(
     sqitch => $sqitch,
@@ -263,7 +289,7 @@ $target = App::Sqitch::Target->new(
     sqitch => $sqitch,
     uri    => URI::db->new('db:oracle://:@/wallet_tns_name'),
 );
-is $target->uri->dbi_dsn, 'dbi:Oracle:wallet_tns_name',
+like $target->uri->dbi_dsn, qr{dbi:Oracle:(?:service_name=)?wallet_tns_name$},
     'Database and double-slash URI should produce proper DSN';
 isa_ok $ora = $CLASS->new(
     sqitch => $sqitch,

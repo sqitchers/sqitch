@@ -75,10 +75,17 @@ has tmpdir => (
 sub key    { 'oracle' }
 sub name   { 'Oracle' }
 sub driver { 'DBD::Oracle 1.23' }
-sub default_registry { '' }
+sub default_registry { $_[0]->username || '' }
 
 sub default_client {
-    file( ($ENV{ORACLE_HOME} || ()), 'sqlplus' )->stringify
+    if ($ENV{ORACLE_HOME}) {
+        my $bin = 'sqlplus' . (App::Sqitch::ISWIN || $^O eq 'cygwin' ? '.exe' : '');
+        my $path = file $ENV{ORACLE_HOME}, 'bin', $bin;
+        return $path->stringify if -f $path && -x $path;
+        $path = file $ENV{ORACLE_HOME}, $bin;
+        return $path->stringify if -f $path && -x $path;
+    }
+    return 'sqlplus';
 }
 
 has dbh => (
@@ -110,11 +117,8 @@ has dbh => (
                         nls_timestamp_tz_format
                     );
                     if (my $schema = $self->registry) {
-                        try {
-                            $dbh->do("ALTER SESSION SET CURRENT_SCHEMA = $schema");
-                            # https://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
-                            $dbh->set_err(undef, undef) if $dbh->err;
-                        };
+                        $dbh->do("ALTER SESSION SET CURRENT_SCHEMA = $schema")
+                            or $self->_handle_no_registry($dbh);
                     }
                     return;
                 },
@@ -258,14 +262,14 @@ sub is_deployed_change {
     )->[0];
 }
 
-sub initialized {
+sub _initialized {
     my $self = shift;
     return $self->dbh->selectcol_arrayref(q{
         SELECT 1
           FROM all_tables
          WHERE owner = UPPER(?)
            AND table_name = 'CHANGES'
-    }, undef, $self->registry || $self->username)->[0];
+    }, undef, $self->registry)->[0];
 }
 
 sub _log_event {
@@ -452,7 +456,7 @@ sub _registry_variable {
     );
 }
 
-sub initialize {
+sub _initialize {
     my $self   = shift;
     my $schema = $self->registry;
     hurl engine => __ 'Sqitch already initialized' if $self->initialized;
@@ -691,6 +695,10 @@ sub _no_column_error  {
     return $DBI::err && $DBI::err == 904; # ORA-00904: invalid identifier
 }
 
+sub _unique_error  {
+    return $DBI::err && $DBI::err == 1; # ORA-00001: unique constraint violated
+}
+
 sub _script {
     my $self = shift;
     my $uri  = $self->uri;
@@ -814,7 +822,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2022 iovation Inc., David E. Wheeler
+Copyright (c) 2012-2023 iovation Inc., David E. Wheeler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

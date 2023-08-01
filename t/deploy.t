@@ -320,7 +320,7 @@ for my $bad (qw(foo bad gar)) {
 # Make sure we get an exception for unknown args.
 throws_ok { $deploy->execute(qw(greg)) } 'App::Sqitch::X',
     'Should get an exception for unknown arg';
-is $@->ident, 'deploy', 'Unknow arg ident should be "deploy"';
+is $@->ident, 'deploy', 'Unknown arg ident should be "deploy"';
 is $@->message, __nx(
     'Unknown argument "{arg}"',
     'Unknown arguments: {arg}',
@@ -330,7 +330,7 @@ is $@->message, __nx(
 
 throws_ok { $deploy->execute(qw(greg jon)) } 'App::Sqitch::X',
     'Should get an exception for unknown args';
-is $@->ident, 'deploy', 'Unknow args ident should be "deploy"';
+is $@->ident, 'deploy', 'Unknown args ident should be "deploy"';
 is $@->message, __nx(
     'Unknown argument "{arg}"',
     'Unknown arguments: {arg}',

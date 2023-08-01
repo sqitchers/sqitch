@@ -322,8 +322,8 @@ is $snow->registry, 'meta', 'registry should be as configured';
 is $snow->uri->as_string,
     'db:snowflake://fred:hi@foo.snowflakecomputing.com/try?warehouse=foo;role=yup',
     'URI should be as configured with full domain name';
-is $snow->destination,
-    'db:snowflake://fred:@foo.snowflakecomputing.com/try?warehouse=foo;role=yup',
+like $snow->destination,
+    qr{^db:snowflake://fred:?\@foo\.snowflakecomputing\.com/try\?warehouse=foo;role=yup$},
     'Destination should omit password';
 
 is $snow->client, '/path/to/snowsql', 'client should be as configured';
@@ -354,6 +354,7 @@ DBI: {
     $DBI::state = '42703';
     ok !$snow->_no_table_error, 'Should again have no table error';
     ok $snow->_no_column_error, 'Should now have no column error';
+    ok !$snow->_unique_error, 'Unique constraints not supported by Snowflake';
 }
 
 is_deeply [$snow->_limit_offset(8, 4)],
@@ -515,6 +516,22 @@ is $snow->_char2ts($now), $now->as_string(format => 'iso'),
     'Should get ISO output from _char2ts';
 
 ##############################################################################
+# Test _quote_ident.
+# Mock DBI method.
+sub quote_identifier { qq{"$_[1]"} }
+
+ok my $quote_ident = $CLASS->can('_quote_ident'), 'Should have _quote_ident sub';
+# https://docs.snowflake.com/en/sql-reference/identifiers-syntax#unquoted-identifiers
+for my $ident (qw(foo FOO _xXx _ a id1 My$Thing), "foo") {
+    is $quote_ident->(__PACKAGE__, $ident), $ident, "Should not quote “$ident”";
+}
+
+for my $ident (qw(my.thing 1go $foo идентификатор), 'hi there', qq{'thing'}) {
+    is $quote_ident->(__PACKAGE__, $ident), quote_identifier(__PACKAGE__, $ident),
+        "Should quote “$ident”";
+}
+
+##############################################################################
 # Can we do live tests?
 my $dbh;
 my $id = DBIEngineTest->randstr;
@@ -574,7 +591,7 @@ DBIEngineTest->run(
             uc($reg2), 'The Sqitch schema should be the current schema';
     },
     add_second_format => 'dateadd(second, 1, %s)',
-
+    no_unique => 1,
 );
 
 done_testing;

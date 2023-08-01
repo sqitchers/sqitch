@@ -192,8 +192,6 @@ has dbh => (
         my $self = shift;
         $self->use_driver;
         my $uri = $self->uri;
-        my $wh = $self->warehouse;
-        my $role = $self->role;
         DBI->connect($uri->dbi_dsn, $self->username, $self->password, {
             PrintError        => 0,
             RaiseError        => 0,
@@ -209,28 +207,38 @@ has dbh => (
             Callbacks         => {
                 connected => sub {
                     my $dbh = shift;
-                    try {
-                        $dbh->do($_) for (
-                            ($role ? ("USE ROLE $role") : ()),
-                            "ALTER WAREHOUSE $wh RESUME IF SUSPENDED",
-                            "USE WAREHOUSE $wh",
-                            'USE SCHEMA ' . $self->registry,
-                            'ALTER SESSION SET TIMESTAMP_TYPE_MAPPING=TIMESTAMP_LTZ',
-                            "ALTER SESSION SET TIMESTAMP_OUTPUT_FORMAT='YYYY-MM-DD HH24:MI:SS'",
-                            "ALTER SESSION SET TIMEZONE='UTC'",
-                        );
-                        $dbh->set_err(undef, undef) if $dbh->err;
-                    };
+                    my $wh = _quote_ident($dbh, $self->warehouse);
+                    my $role = $self->role;
+                    $dbh->do($_) or return for (
+                        ($role ? ("USE ROLE " . _quote_ident($dbh, $role)) : ()),
+                        "ALTER WAREHOUSE $wh RESUME IF SUSPENDED",
+                        "USE WAREHOUSE $wh",
+                        'ALTER SESSION SET TIMESTAMP_TYPE_MAPPING=TIMESTAMP_LTZ',
+                        "ALTER SESSION SET TIMESTAMP_OUTPUT_FORMAT='YYYY-MM-DD HH24:MI:SS'",
+                        "ALTER SESSION SET TIMEZONE='UTC'",
+                    );
+                    $dbh->do('USE SCHEMA ' . _quote_ident($dbh, $self->registry))
+                        or $self->_handle_no_registry($dbh);
                     return;
                 },
                 disconnect => sub {
-                    shift->do("ALTER WAREHOUSE $wh SUSPEND");
+                    my $dbh = shift;
+                    my $wh = _quote_ident($dbh, $self->warehouse);
+                    $dbh->do("ALTER WAREHOUSE $wh SUSPEND");
                     return;
                 },
             },
         });
     }
 );
+
+sub _quote_ident {
+    my ($dbh, $ident) = @_;
+    # https://docs.snowflake.com/en/sql-reference/identifiers-syntax
+    return $ident if $ident =~ /^[_a-zA-Z][_a-zA-Z0-9\$]*$/;
+    return $ident if $ident =~ /^"/ && $ident =~ /"$/;
+    return $dbh->quote_identifier($ident);
+}
 
 # Need to wait until dbh is defined.
 with 'App::Sqitch::Role::DBIEngine';
@@ -284,7 +292,7 @@ sub _listagg_format {
 
 sub _ts_default { 'current_timestamp' }
 
-sub initialized {
+sub _initialized {
     my $self = shift;
     return $self->dbh->selectcol_arrayref(q{
         SELECT true
@@ -295,7 +303,7 @@ sub initialized {
      }, undef, $self->registry, 'changes')->[0];
 }
 
-sub initialize {
+sub _initialize {
     my $self   = shift;
     my $schema = $self->registry;
     hurl engine => __x(
@@ -314,6 +322,13 @@ sub _no_table_error  {
 
 sub _no_column_error  {
     return $DBI::state && $DBI::state eq '42703'; # ERRCODE_UNDEFINED_COLUMN
+}
+
+sub _unique_error  {
+    # https://docs.snowflake.com/en/sql-reference/constraints-overview
+    # Snowflake supports defining and maintaining constraints, but does not
+    # enforce them, except for NOT NULL constraints, which are always enforced.
+    return 0;
 }
 
 sub _ts2char_format {
@@ -710,7 +725,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2022 iovation Inc., David E. Wheeler
+Copyright (c) 2012-2023 iovation Inc., David E. Wheeler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
