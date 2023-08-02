@@ -14,7 +14,6 @@ sub new {
         last unless s/^\s+//;
         $deps{$_} = 1;
     }
-    use Data::Dump; ddx \%deps; exit;
     shift->SUPER::new(
         @_,
         _remove   => [],
