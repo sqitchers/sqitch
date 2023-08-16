@@ -40,7 +40,25 @@ Some examples:
 
 =back
 
-See the L<DB URI Draft|https://github.com/libwww-perl/uri-db> for details.
+Note that, as with any URI or URL, special characters must be
+L<URL encoded|https://en.wikipedia.org/wiki/URL_encoding>. For example, when
+a username contains a reserved character, such as the C<|> in C<ro|michelle>,
+it must be percent-encoded as C<%7c>:
+
+  db:pg://ro%7Cmichelle@examle.org/inventory
+
+The rules are even more strict for query parameters, as often used by for
+ODBC connections. For example, when using a
+L<Snowflake identifier|https://docs.snowflake.com/en/sql-reference/identifiers-syntax#double-quoted-identifiers>
+with special characters, such as a warehouse name with a C<.>, such as
+C<sqitch.dev>, the identifier must be double-quoted --- and double quote are
+reserved characters in URIs, so must be encoded as C<%22>.
+
+  db:snowflake://example/flipr?Driver=Snowflake;warehouse=%22sqitch.dev%22
+
+See L<URL encoding|https://en.wikipedia.org/wiki/URL_encoding> for details.
+and the L<DB URI Draft|https://github.com/libwww-perl/uri-db> for in-depth
+information on database URIs in general.
 
 =item C<registry>
 

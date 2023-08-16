@@ -1,6 +1,16 @@
 Revision history for Perl extension App::Sqitch
 
 1.4.1
+    - Removed the quoting of the role and warehouse identifiers that was
+      added to the Snowflake engine in v1.4.0. Turns out Snowflake allows a
+      warehouse to be specified in a different database, in which case dots
+      are valid in the name and should not be quoted! So users must properly
+      quote when necessary, but added notes to `sqitchtutorial-snowflake.pod`
+      on the need to use URI escapes for special characters. Thanks to
+      Patrick Sabo for the find, and to @marc-marketparts for validating
+      that URI encoding works.
+    - Added notes on URL encoding database URLs to `sqitch-target.pod`, the
+      main reference for database URLs in the Sqitch documentation.
 
 1.4.0 2023-08-01T23:37:30Z
      - Fixed Snowflake warehouse and role setup to properly quote identifiers
