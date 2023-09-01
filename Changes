@@ -11,6 +11,9 @@ Revision history for Perl extension App::Sqitch
       that URI encoding works.
     - Added notes on URL encoding database URLs to `sqitch-target.pod`, the
       main reference for database URLs in the Sqitch documentation.
+    - Fixed the output of the list of changes to be deployed or reverted to
+      actually require `--verbose` twice, as described in the v1.4.0 changes,
+      and not just once. Thanks to Erik Wienhold for the PR (#785)!
 
 1.4.0 2023-08-01T23:37:30Z
      - Fixed Snowflake warehouse and role setup to properly quote identifiers

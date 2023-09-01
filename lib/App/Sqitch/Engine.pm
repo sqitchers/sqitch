@@ -370,11 +370,11 @@ sub revert {
                 change      => $change->format_name_with_tags,
                 destination => $self->destination,
             ));
-            $sqitch->info(__ 'Will revert the following changes:');
-            map { $sqitch->info($_) } @change_descriptions;
+            $sqitch->debug(__ 'Will revert the following changes:');
+            map { $sqitch->debug($_) } @change_descriptions;
         } else {
-            $sqitch->info(__ 'Would revert the following changes:');
-            map { $sqitch->info($_) } @change_descriptions;
+            $sqitch->debug(__ 'Would revert the following changes:');
+            map { $sqitch->debug($_) } @change_descriptions;
             hurl {
                 ident   => 'revert:confirm',
                 message => __ 'Nothing reverted',
@@ -400,11 +400,11 @@ sub revert {
                 'Reverting all changes from {destination}',
                 destination => $self->destination,
             ));
-            $sqitch->info(__ 'Will revert the following changes:');
-            map { $sqitch->info($_) } @change_descriptions;
+            $sqitch->debug(__ 'Will revert the following changes:');
+            map { $sqitch->debug($_) } @change_descriptions;
         } else {
-            $sqitch->info(__ 'Would revert the following changes:');
-            map { $sqitch->info($_) } @change_descriptions;
+            $sqitch->debug(__ 'Would revert the following changes:');
+            map { $sqitch->debug($_) } @change_descriptions;
             hurl {
                 ident   => 'revert',
                 message => __ 'Nothing reverted',

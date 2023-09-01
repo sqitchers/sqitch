@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 775;
+use Test::More tests => 780;
 # use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -2050,6 +2050,7 @@ my @dbchanges;
     $params;
 } @changes[0..3];
 
+MockOutput->clear;
 MockOutput->ask_yes_no_returns(1);
 is $engine->revert(undef, 1, 1), $engine, 'Revert all changes';
 is_deeply $engine->seen, [
@@ -2077,12 +2078,14 @@ is_deeply +MockOutput->get_info_literal, [
     ['  - users @alpha ..', '.', ' '],
     ['  - roles ..', '........', ' '],
 ], 'It should have said it was reverting all changes and listed them';
-is_deeply +MockOutput->get_info, [
+is_deeply +MockOutput->get_debug, [
     [__ 'Would revert the following changes:'],
     ['roles'],
     ['users @alpha'],
     ['widgets @beta'],
     ['lolz'],
+], 'Output should show what would be reverted';
+is_deeply +MockOutput->get_info, [
     [__ 'ok'],
     [__ 'ok'],
     [__ 'ok'],
@@ -2114,12 +2117,14 @@ is_deeply +MockOutput->get_info_literal, [
     ['  - users @alpha ..', '.', ' '],
     ['  - roles ..', '........', ' '],
 ], 'It should have said it was reverting all changes and listed them';
-is_deeply +MockOutput->get_info, [
+is_deeply +MockOutput->get_debug, [
     [__ 'Would revert the following changes:'],
     ['roles'],
     ['users @alpha'],
     ['widgets @beta'],
     ['lolz'],
+], 'Output should show what would be reverted';
+is_deeply +MockOutput->get_info, [
     [__ 'ok'],
     [__ 'ok'],
     [__ 'ok'],
@@ -2142,13 +2147,13 @@ is_deeply +MockOutput->get_ask_yes_no, [
         destination => $engine->destination,
     ), 1],
 ], 'Should have prompt to revert all changes';
-is_deeply +MockOutput->get_info, [
+is_deeply +MockOutput->get_debug, [
     [__ 'Would revert the following changes:'],
     ['roles'],
     ['users @alpha'],
     ['widgets @beta'],
     ['lolz'],
-], 'It should have emitted nothing else';
+], 'Output should show what would be reverted';
 
 # Revert all changes with no prompt.
 MockOutput->ask_yes_no_returns(1);
@@ -2180,16 +2185,18 @@ is_deeply +MockOutput->get_info, [
         'Reverting all changes from {destination}',
         destination => $engine->destination,
     )],
-    [__ 'Will revert the following changes:'],
-    ['roles'],
-    ['users @alpha'],
-    ['widgets @beta'],
-    ['lolz'],
     [__ 'ok'],
     [__ 'ok'],
     [__ 'ok'],
     [__ 'ok'],
 ], 'And the revert successes should be emitted';
+is_deeply +MockOutput->get_debug, [
+    [__ 'Will revert the following changes:'],
+    ['roles'],
+    ['users @alpha'],
+    ['widgets @beta'],
+    ['lolz'],
+], 'Output should show what will be reverted';
 
 # Now just revert to an earlier change.
 $offset_change = $dbchanges[1];
@@ -2220,10 +2227,12 @@ is_deeply +MockOutput->get_info_literal, [
     ['  - lolz ..', '.........', ' '],
     ['  - widgets @beta ..', '', ' '],
 ], 'Output should show what it reverts to';
-is_deeply +MockOutput->get_info, [
+is_deeply +MockOutput->get_debug, [
     [__ 'Would revert the following changes:'],
     ['widgets @beta'],
     ['lolz'],
+], 'Output should show what would be reverted';
+is_deeply +MockOutput->get_info, [
     [__ 'ok'],
     [__ 'ok'],
 ], 'And the revert successes should be emitted';
@@ -2249,7 +2258,7 @@ is_deeply +MockOutput->get_ask_yes_no, [
         destination => $engine->destination,
     ), 1],
 ], 'Should have prompt to revert to @alpha';
-is_deeply +MockOutput->get_info, [
+is_deeply +MockOutput->get_debug, [
     [__ 'Would revert the following changes:'],
     ['widgets @beta'],
     ['lolz'],
@@ -2282,10 +2291,12 @@ is_deeply +MockOutput->get_info, [
         destination => $engine->destination,
         change      => $dbchanges[-1]->format_name_with_tags,
     )],
-    [__ 'Will revert the following changes:'],
-    ['lolz'],
     [__ 'ok'],
 ], 'And the header and "ok" should be emitted';
+is_deeply +MockOutput->get_debug, [
+    [__ 'Will revert the following changes:'],
+    ['lolz'],
+], 'Output should show what will be reverted';
 
 ##############################################################################
 # Test change_id_for_depend().
