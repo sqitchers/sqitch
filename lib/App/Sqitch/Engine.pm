@@ -270,7 +270,7 @@ sub deploy {
     );
 
     $sqitch->debug(__ "Will deploy the following changes:");
-    foreach my $will_deploy_position ($plan->position .. $to_index) {
+    foreach my $will_deploy_position (($plan->position + 1) .. $to_index) {
         $sqitch->debug($plan->change_at($will_deploy_position)->format_name_with_tags);
     }
 
