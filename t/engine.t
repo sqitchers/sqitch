@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 780;
+use Test::More tests => 781;
 # use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -1169,6 +1169,7 @@ is_deeply +MockOutput->get_info, [
 ], 'Should have emitted deploy announcement and successes';
 
 # Make sure we can deploy everything by change.
+MockOutput->clear;
 $latest_change_id = undef;
 $plan->reset;
 $plan->add( name => 'lolz', note => 'ha ha' );
@@ -1207,6 +1208,15 @@ is_deeply +MockOutput->get_info_literal, [
     ['  + widgets @beta ..', '', ' '],
     ['  + lolz ..', '.........', ' '],
 ], 'Should have seen the output of the deploy to the end';
+
+is_deeply +MockOutput->get_debug, [
+    [__ 'Will deploy the following changes:' ],
+    ['roles'],
+    ['users @alpha'],
+    ['widgets @beta'],
+    ['lolz'],
+], 'Debug output should show what will be deployed';
+
 
 # If we deploy again, it should be up-to-date.
 $latest_change_id = $changes[-1]->id;
