@@ -179,7 +179,7 @@ has _mysql => (
         # Get Maria to abort properly on error.
         my $vinfo = try { $self->sqitch->probe($self->client, '--version') } || '';
         if ($vinfo =~ /mariadb/i) {
-            my ($version) = $vinfo =~ /Ver\s(\S+)/;
+            my ($version) = $vinfo =~ /(?:Ver|client)\s+(\S+)/;
             my ($maj, undef, $pat) = split /[.]/ => $version;
             push @ret => '--abort-source-on-error'
                 if $maj > 5 || ($maj == 5 && $pat >= 66);
