@@ -121,7 +121,7 @@ sub _config_templates {
 sub all_templates {
     my ($self, $name) = @_;
     my $config = $self->sqitch->config;
-    my $tmpl   = $self->templates;
+    my $tmpl   = { %{ $self->templates } };
 
     # Read all the template directories.
     for my $dir (

@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use utf8;
-use Test::More tests => 242;
+use Test::More tests => 243;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Target;
@@ -301,7 +301,14 @@ is_deeply $add->all_templates($tname), {
     deploy => file('etc/templates/deploy/pg.tmpl'),
     revert => file('etc/templates/revert/pg.tmpl'),
     verify => file('etc/templates/verify/pg.tmpl'),
-}, 'Should find all templates in directory';
+}, 'Should find all pg templates in directory';
+
+# Make sure it works for a second name.
+is_deeply $add->all_templates('sqlite'), {
+    deploy => file('etc/templates/deploy/sqlite.tmpl'),
+    revert => file('etc/templates/revert/sqlite.tmpl'),
+    verify => file('etc/templates/verify/sqlite.tmpl'),
+}, 'Should find all sqlite templates in directory';
 
 # Now let it find the templates in the user dir.
 $usrdir = dir 'etc';

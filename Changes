@@ -17,6 +17,9 @@ Revision history for Perl extension App::Sqitch
      - Removed the duplicate change name from the output of the list of
        changes to be deployed or reverted with `-VV`. Thanks to Erik Wienhold
        for the PR (#787)!
+     - Fixed invalid template resolution when adding a singe to multiple
+       engines at once. Thanks to Christian Riedel for the detailed bug report
+       (#795)!
 
 1.4.0 2023-08-01T23:37:30Z
      - Fixed Snowflake warehouse and role setup to properly quote identifiers

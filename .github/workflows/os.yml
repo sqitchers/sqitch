@@ -29,6 +29,7 @@ jobs:
         with:
           path: local
           key: perl-${{ steps.perl.outputs.perl-hash }}
+      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends ExtUtils::MakeMaker List::MoreUtils::XS
       # Remove Locale::TextDomain if https://github.com/gflohr/libintl-perl/issues/7 fixed and released.
       - if: ${{ matrix.os == 'windows' }}
         run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends Encode Win32::Console::ANSI Win32API::Net Win32::Locale Win32::ShellQuote DateTime::TimeZone::Local::Win32 Locale::TextDomain@1.31
