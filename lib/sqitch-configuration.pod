@@ -368,7 +368,7 @@ The commands that take engine and target URI arguments include:
 
 =item * L<C<verify>|sqitch-verify>
 
-=item * L<C<verify>|sqitch-upgrade>
+=item * L<C<upgrade>|sqitch-upgrade>
 
 =back
 
