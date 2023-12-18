@@ -20,6 +20,8 @@ Revision history for Perl extension App::Sqitch
      - Fixed invalid template resolution when adding a singe to multiple
        engines at once. Thanks to Christian Riedel for the detailed bug report
        (#795)!
+     - Fixed Oracle and Firebird test failures due to incorrect use of `chmod`.
+       Thanks to Slaven Rezić for the report and the fix (#807)!
 
 1.4.0 2023-08-01T23:37:30Z
      - Fixed Snowflake warehouse and role setup to properly quote identifiers
