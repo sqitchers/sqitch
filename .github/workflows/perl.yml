@@ -19,20 +19,22 @@ jobs:
     name: 🧅 Perl ${{ matrix.perl }} on ${{ matrix.os[0] }} ${{ matrix.os[1] }}
     runs-on: ${{ matrix.os[1] }}-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup Perl
         id: perl
         uses: shogo82148/actions-setup-perl@v1
         with: { perl-version: "${{ matrix.perl }}" }
       - run: perl -V
+      - if: runner.os == 'Linux'
+        name: Install Apt Packages
+        run: sudo apt-get install -qq language-pack-fr language-pack-en language-pack-de language-pack-it
       - name: Cache CPAN Modules
         uses: actions/cache@v3
         with:
           path: local
           key: perl-${{ steps.perl.outputs.perl-hash }}
-      # Remove Locale::TextDomain if https://github.com/gflohr/libintl-perl/issues/7 fixed and released.
-      - if: ${{ matrix.os[1] == 'windows' }}
-        run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends Encode Win32::Console::ANSI Win32API::Net Win32::Locale Win32::ShellQuote DateTime::TimeZone::Local::Win32 Locale::TextDomain@1.31
+      - if: runner.os == 'Windows'
+        run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends Encode Win32::Console::ANSI Win32API::Net Win32::Locale Win32::ShellQuote DateTime::TimeZone::Local::Win32
       - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends --cpanfile dist/cpanfile
       - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends Test::Spelling Test::Pod Test::Pod::Coverage
       - name: prove

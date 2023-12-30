@@ -39,7 +39,7 @@ jobs:
         ports: [ 3306 ]
         options: --health-cmd="healthcheck.sh --innodb_initialized || mysqladmin ping --protocol=tcp" --health-interval=5s --health-timeout=2s --health-retries=3
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup Clients
         run: .github/ubuntu/mysql.sh
       - name: Setup Perl

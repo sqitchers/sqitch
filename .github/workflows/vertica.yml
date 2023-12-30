@@ -27,7 +27,7 @@ jobs:
         image: ${{ matrix.image }}:${{ matrix.version }}
         ports: [ 5433 ]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup Clients
         run: .github/ubuntu/vertica.sh
       - name: Setup Perl

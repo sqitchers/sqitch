@@ -25,6 +25,10 @@ Revision history for Perl extension App::Sqitch
      - Tests now require Test::Warn 0.31 or later, as newline handling issues
        cause test failures in earlier versions. Thanks to Slaven Rezić for the
        test reports and identifying the issue.
+     - Updated the locale configuration to fix issues in more recent versions
+       of Perl, and added tests to ensure that the sqitch CLI executes and
+       properly emits localized messages (except on Windows, where the language
+       codes are incompatible).
 
 1.4.0 2023-08-01T23:37:30Z
      - Fixed Snowflake warehouse and role setup to properly quote identifiers

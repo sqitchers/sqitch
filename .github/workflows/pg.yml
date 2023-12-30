@@ -15,7 +15,7 @@ jobs:
     name: 🐘 Postgres ${{ matrix.pg }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup Perl
         id: perl
         uses: shogo82148/actions-setup-perl@v1

@@ -34,7 +34,7 @@ jobs:
         uses: jameshartig/yugabyte-db-action@master
         with:
           yb_image_tag: "${{ matrix.tag }}"
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup Perl
         id: perl
         uses: shogo82148/actions-setup-perl@v1

@@ -313,11 +313,10 @@ sub revert {
         hurl revert => __('Missing required parameter $prompt_default')
             unless defined $prompt_default;
     } else {
-        warnings::warnif(
-            "deprecated",
-            "Engine::revert() requires the `prompt` and `prompt_default` arguments.\n"
-            . 'Omitting them will become fatal in a future release.',
-        );
+        warnings::warnif(deprecated => join ("\n",
+            "Engine::revert() requires the `prompt` and `prompt_default` arguments.",
+            'Omitting them will become fatal in a future release.',
+        ));
 
         $prompt = !($self->no_prompt // 0);
         $prompt_default = $self->prompt_accept // 1;

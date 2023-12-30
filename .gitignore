@@ -13,7 +13,8 @@
 /_rpmbuild
 /target
 .build/
-*.mo
 .al
 /latest_changes.md
 /local/
+/LocaleData/
+/lib/LocaleData/
