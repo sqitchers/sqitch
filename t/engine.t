@@ -14,7 +14,7 @@ use Test::Exception;
 use Test::NoWarnings;
 use Test::MockModule;
 use Test::MockObject::Extends;
-use Test::Warn qw(warning_is);
+use Test::Warn 0.31 qw(warning_is);
 use Time::HiRes qw(sleep);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
@@ -1938,6 +1938,8 @@ is_deeply $engine->seen, [
 is_deeply +MockOutput->get_info, [], 'Nothing should have been output';
 
 # Make sure deprecation warning happens.
+# Test only the first line of the warning. Reason:
+# https://github.com/hanfried/test-warn/issues/9
 warning_is { $engine->revert }
     "Engine::revert() requires the `prompt` and `prompt_default` arguments.\n",
     'Should get warning omitting required arguments';

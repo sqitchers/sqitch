@@ -22,6 +22,9 @@ Revision history for Perl extension App::Sqitch
        (#795)!
      - Fixed Oracle and Firebird test failures due to incorrect use of `chmod`.
        Thanks to Slaven Rezić for the report and the fix (#807)!
+     - Tests now require Test::Warn 0.31 or later, as newline handling issues
+       cause test failures in earlier versions. Thanks to Slaven Rezić for the
+       test reports and identifying the issue.
 
 1.4.0 2023-08-01T23:37:30Z
      - Fixed Snowflake warehouse and role setup to properly quote identifiers
