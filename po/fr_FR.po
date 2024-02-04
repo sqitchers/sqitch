@@ -1,5 +1,5 @@
 # Sqitch French Localization Messages
-# Copyright (c) 2012-2023 iovation Inc., David E. Wheeler
+# Copyright (c) 2012-2024 iovation Inc., David E. Wheeler
 # This file is distributed under the same license as the App-Sqitch package.
 # Arnaud Assad <arhuman@gmail.com>, 2012.
 #
@@ -7,10 +7,10 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Sqitch 0.932\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-07-30 20:02-0400\n"
+"POT-Creation-Date: 2024-02-04 10:23-0500\n"
 "PO-Revision-Date: 2012-10-12 11:28-0700\n"
 "Last-Translator: Arnaud Assad <arhuman@gmail.com>\n"
-"Language-Team: French <arhuman@gmail.com>\n"
+"Language-Team: Sqitch Hackers <sqitch-hackers@googlegroups.com>\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -532,8 +532,8 @@ msgstr ""
 msgid ", "
 msgstr ", "
 
-#: lib/App/Sqitch/Command/status.pm:138 lib/App/Sqitch/Engine.pm:453
-#: lib/App/Sqitch/Engine.pm:1288
+#: lib/App/Sqitch/Command/status.pm:138 lib/App/Sqitch/Engine.pm:452
+#: lib/App/Sqitch/Engine.pm:1287
 msgid "No changes deployed"
 msgstr "Pas de changements déployés"
 
@@ -604,7 +604,7 @@ msgstr "Assurez-vous d'être connecté à la bonne base de données pour ce proj
 msgid "Nothing to deploy (up-to-date)"
 msgstr "Rien à déployer (à jour)"
 
-#: lib/App/Sqitch/Command/status.pm:311 lib/App/Sqitch/Engine.pm:608
+#: lib/App/Sqitch/Command/status.pm:311 lib/App/Sqitch/Engine.pm:607
 msgid "Undeployed change:"
 msgid_plural "Undeployed changes:"
 msgstr[0] "Changement non déployé :"
@@ -684,7 +684,7 @@ msgstr "Module DBD::Pg requis pour gérer PostgreSQL"
 msgid "Nothing to deploy (empty plan)"
 msgstr "Rien à déployer (plan vide)"
 
-#: lib/App/Sqitch/Engine.pm:221 lib/App/Sqitch/Engine.pm:348
+#: lib/App/Sqitch/Engine.pm:221 lib/App/Sqitch/Engine.pm:347
 #: lib/App/Sqitch/Plan.pm:749 lib/App/Sqitch/Plan/ChangeList.pm:121
 #, perl-brace-format
 msgid "Unknown change: \"{change}\""
@@ -729,163 +729,163 @@ msgstr "Mode de déploiement inconnu : \"{mode}\""
 msgid "Missing required parameter $prompt_default"
 msgstr ""
 
-#: lib/App/Sqitch/Engine.pm:342
+#: lib/App/Sqitch/Engine.pm:341
 #, fuzzy, perl-brace-format
 msgid "Change not deployed: \"{change}\""
 msgstr "Cible non déployée : \"{target}\""
 
-#: lib/App/Sqitch/Engine.pm:359
+#: lib/App/Sqitch/Engine.pm:358
 #, fuzzy, perl-brace-format
 msgid "No changes deployed since: \"{change}\""
 msgstr "Cible non déployée : \"{target}\""
 
-#: lib/App/Sqitch/Engine.pm:369
+#: lib/App/Sqitch/Engine.pm:368
 #, fuzzy, perl-brace-format
 msgid "Reverting changes to {change} from {destination}"
 msgstr "Annulation des changements de {destination} à {target}"
 
-#: lib/App/Sqitch/Engine.pm:373 lib/App/Sqitch/Engine.pm:403
+#: lib/App/Sqitch/Engine.pm:372 lib/App/Sqitch/Engine.pm:402
 msgid "Will revert the following changes:"
 msgstr ""
 
-#: lib/App/Sqitch/Engine.pm:376 lib/App/Sqitch/Engine.pm:406
+#: lib/App/Sqitch/Engine.pm:375 lib/App/Sqitch/Engine.pm:405
 msgid "Would revert the following changes:"
 msgstr ""
 
-#: lib/App/Sqitch/Engine.pm:380 lib/App/Sqitch/Engine.pm:410
+#: lib/App/Sqitch/Engine.pm:379 lib/App/Sqitch/Engine.pm:409
 #, fuzzy
 msgid "Nothing reverted"
 msgstr "Rien à annuler (rien de déployé)"
 
-#: lib/App/Sqitch/Engine.pm:383
+#: lib/App/Sqitch/Engine.pm:382
 #, fuzzy, perl-brace-format
 msgid "Revert changes to {change} from {destination}?"
 msgstr "Annulation des changements de {destination} à {target}"
 
-#: lib/App/Sqitch/Engine.pm:392
+#: lib/App/Sqitch/Engine.pm:391
 msgid "Nothing to revert (nothing deployed)"
 msgstr "Rien à annuler (rien de déployé)"
 
-#: lib/App/Sqitch/Engine.pm:400
+#: lib/App/Sqitch/Engine.pm:399
 #, perl-brace-format
 msgid "Reverting all changes from {destination}"
 msgstr "Annulation de tous les changements de {destination}"
 
-#: lib/App/Sqitch/Engine.pm:413
+#: lib/App/Sqitch/Engine.pm:412
 #, fuzzy, perl-brace-format
 msgid "Revert all changes from {destination}?"
 msgstr "Annulation de tous les changements de {destination}"
 
-#: lib/App/Sqitch/Engine.pm:447
+#: lib/App/Sqitch/Engine.pm:446
 #, fuzzy, perl-brace-format
 msgid "Verifying {destination}"
 msgstr "Déploiement des changements vers {destination}"
 
-#: lib/App/Sqitch/Engine.pm:454
+#: lib/App/Sqitch/Engine.pm:453
 #, fuzzy
 msgid "Nothing to verify (no planned or deployed changes)"
 msgstr "Rien à annuler (rien de déployé)"
 
-#: lib/App/Sqitch/Engine.pm:461
+#: lib/App/Sqitch/Engine.pm:460
 msgid "There are deployed changes, but none planned!"
 msgstr ""
 
-#: lib/App/Sqitch/Engine.pm:474
+#: lib/App/Sqitch/Engine.pm:473
 msgid "Verify Summary Report"
 msgstr ""
 
-#: lib/App/Sqitch/Engine.pm:477
+#: lib/App/Sqitch/Engine.pm:476
 #, fuzzy, perl-brace-format
 msgid "Changes: {number}"
 msgstr "Changement : {change_id}"
 
-#: lib/App/Sqitch/Engine.pm:478
+#: lib/App/Sqitch/Engine.pm:477
 #, perl-brace-format
 msgid "Errors:  {number}"
 msgstr ""
 
-#: lib/App/Sqitch/Engine.pm:479
+#: lib/App/Sqitch/Engine.pm:478
 #, fuzzy
 msgid "Verify failed"
 msgstr "Echec du déploiement"
 
-#: lib/App/Sqitch/Engine.pm:484
+#: lib/App/Sqitch/Engine.pm:483
 msgid "Verify successful"
 msgstr ""
 
-#: lib/App/Sqitch/Engine.pm:513
+#: lib/App/Sqitch/Engine.pm:512
 #, perl-brace-format
 msgid "Change \"{change}\" has not been deployed"
 msgstr ""
 
-#: lib/App/Sqitch/Engine.pm:516
+#: lib/App/Sqitch/Engine.pm:515
 #, fuzzy, perl-brace-format
 msgid "Cannot find \"{change}\" in the database or the plan"
 msgstr "Impossible de trouver {target} dans le plan"
 
-#: lib/App/Sqitch/Engine.pm:523
+#: lib/App/Sqitch/Engine.pm:522
 #, fuzzy, perl-brace-format
 msgid "Change \"{change}\" is deployed, but not planned"
 msgstr ""
 "Le changement \"{change}\" duplique une déclaration précédente à la ligne "
 "{line}"
 
-#: lib/App/Sqitch/Engine.pm:567
+#: lib/App/Sqitch/Engine.pm:566
 msgid "Out of order"
 msgstr ""
 
-#: lib/App/Sqitch/Engine.pm:573
+#: lib/App/Sqitch/Engine.pm:572
 #, fuzzy
 msgid "Not present in the plan"
 msgstr "Impossible de trouver {target} dans le plan"
 
-#: lib/App/Sqitch/Engine.pm:584 lib/App/Sqitch/Engine.pm:596
-#: lib/App/Sqitch/Engine.pm:1068 lib/App/Sqitch/Engine.pm:1098
+#: lib/App/Sqitch/Engine.pm:583 lib/App/Sqitch/Engine.pm:595
+#: lib/App/Sqitch/Engine.pm:1067 lib/App/Sqitch/Engine.pm:1097
 msgid "not ok"
 msgstr ""
 
-#: lib/App/Sqitch/Engine.pm:584 lib/App/Sqitch/Engine.pm:1046
-#: lib/App/Sqitch/Engine.pm:1088
+#: lib/App/Sqitch/Engine.pm:583 lib/App/Sqitch/Engine.pm:1045
+#: lib/App/Sqitch/Engine.pm:1087
 msgid "ok"
 msgstr ""
 
-#: lib/App/Sqitch/Engine.pm:598
+#: lib/App/Sqitch/Engine.pm:597
 #, fuzzy
 msgid "Not deployed"
 msgstr "Pas de changements déployés"
 
-#: lib/App/Sqitch/Engine.pm:630
+#: lib/App/Sqitch/Engine.pm:629
 #, perl-brace-format
 msgid "Verify script \"{script}\" failed."
 msgstr ""
 
-#: lib/App/Sqitch/Engine.pm:639
+#: lib/App/Sqitch/Engine.pm:638
 #, fuzzy, perl-brace-format
 msgid "Verify script {file} does not exist"
 msgstr "Le fichier de plan {file} n'existe pas"
 
-#: lib/App/Sqitch/Engine.pm:681
+#: lib/App/Sqitch/Engine.pm:680
 #, perl-brace-format
 msgid "Conflicts with previously deployed change: {changes}"
 msgid_plural "Conflicts with previously deployed changes: {changes}"
 msgstr[0] "Conflits avec le changement déployé précédemment : {changes}"
 msgstr[1] "Conflits avec les changements déployés précédemment : {changes}"
 
-#: lib/App/Sqitch/Engine.pm:688
+#: lib/App/Sqitch/Engine.pm:687
 #, perl-brace-format
 msgid "Missing required change: {changes}"
 msgid_plural "Missing required changes: {changes}"
 msgstr[0] "Changement requis manquant : {changes}"
 msgstr[1] "Changements requis manquant : {changes}"
 
-#: lib/App/Sqitch/Engine.pm:700
+#: lib/App/Sqitch/Engine.pm:699
 #, perl-brace-format
 msgid "Change \"{changes}\" has already been deployed"
 msgid_plural "Changes have already been deployed: {changes}"
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/App/Sqitch/Engine.pm:723
+#: lib/App/Sqitch/Engine.pm:722
 #, fuzzy, perl-brace-format
 msgid "Change \"{change}\" required by currently deployed change: {changes}"
 msgid_plural ""
@@ -893,121 +893,121 @@ msgid_plural ""
 msgstr[0] "Requis par le changement actuellement déployé : {changes}"
 msgstr[1] "Requis par les changements actuellement déployés : {changes}"
 
-#: lib/App/Sqitch/Engine.pm:746
+#: lib/App/Sqitch/Engine.pm:745
 #, perl-brace-format
 msgid "Invalid dependency: {dependency}"
 msgstr "Dépendance invalide {dependency}"
 
-#: lib/App/Sqitch/Engine.pm:882 lib/App/Sqitch/Plan/ChangeList.pm:88
+#: lib/App/Sqitch/Engine.pm:881 lib/App/Sqitch/Plan/ChangeList.pm:88
 #, perl-brace-format
 msgid ""
 "Change \"{change}\" is ambiguous. Please specify a tag-qualified change:"
 msgstr ""
 
-#: lib/App/Sqitch/Engine.pm:897
+#: lib/App/Sqitch/Engine.pm:896
 msgid "Change Lookup Failed"
 msgstr ""
 
-#: lib/App/Sqitch/Engine.pm:918
+#: lib/App/Sqitch/Engine.pm:917
 #, fuzzy, perl-brace-format
 msgid "Reverting to {change}"
 msgstr "Annulation et retour vers {target}"
 
-#: lib/App/Sqitch/Engine.pm:919
+#: lib/App/Sqitch/Engine.pm:918
 msgid "Reverting all changes"
 msgstr "Annulation de tous les changements"
 
-#: lib/App/Sqitch/Engine.pm:927
+#: lib/App/Sqitch/Engine.pm:926
 msgid "The schema will need to be manually repaired"
 msgstr "Le schéma devra être réparé manuellement"
 
-#: lib/App/Sqitch/Engine.pm:931 lib/App/Sqitch/Engine.pm:1062
+#: lib/App/Sqitch/Engine.pm:930 lib/App/Sqitch/Engine.pm:1061
 msgid "Deploy failed"
 msgstr "Echec du déploiement"
 
-#: lib/App/Sqitch/Engine.pm:991
+#: lib/App/Sqitch/Engine.pm:990
 #, fuzzy, perl-brace-format
 msgid "Cannot find change {id} ({change}) in {file}"
 msgstr "Impossible de trouver ce changement dans {file}"
 
-#: lib/App/Sqitch/Engine.pm:1113
+#: lib/App/Sqitch/Engine.pm:1112
 #, perl-brace-format
 msgid ""
 "Blocked by another instance of Sqitch working on {dest}; waiting {secs} "
 "seconds..."
 msgstr ""
 
-#: lib/App/Sqitch/Engine.pm:1123
+#: lib/App/Sqitch/Engine.pm:1122
 #, perl-brace-format
 msgid ""
 "Timed out waiting {secs} seconds for another instance of Sqitch to finish "
 "work on {dest}"
 msgstr ""
 
-#: lib/App/Sqitch/Engine.pm:1182
+#: lib/App/Sqitch/Engine.pm:1181
 #, perl-brace-format
 msgid "No registry found in {destination}. Have you ever deployed?"
 msgstr ""
 
-#: lib/App/Sqitch/Engine.pm:1187
+#: lib/App/Sqitch/Engine.pm:1186
 #, perl-brace-format
 msgid ""
 "Registry version is {old} but {new} is the latest known. Please upgrade "
 "Sqitch"
 msgstr ""
 
-#: lib/App/Sqitch/Engine.pm:1193
+#: lib/App/Sqitch/Engine.pm:1192
 #, perl-brace-format
 msgid ""
 "Registry is at version {old} but latest is {new}. Please run the \"upgrade\" "
 "command"
 msgstr ""
 
-#: lib/App/Sqitch/Engine.pm:1208
+#: lib/App/Sqitch/Engine.pm:1207
 #, perl-brace-format
 msgid ""
 "Registry version is {old} but {new} is the latest known. Please upgrade "
 "Sqitch."
 msgstr ""
 
-#: lib/App/Sqitch/Engine.pm:1223
+#: lib/App/Sqitch/Engine.pm:1222
 #, perl-brace-format
 msgid "Cannot upgrade to {version}: Cannot find upgrade script \"{file}\""
 msgstr ""
 
-#: lib/App/Sqitch/Engine.pm:1230
+#: lib/App/Sqitch/Engine.pm:1229
 #, fuzzy, perl-brace-format
 msgid "Upgrading the Sqitch registry from {old} to {new}"
 msgstr "Ajout des tables de metadonnées à {destination}"
 
-#: lib/App/Sqitch/Engine.pm:1237
+#: lib/App/Sqitch/Engine.pm:1236
 #, perl-brace-format
 msgid "From {old} to {new}"
 msgstr ""
 
-#: lib/App/Sqitch/Engine.pm:1282
+#: lib/App/Sqitch/Engine.pm:1281
 #, fuzzy, perl-brace-format
 msgid "Checking {destination}"
 msgstr "Déploiement des changements vers {destination}"
 
-#: lib/App/Sqitch/Engine.pm:1289
+#: lib/App/Sqitch/Engine.pm:1288
 #, fuzzy
 msgid "Nothing to check (no planned or deployed changes)"
 msgstr "Rien à annuler (rien de déployé)"
 
-#: lib/App/Sqitch/Engine.pm:1302
+#: lib/App/Sqitch/Engine.pm:1301
 #, fuzzy, perl-brace-format
 msgid "Script signatures diverge at change {change}"
 msgstr "Changement requis manquant : {changes}"
 
-#: lib/App/Sqitch/Engine.pm:1310
+#: lib/App/Sqitch/Engine.pm:1309
 #, perl-brace-format
 msgid "Failed one check"
 msgid_plural "Failed {count} checks"
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/App/Sqitch/Engine.pm:1318
+#: lib/App/Sqitch/Engine.pm:1317
 msgid "Check successful"
 msgstr ""
 
@@ -1035,8 +1035,7 @@ msgstr "Impossible d'ouvrir {file} : {error}"
 msgid "{command} unexpectedly failed; exit value = {exitval}"
 msgstr "{command} a retourné de manière inattendue la valeur {exitval}"
 
-#: lib/App/Sqitch/Engine/firebird.pm:208 lib/App/Sqitch/Engine/mysql.pm:274
-#: lib/App/Sqitch/Engine/sqlite.pm:158
+#: lib/App/Sqitch/Engine/firebird.pm:208 lib/App/Sqitch/Engine/sqlite.pm:158
 #, perl-brace-format
 msgid "Sqitch database {database} already initialized"
 msgstr ""
@@ -1086,7 +1085,7 @@ msgstr ""
 msgid "Database name missing in URI \"{uri}\""
 msgstr ""
 
-#: lib/App/Sqitch/Engine/pg.pm:213 lib/App/Sqitch/Engine/snowflake.pm:310
+#: lib/App/Sqitch/Engine/pg.pm:213 lib/App/Sqitch/Engine/snowflake.pm:303
 #: lib/App/Sqitch/Engine/vertica.pm:139
 #, perl-brace-format
 msgid "Sqitch schema \"{schema}\" already exists"

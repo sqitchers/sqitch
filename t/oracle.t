@@ -156,7 +156,7 @@ ORACLE_HOME: {
     my $tmp = Path::Class::Dir->new("$tmpdir");
     my $sqlplus = $tmp->file($cli);
     $sqlplus->touch;
-    chmod '0755', $sqlplus unless $iswin;
+    chmod 0755, $sqlplus unless $iswin;
 
     local $ENV{ORACLE_HOME} = "$tmpdir";
     $target = App::Sqitch::Target->new(sqitch => $sqitch);
@@ -168,7 +168,7 @@ ORACLE_HOME: {
     $bin->mkpath;
     $sqlplus = $bin->file($cli);
     $sqlplus->touch;
-    chmod '0755', $sqlplus unless $iswin;
+    chmod 0755, $sqlplus unless $iswin;
 
     $target = App::Sqitch::Target->new(sqitch => $sqitch);
     isa_ok $ora = $CLASS->new(sqitch => $sqitch, target => $target), $CLASS;

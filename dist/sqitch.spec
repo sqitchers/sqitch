@@ -1,5 +1,5 @@
 Name:           sqitch
-Version:        1.4.0
+Version:        1.4.1
 Release:        1%{?dist}
 Summary:        Sensible database change management
 License:        MIT
@@ -72,7 +72,7 @@ BuildRequires:  perl(Test::MockModule) >= 0.17
 BuildRequires:  perl(Test::MockObject::Extends) >= 1.20180705
 BuildRequires:  perl(Test::More) >= 0.94
 BuildRequires:  perl(Test::NoWarnings) >= 0.083
-BuildRequires:  perl(Test::Warn)
+BuildRequires:  perl(Test::Warn) >= 0.31
 BuildRequires:  perl(Throwable) >= 0.200009
 BuildRequires:  perl(Time::HiRes)
 BuildRequires:  perl(Try::Tiny)
@@ -309,6 +309,10 @@ also be installed.
 # No additional files required.
 
 %changelog
+* Sun Feb 4 2024 David E. Wheeler <david@justatheory.com> 1.4.1-1
+- Upgrade to v1.4.1.
+- Upgrade Test::Warn to 0.31
+
 * Mon Aug 1 2023 David E. Wheeler <david@justatheory.com> 1.4.0-1
 - Upgrade to v1.4.0.
 - Incrmented minimal DBI to 1.631.

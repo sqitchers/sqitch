@@ -16,13 +16,13 @@ jobs:
     name: 💡 SQLite ${{ matrix.sqlite }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup Perl
         id: perl
         uses: shogo82148/actions-setup-perl@v1
         with: { perl-version: latest }
       - name: Cache CPAN Modules
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: local
           key: perl-${{ steps.perl.outputs.perl-hash }}

@@ -192,6 +192,8 @@ has dbh => (
         my $self = shift;
         $self->use_driver;
         my $uri = $self->uri;
+        my $wh = $self->warehouse;
+        my $role = $self->role;
         DBI->connect($uri->dbi_dsn, $self->username, $self->password, {
             PrintError        => 0,
             RaiseError        => 0,
@@ -207,23 +209,22 @@ has dbh => (
             Callbacks         => {
                 connected => sub {
                     my $dbh = shift;
-                    my $wh = _quote_ident($dbh, $self->warehouse);
                     my $role = $self->role;
                     $dbh->do($_) or return for (
-                        ($role ? ("USE ROLE " . _quote_ident($dbh, $role)) : ()),
+                        ($role ? ("USE ROLE $role") : ()),
                         "ALTER WAREHOUSE $wh RESUME IF SUSPENDED",
                         "USE WAREHOUSE $wh",
                         'ALTER SESSION SET TIMESTAMP_TYPE_MAPPING=TIMESTAMP_LTZ',
                         "ALTER SESSION SET TIMESTAMP_OUTPUT_FORMAT='YYYY-MM-DD HH24:MI:SS'",
                         "ALTER SESSION SET TIMEZONE='UTC'",
                     );
-                    $dbh->do('USE SCHEMA ' . _quote_ident($dbh, $self->registry))
+                    $dbh->do('USE SCHEMA ' . $self->registry)
                         or $self->_handle_no_registry($dbh);
                     return;
                 },
                 disconnect => sub {
                     my $dbh = shift;
-                    my $wh = _quote_ident($dbh, $self->warehouse);
+                    my $wh = $self->warehouse;
                     $dbh->do("ALTER WAREHOUSE $wh SUSPEND");
                     return;
                 },
@@ -231,14 +232,6 @@ has dbh => (
         });
     }
 );
-
-sub _quote_ident {
-    my ($dbh, $ident) = @_;
-    # https://docs.snowflake.com/en/sql-reference/identifiers-syntax
-    return $ident if $ident =~ /^[_a-zA-Z][_a-zA-Z0-9\$]*$/;
-    return $ident if $ident =~ /^"/ && $ident =~ /"$/;
-    return $dbh->quote_identifier($ident);
-}
 
 # Need to wait until dbh is defined.
 with 'App::Sqitch::Role::DBIEngine';
@@ -725,7 +718,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2023 iovation Inc., David E. Wheeler
+Copyright (c) 2012-2024 iovation Inc., David E. Wheeler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

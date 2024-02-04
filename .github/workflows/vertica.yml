@@ -27,7 +27,7 @@ jobs:
         image: ${{ matrix.image }}:${{ matrix.version }}
         ports: [ 5433 ]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup Clients
         run: .github/ubuntu/vertica.sh
       - name: Setup Perl
@@ -35,7 +35,7 @@ jobs:
         uses: shogo82148/actions-setup-perl@v1
         with: { perl-version: latest }
       - name: Cache CPAN Modules
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: local
           key: perl-${{ steps.perl.outputs.perl-hash }}

@@ -183,7 +183,13 @@ this:
 
   db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=sqitch
 
-Note that Sqitch requires a C<warehouse> parameter in order to record its work
+A few notes on the URL format:
+
+=over
+
+=item *
+
+Sqitch requires a C<warehouse> parameter in order to record its work
 in the registry. The default warehouse is named C<sqitch>, so you can omit it
 from the URI if that's the warehouse you want Sqitch to use (we'll omit it for
 the remainder of this tutorial). Otherwise, specify it in the URI. Snowflake
@@ -192,7 +198,25 @@ best to put it in the C<connections> section of the
 L<F<.snowsql/config> file|https://docs.snowflake.com/en/user-guide/snowsql-start.html#configuring-default-connection-settings>.
 See L<sqitch-authentication> for details.
 
-We just tell Sqitch to use that URI to deploy the change:
+=item *
+
+This is a proper URI, where special characters must be
+L<URL encoded|https://en.wikipedia.org/wiki/URL_encoding>. For example, when
+a warehouse name or role requires
+L<identifier quoting|https://docs.snowflake.com/en/sql-reference/identifiers-syntax#double-quoted-identifiers>,
+use C<%22> for the quotation marks:
+
+  db:snowflake://movera@example/flipr?Driver=Snowflake;warehouse=%22sqitch.dev%22&role=%22app.sqitch%22
+
+Of course that can be tricky to use on the command line, so there are also
+L<environment variables|sqitch-environment/Snowflake> that can simplify things:
+
+  export SNOWSQL_ROLE='"app.sqitch"'
+  export SNOWSQL_WAREHOUSE='"sqitch.dev"'
+
+=back
+
+Back to the change. We just tell Sqitch to use that URI to deploy it:
 
   > sqitch deploy 'db:snowflake://movera@example/flipr?Driver=Snowflake'
   Adding registry tables to db:snowflake://movera@example/flipr?Driver=Snowflake
@@ -1399,7 +1423,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2023 iovation Inc., David E. Wheeler
+Copyright (c) 2012-2024 iovation Inc., David E. Wheeler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

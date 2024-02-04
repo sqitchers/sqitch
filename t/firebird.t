@@ -377,7 +377,7 @@ FSPEC: {
     my $iswin = App::Sqitch::ISWIN || $^O eq 'cygwin';
     my $fbsql = $tmp->file('fbsql' . ($iswin ? '.exe' : ''));
     $fbsql->touch;
-    chmod '0755', $fbsql unless $iswin;
+    chmod 0755, $fbsql unless $iswin;
 
     my $fs_mock = Test::MockModule->new('File::Spec');
     $fs_mock->mock(path => sub { $tmp });

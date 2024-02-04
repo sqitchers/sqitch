@@ -270,7 +270,7 @@ sub deploy {
     );
 
     $sqitch->debug(__ "Will deploy the following changes:");
-    foreach my $will_deploy_position ($plan->position .. $to_index) {
+    foreach my $will_deploy_position (($plan->position + 1) .. $to_index) {
         $sqitch->debug($plan->change_at($will_deploy_position)->format_name_with_tags);
     }
 
@@ -313,11 +313,10 @@ sub revert {
         hurl revert => __('Missing required parameter $prompt_default')
             unless defined $prompt_default;
     } else {
-        warnings::warnif(
-            "deprecated",
-            "Engine::revert() requires the `prompt` and `prompt_default` arguments.\n"
-            . 'Omitting them will become fatal in a future release.',
-        );
+        warnings::warnif(deprecated => join ("\n",
+            "Engine::revert() requires the `prompt` and `prompt_default` arguments.",
+            'Omitting them will become fatal in a future release.',
+        ));
 
         $prompt = !($self->no_prompt // 0);
         $prompt_default = $self->prompt_accept // 1;
@@ -370,11 +369,11 @@ sub revert {
                 change      => $change->format_name_with_tags,
                 destination => $self->destination,
             ));
-            $sqitch->info(__ 'Will revert the following changes:');
-            map { $sqitch->info($_) } @change_descriptions;
+            $sqitch->debug(__ 'Will revert the following changes:');
+            map { $sqitch->debug($_) } @change_descriptions;
         } else {
-            $sqitch->info(__ 'Would revert the following changes:');
-            map { $sqitch->info($_) } @change_descriptions;
+            $sqitch->debug(__ 'Would revert the following changes:');
+            map { $sqitch->debug($_) } @change_descriptions;
             hurl {
                 ident   => 'revert:confirm',
                 message => __ 'Nothing reverted',
@@ -400,11 +399,11 @@ sub revert {
                 'Reverting all changes from {destination}',
                 destination => $self->destination,
             ));
-            $sqitch->info(__ 'Will revert the following changes:');
-            map { $sqitch->info($_) } @change_descriptions;
+            $sqitch->debug(__ 'Will revert the following changes:');
+            map { $sqitch->debug($_) } @change_descriptions;
         } else {
-            $sqitch->info(__ 'Would revert the following changes:');
-            map { $sqitch->info($_) } @change_descriptions;
+            $sqitch->debug(__ 'Would revert the following changes:');
+            map { $sqitch->debug($_) } @change_descriptions;
             hurl {
                 ident   => 'revert',
                 message => __ 'Nothing reverted',
@@ -2760,7 +2759,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2023 iovation Inc., David E. Wheeler
+Copyright (c) 2012-2024 iovation Inc., David E. Wheeler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

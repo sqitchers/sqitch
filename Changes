@@ -1,5 +1,38 @@
 Revision history for Perl extension App::Sqitch
 
+1.4.1  2024-02-04T16:35:32Z
+     - Removed the quoting of the role and warehouse identifiers that was
+       added to the Snowflake engine in v1.4.0. Turns out Snowflake allows a
+       warehouse to be specified in a different database, in which case dots
+       are valid in the name and should not be quoted! So users must properly
+       quote when necessary, but added notes to `sqitchtutorial-snowflake.pod`
+       on the need to use URI escapes for special characters. Thanks to
+       Patrick Sabo for the find, and to @marc-marketparts for validating
+       that URI encoding works.
+     - Added notes on URL encoding database URLs to `sqitch-target.pod`, the
+       main reference for database URLs in the Sqitch documentation.
+     - Fixed the output of the list of changes to be deployed or reverted to
+       actually require `--verbose` twice, as described in the v1.4.0 changes,
+       and not just once. Thanks to Erik Wienhold for the PR (#785)!
+     - Removed the duplicate change name from the output of the list of
+       changes to be deployed or reverted with `-VV`. Thanks to Erik Wienhold
+       for the PR (#787)!
+     - Fixed invalid template resolution when adding a singe change to
+       multiple engines at once. Thanks to Christian Riedel for the detailed
+       bug report (#795)!
+     - Fixed Oracle and Firebird test failures due to incorrect use of `chmod`.
+       Thanks to Slaven Rezić for the report and the fix (#807)!
+     - Tests now require Test::Warn 0.31 or later, as newline handling issues
+       cause test failures in earlier versions. Thanks to Slaven Rezić for the
+       test reports and for identifying the issue.
+     - Updated the locale configuration to fix issues in more recent versions
+       of Perl, and added tests to ensure that the sqitch CLI executes and
+       properly emits localized messages (except on Windows, where the language
+       codes are incompatible).
+     - Fixed an issue where the MySQL engine failed to recognize the MariaDB
+       `mysql` client installed by Homebrew on macOS. Thanks to Carlos Ramos
+       for the bug report and PR (#791)!
+
 1.4.0 2023-08-01T23:37:30Z
      - Fixed Snowflake warehouse and role setup to properly quote identifiers
        unless they're valid unquoted identifiers or already quoted. Thanks to

@@ -2,10 +2,11 @@ Releasing Sqitch
 ================
 
 Notes on the steps to make a release of Sqitch. In the steps, below, examples
-use the `$VERSION` environment variable for consistency. The assumption is that
-it's set to the new version being released, e.g.,
+use the `$VERSION` and `$OLD_VERSION` environment variables for consistency. The
+assumption is that they're set to the old and new versions, respectively, e.g.,
 
 ``` sh
+export OLD_VERSION=1.3.1
 export VERSION=1.4.0
 ```
 
@@ -40,7 +41,7 @@ First, update the sources so that everything is up-to-date.
 *   Update copyright dates if a year has turned over since the last release:
 
     ``` sh
-    grep -ril copyright . | xargs perl -i -pe "s/-2023/-$(date +%Y)/g"
+    grep -ril copyright . | xargs perl -i -pe "s/-2024/-$(date +%Y)/g"
     ```
 
 *   Make a build and run `xt/dependency_report`:
@@ -101,7 +102,7 @@ to get it out there!
     the release and that the list of Changes is nicely formatted. It should also
     appear [on CPAN] a short time later.
 
-*   Congratulations, you'e released a new version of Sqitch! Just a few changes
+*   Congratulations, you've released a new version of Sqitch! Just a few changes
     left to make.
 
 Web Site
@@ -119,11 +120,11 @@ To update the Docker image, first preserve the previous release in a branch,
 then make the updates.
 
 *   Create a branch for the previous release so that it can still be supported
-    if necessary. For v1.1.0, for example, do this:
+    if necessary:
 
     ``` sh
-    git checkout -b v1.1.0-maint
-    git push origin -u v1.1.0-maint
+    git checkout -b "v$OLD_VERSION-maint"
+    git push origin -u "v$OLD_VERSION-maint"
     ```
 
 *   Switch back to the main branch and update it for the new version:
@@ -193,8 +194,8 @@ Update the Sqitch Homebrew tap with the new version.
     ```
 
 *   And that's all it takes. If you don't already have the tap with Sqitch
-    installed, you can tap and install the new version with SQLite support) with
-    these commands:
+    installed, you can tap and install the new version (with SQLite support)
+    with these commands:
 
     ``` sh
     brew tap sqitchers/sqitch
