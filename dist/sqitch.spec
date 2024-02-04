@@ -1,5 +1,5 @@
 Name:           sqitch
-Version:        1.4.1
+Version:        1.4.2-dev
 Release:        1%{?dist}
 Summary:        Sensible database change management
 License:        MIT

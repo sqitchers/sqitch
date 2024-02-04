@@ -1,5 +1,7 @@
 Revision history for Perl extension App::Sqitch
 
+1.4.2
+
 1.4.1  2024-02-04T16:35:32Z
      - Removed the quoting of the role and warehouse identifiers that was
        added to the Snowflake engine in v1.4.0. Turns out Snowflake allows a

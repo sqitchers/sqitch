@@ -8,6 +8,7 @@ assumption is that they're set to the old and new versions, respectively, e.g.,
 ``` sh
 export OLD_VERSION=1.3.1
 export VERSION=1.4.0
+export NEXT_VERSION=1.4.2
 ```
 
 Preparation
@@ -131,7 +132,7 @@ then make the updates.
 
     ``` sh
     git checkout main
-    perl -i -pe "s/^(VERSION)=.+/\$1=$VERSION/" build
+    perl -i -pe "s/^(VERSION)=.+/\$1=$VERSION/" .envrc
     ```
 
 *   Commit and push the changes:
@@ -219,10 +220,10 @@ example, if you've just released `v1.4.0`, change the version to `v1.4.1-dev`.
 ``` sh
 git checkout develop
 git merge main
-perl -i -pe 's/^(version\s*=).+/$1 v1.4.1-dev/' dist.ini
-perl -i -pe 's{(App/Sqitch version).+}{$1 v1.4.1-dev}' README.md
-perl -i -pe 's/(Project-Id-Version: App-Sqitch)[^\\n]+/$1 v1.4.1-dev/' po/App-Sqitch.pot
-perl -i -pe 's/(Version:\s*).+/${1}1.4.1-dev/' dist/sqitch.spec
+perl -i -pe "s/^(version\s*=).+/\$1 v$NEXT_VERSION/" dist.ini
+perl -i -pe "s{(App/Sqitch version).+}{\$1 v$NEXT_VERSION-dev}" README.md
+perl -i -pe "s/(Project-Id-Version: App-Sqitch)[^\\\\]+/\$1 v$NEXT_VERSION-dev/" po/App-Sqitch.pot
+perl -i -pe "s/(Version:\s*).+/\${1}$NEXT_VERSION-dev/" dist/sqitch.spec
 ```
 
 Also add a line for the new version (without the pre-release part) to the top of

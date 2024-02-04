@@ -318,7 +318,7 @@ sub _set_findbin {
     local $^I = '';
     local @ARGV = ($file);
     while (<>) {
-        s{^BEGIN}{use FindBin;\nuse lib "\$FindBin::RealBin/../lib/perl5";\nBEGIN};
+        s{^use App::Sqitch}{use FindBin;\nuse lib "\$FindBin::RealBin/../lib/perl5";\nuse App::Sqitch};
         print;
     }
 }
