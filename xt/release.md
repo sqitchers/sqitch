@@ -41,7 +41,7 @@ First, update the sources so that everything is up-to-date.
 *   Update copyright dates if a year has turned over since the last release:
 
     ``` sh
-    grep -ril copyright . | xargs perl -i -pe "s/-2023/-$(date +%Y)/g"
+    grep -ril copyright . | xargs perl -i -pe "s/-2024/-$(date +%Y)/g"
     ```
 
 *   Make a build and run `xt/dependency_report`:

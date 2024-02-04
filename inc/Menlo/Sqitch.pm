@@ -72,6 +72,8 @@ sub remove_build_dependencies {
 # dev/dependency_report.
 __DATA__
 Build-only dependencies
+        Alien-Build
+        Alien-cmake3
         Archive-Tar
         Archive-Zip
         CPAN
@@ -110,6 +112,7 @@ Build-only dependencies
         ExtUtils-MakeMaker
         ExtUtils-MakeMaker-CPANfile
         ExtUtils-ParseXS
+        FFI-CheckLib
         File-Fetch
         File-Find-Rule
         File-Find-Rule-Perl
@@ -117,6 +120,7 @@ Build-only dependencies
         File-Listing
         File-ShareDir-Install
         File-Slurper
+        File-chdir
         File-pushd
         HTML-Parser
         HTML-Tagset
@@ -144,7 +148,6 @@ Build-only dependencies
         Log-Log4perl
         Math-Base-Convert
         Math-BigInt
-        Math-BigRat
         Math-Complex
         Menlo
         Menlo-Legacy
@@ -163,6 +166,7 @@ Build-only dependencies
         Number-Compare
         Params-Check
         Parse-PMFile
+        Path-Tiny
         Perl-Tidy
         Pod-Coverage
         SQL-Statement
@@ -187,6 +191,7 @@ Build-only dependencies
         Tie-File
         Tie-Handle-Offset
         TimeDate
+        Unicode-UTF8
         WWW-RobotRules
         Win32-ShellQuote
         XML-DOM

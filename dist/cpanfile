@@ -105,7 +105,7 @@ on 'test' => sub {
   requires "Test::MockObject::Extends" => "0";
   requires "Test::More" => "0.94";
   requires "Test::NoWarnings" => "0.083";
-  requires "Test::Warn" => "0";
+  requires "Test::Warn" => "0.31";
   requires "base" => "0";
   requires "lib" => "0";
 };

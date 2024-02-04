@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-1.4.1
+1.4.1  2024-02-04T16:35:32Z
      - Removed the quoting of the role and warehouse identifiers that was
        added to the Snowflake engine in v1.4.0. Turns out Snowflake allows a
        warehouse to be specified in a different database, in which case dots
@@ -17,14 +17,14 @@ Revision history for Perl extension App::Sqitch
      - Removed the duplicate change name from the output of the list of
        changes to be deployed or reverted with `-VV`. Thanks to Erik Wienhold
        for the PR (#787)!
-     - Fixed invalid template resolution when adding a singe to multiple
-       engines at once. Thanks to Christian Riedel for the detailed bug report
-       (#795)!
+     - Fixed invalid template resolution when adding a singe change to
+       multiple engines at once. Thanks to Christian Riedel for the detailed
+       bug report (#795)!
      - Fixed Oracle and Firebird test failures due to incorrect use of `chmod`.
        Thanks to Slaven Rezić for the report and the fix (#807)!
      - Tests now require Test::Warn 0.31 or later, as newline handling issues
        cause test failures in earlier versions. Thanks to Slaven Rezić for the
-       test reports and identifying the issue.
+       test reports and for identifying the issue.
      - Updated the locale configuration to fix issues in more recent versions
        of Perl, and added tests to ensure that the sqitch CLI executes and
        properly emits localized messages (except on Windows, where the language
