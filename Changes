@@ -1,6 +1,8 @@
 Revision history for Perl extension App::Sqitch
 
 1.4.2
+     - Fix improperly nested Pod headers that were incrementing two levels
+       relative to their parent headers.
 
 1.4.1  2024-02-04T16:35:32Z
      - Removed the quoting of the role and warehouse identifiers that was
