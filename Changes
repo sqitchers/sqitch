@@ -3,6 +3,9 @@ Revision history for Perl extension App::Sqitch
 1.4.2
      - Fix improperly nested Pod headers that were incrementing two levels
        relative to their parent headers.
+     - Banned "[" and "]" in names (changes, tags, projects) because they
+       muck with dependency parsing of the plan file. Thanks to Žiga Leber for
+       the bug report (#829).
 
 1.4.1  2024-02-04T16:35:32Z
      - Removed the quoting of the role and warehouse identifiers that was

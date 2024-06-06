@@ -380,7 +380,7 @@ msgstr ""
 #, perl-brace-format
 msgid ""
 "invalid project name \"{project}\": project names must not begin with "
-"punctuation, contain \"@\", \":\", \"#\", or blanks, or end in punctuation "
+"punctuation, contain \"@\", \":\", \"#\", "[", "]", or blanks, or end in punctuation "
 "or digits following punctuation"
 msgstr ""
 
@@ -1205,7 +1205,7 @@ msgstr ""
 #, perl-brace-format
 msgid ""
 "invalid project name \"{project}\": project names must not begin with "
-"punctuation, contain \"@\", \":\", \"#\", \"\\\", or blanks, or end in "
+"punctuation, contain \"@\", \":\", \"#\", \"\\\", "[", "]", or blanks, or end in "
 "punctuation or digits following punctuation"
 msgstr ""
 
@@ -1217,7 +1217,7 @@ msgstr ""
 #: lib/App/Sqitch/Plan.pm:320
 msgid ""
 "Invalid name; names must not begin with punctuation, contain \"@\", \":\", "
-"\"#\", \"\\\", or blanks, or end in punctuation or digits following "
+"\"#\", \"\\\", "[", "]", or blanks, or end in punctuation or digits following "
 "punctuation"
 msgstr ""
 
@@ -1362,7 +1362,7 @@ msgstr ""
 #, perl-brace-format
 msgid ""
 "\"{name}\" is invalid: changes must not begin with punctuation, contain "
-"\"@\", \":\", \"#\", \"\\\", or blanks, or end in punctuation or digits "
+"\"@\", \":\", \"#\", \"\\\", "[", "]", or blanks, or end in punctuation or digits "
 "following punctuation"
 msgstr ""
 
@@ -1370,7 +1370,7 @@ msgstr ""
 #, perl-brace-format
 msgid ""
 "\"{name}\" is invalid: tags must not begin with punctuation, contain \"@\", "
-"\":\", \"#\", \"/\", \"\\\", or blanks, or end in punctuation or digits "
+"\":\", \"#\", \"/\", \"\\\", "[", "]", or blanks, or end in punctuation or digits "
 "following punctuation"
 msgstr ""
 

@@ -26,7 +26,7 @@ my $name_re = qr{
     (?![$punct])                   # first character isn't punctuation
     (?:                            # start non-capturing group, repeated once or more ...
        (?!                         #     negative look ahead for...
-           [~/=%^]                 #         symbolic reference punctuation
+           [~/=%^\[\]]             #         symbolic reference punctuation
            [[:digit:]]+            #         digits
            (?:$|[[:blank:]])       #         eol or blank
        )                           #     ...
@@ -237,7 +237,7 @@ sub _parse {
             my $proj = $+{value};
             $raise_syntax_error->(__x(
                 qq{invalid project name "{project}": project names must not }
-                . 'begin with punctuation, contain "@", ":", "#", "\\", or blanks, '
+                . 'begin with punctuation, contain "@", ":", "#", "\\", "[", "]", or blanks, '
                 . 'or end in punctuation or digits following punctuation',
                 project => $proj,
             )) unless $proj =~ /\A$name_re\z/;
@@ -318,7 +318,7 @@ sub _parse {
         # Raise errors for missing data.
         $raise_syntax_error->(__(
             qq{Invalid name; names must not begin with punctuation, }
-            . 'contain "@", ":", "#", "\\", or blanks, or end in punctuation or digits following punctuation',
+            . 'contain "@", ":", "#", "\\", "[", "]", or blanks, or end in punctuation or digits following punctuation',
         )) if !$params{name}
             || (!$params{yr} && $line =~ $ts_re);
 
@@ -916,13 +916,13 @@ sub _is_valid {
     if ($type eq 'change' && $name !~ /\A$name_re\z/) {
         hurl plan => __x(
             qq{"{name}" is invalid: changes must not begin with punctuation, }
-            . 'contain "@", ":", "#", "\\", or blanks, or end in punctuation or digits following punctuation',
+            . 'contain "@", ":", "#", "\\", "[", "]", or blanks, or end in punctuation or digits following punctuation',
             name => $name,
         );
     } elsif ($type eq 'tag' && ($name !~ /\A$name_re\z/ || $name =~ $dir_sep_re)) {
         hurl plan => __x(
             qq{"{name}" is invalid: tags must not begin with punctuation, }
-            . 'contain "@", ":", "#", "/", "\\", or blanks, or end in punctuation or digits following punctuation',
+            . 'contain "@", ":", "#", "/", "\\", "[", "]", or blanks, or end in punctuation or digits following punctuation',
             name => $name,
         );
     }
