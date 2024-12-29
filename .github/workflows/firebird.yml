@@ -12,6 +12,7 @@ jobs:
     strategy:
       matrix:
         include:
+          - { version: '5.0'    }
           - { version: '4.0'    }
           - { version: '3.0'    }
           - { version: '2.5-ss' }
