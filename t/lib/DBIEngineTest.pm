@@ -90,14 +90,13 @@ sub run {
             try {
                 $code->( $engine ) || die 'NO';
             } catch {
-                (my $msg = eval { $_->message } || $_) =~ s/^/# /g;
                 plan skip_all => sprintf(
                     'Unable to live-test %s engine: %s',
                     $class->name,
-                    substr($msg, 2),
+                    $_->message,
                 ) unless $ENV{'LIVE_' . uc $engine->key . '_REQUIRED'};
                 fail 'Connect to ' . $class->name;
-                diag substr $msg, 2;
+                diag $_->message;
                 diag $_->previous_exception;
             } or return;
         }

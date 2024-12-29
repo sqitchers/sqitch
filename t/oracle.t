@@ -16,7 +16,7 @@
 # Client](https://www.oracle.com/database/technologies/instant-client/downloads.html),
 # specifically the Basic, SQL*Plus, and SDK packages. Unpack them into a
 # directory and set `ORACLE_HOME` and `LD_LIBRARY_PATH` to point to that
-# director, and add it to the Path. Then install DBD::Oracle.
+# directory, and add it to the Path. Then install DBD::Oracle.
 #
 # ## Oracle-XE Docker Image
 #
