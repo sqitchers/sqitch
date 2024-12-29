@@ -105,7 +105,7 @@ is $exa->_script, join( "\n" => (
 # Make sure the URI query properly affect the client options.
 for my $spec (
     {
-        qry => 'SSLCertificate=SSL_VERIFY_NONE',
+        qry => 'SSLCERTIFICATE=SSL_VERIFY_NONE',
         opt => [qw(-jdbcparam validateservercertificate=0)],
     },
     {
@@ -129,7 +129,7 @@ for my $spec (
         opt => [qw(-jdbcparam authmethod=xyz)],
     },
     {
-        qry => 'SSLCertificate=SSL_VERIFY_NONE&AUTHMETHOD=xyz',
+        qry => 'SSLCERTIFICATE=SSL_VERIFY_NONE&AUTHMETHOD=xyz',
         opt => [qw(-jdbcparam validateservercertificate=0 -jdbcparam authmethod=xyz)],
     },
 ) {

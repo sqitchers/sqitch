@@ -81,7 +81,7 @@ jobs:
           PERL5LIB: "${{ github.workspace }}/local/lib/perl5"
           HARNESS_PERL_SWITCHES: -MDevel::Cover=-ignore,^(?:x?t|inc|bin|local)/
           LIVE_EXASOL_REQUIRED: true
-          SQITCH_TEST_EXASOL_URI: db:exasol://sys:exasol@127.0.0.1:${{ job.services.exasol.ports[8563] }}/?Driver=Exasol;SSLCertificate=SSL_VERIFY_NONE
+          SQITCH_TEST_EXASOL_URI: db:exasol://sys:exasol@127.0.0.1:${{ job.services.exasol.ports[8563] }}/?Driver=Exasol;SSLCERTIFICATE=SSL_VERIFY_NONE
           LIVE_FIREBIRD_REQUIRED: true
           SQITCH_TEST_FIREBIRD_URI: db:firebird://sysdba:nix@127.0.0.1:${{ job.services.firebird.ports[3050] }}//firebird/data/sqitchtest.db
           LIVE_MYSQL_REQUIRED: true
