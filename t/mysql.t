@@ -618,7 +618,7 @@ my $err = try {
     $uri->dbname($db);
     undef;
 } catch {
-    eval { $_->message } || $_;
+    $_
 };
 
 DBIEngineTest->run(

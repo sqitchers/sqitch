@@ -429,7 +429,7 @@ my $err = try {
     push @cleanup => map { catfile $data_dir, $_ } $reg1, $reg2;
     return undef;
 } catch {
-    eval { $_->message } || $_;
+    $_
 };
 
 END {

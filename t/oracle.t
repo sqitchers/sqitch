@@ -681,7 +681,7 @@ my $err = try {
     });
     undef;
 } catch {
-    eval { $_->message } || $_;
+    $_;
 };
 
 DBIEngineTest->run(
