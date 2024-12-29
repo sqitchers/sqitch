@@ -541,9 +541,10 @@ $uri->host($uri->host . ".snowflakecomputing.com") if $uri->host !~ /snoflakecom
 my $err = try {
     $snow->use_driver;
     $dbh = DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {
-        PrintError => 0,
-        RaiseError => 1,
-        AutoCommit => 1,
+        PrintError  => 0,
+        RaiseError  => 0,
+        AutoCommit  => 1,
+        HandleError => App::Sqitch::Role::DBIEngine::error_handler,
     });
     undef;
 } catch {

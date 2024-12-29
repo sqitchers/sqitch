@@ -79,12 +79,7 @@ has dbh => (
             mysql_enable_utf8    => 1,
             mysql_auto_reconnect => 0,
             mysql_use_result     => 0, # Prevent "Commands out of sync" error.
-            HandleError          => sub {
-                my ($err, $dbh) = @_;
-                $@ = $err;
-                @_ = ($dbh->state || 'DEV' => $dbh->errstr);
-                goto &hurl;
-            },
+            HandleError       => App::Sqitch::Role::DBIEngine::error_handler,
             Callbacks             => {
                 connected => sub {
                     my $dbh = shift;

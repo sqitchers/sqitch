@@ -6,6 +6,7 @@ Revision history for Perl extension App::Sqitch
      - Banned "[" and "]" in names (changes, tags, projects) because they
        muck with dependency parsing of the plan file. Thanks to Žiga Leber for
        the bug report (#829).
+     - Removed duplicate DBI error handling code from engines and tests.
 
 1.4.1  2024-02-04T16:35:32Z
      - Removed the quoting of the role and warehouse identifiers that was
