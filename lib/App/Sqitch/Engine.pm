@@ -1764,7 +1764,6 @@ L<MySQL engine|App::Sqitch::Engine::mysql> engine sets them via the C<SET>
 command and the L<Oracle engine|App::Sqitch::Engine::oracle> engine sets them
 via the SQL*Plus C<DEFINE> command.
 
-
 =head3 C<deploy>
 
   $engine->deploy($to_change);
