@@ -75,7 +75,6 @@ jobs:
           .github/ubuntu/snowflake.sh
           .github/ubuntu/vertica.sh
       - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends --cpanfile dist/cpanfile
-      - run: cpanm install --verbose --no-test DBD::ODBC
       - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends DBI DBD::ODBC DBD::Firebird DBD::Oracle DBD::mysql DBD::Pg Devel::Cover Devel::Cover::Report::Coveralls
       - name: Run Tests
         env:

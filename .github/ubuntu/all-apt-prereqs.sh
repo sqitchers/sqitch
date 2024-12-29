@@ -8,5 +8,6 @@ sudo env DEBIAN_FRONTEND=noninteractive apt-get install -qq \
     default-jre \
     firebird-dev firebird3.0-utils \
     mysql-client default-libmysqlclient-dev \
-    libarchive-tools
+    libarchive-tools \
+    libaio1t64
 cat t/odbc/odbcinst.ini | sudo tee -a /etc/odbcinst.ini
