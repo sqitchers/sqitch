@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 208;
+use Test::More tests => 214;
 # use Test::More 'no_plan';
 use Test::MockModule 0.17;
 use Path::Class;
@@ -420,7 +420,11 @@ is $stderr, '', 'Nothing should have gone to STDERR';
 ($stdout, $stderr) = capture {
     throws_ok {
         $sqitch->run( $^X, 'die.pl', qw(hi there))
-    } qr/unexpectedly returned/, 'run die should, well, die';
+    } 'App::Sqitch::X', 'run die should, well, die';
+    is $@->ident, 'ipc', 'Error ident should be "ipc"';
+    like $@->message,
+        qr/unexpectedly returned/,
+        'The error message should be from the exit error';
 };
 
 is $stdout, "hi there\n", 'The die script should have its STDOUT ummolested';
@@ -442,7 +446,11 @@ is $stderr, '', 'Nothing should have gone to STDERR';
 ($stdout, $stderr) = capture {
     throws_ok {
         $sqitch->shell( "$pl die.pl hi there" )
-    } qr/unexpectedly returned/, 'shell die should, well, die';
+    } 'App::Sqitch::X', 'shell die should, well, die';
+    is $@->ident, 'ipc', 'Error ident should be "ipc"';
+    like $@->message,
+        qr/unexpectedly returned/,
+        'The error message should be from the exit error';
 };
 
 is $stdout, "hi there\n", 'The die script should have its STDOUT ummolested';
@@ -470,8 +478,12 @@ is $sqitch->capture($^X, 'echo.pl', qw(hi there)),
     "hi there\n", 'The echo script output should have been returned';
 like capture_stderr {
     throws_ok { $sqitch->capture($^X, 'die.pl', qw(hi there)) }
-        qr/unexpectedly returned/,
+        'App::Sqitch::X',
         'Should get an error if the command errors out';
+    is $@->ident, 'ipc', 'Error ident should be "ipc"';
+    like $@->message,
+        qr/unexpectedly returned/,
+        'The error message should be from the exit error';
 }, qr/OMGWTF/m, 'The die script STDERR should have passed through';
 
 ##############################################################################

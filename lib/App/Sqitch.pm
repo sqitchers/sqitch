@@ -329,7 +329,7 @@ sub run {
     my $self = shift;
     local $SIG{__DIE__} = sub {
         ( my $msg = shift ) =~ s/\s+at\s+.+/\n/ms;
-        die $msg;
+        hurl ipc => $msg;
     };
     if (ISWIN && IPC::System::Simple->VERSION < 1.28) {
         runx ( shift, $self->quote_shell(@_) );
@@ -343,7 +343,7 @@ sub shell {
     my ($self, $cmd) = @_;
     local $SIG{__DIE__} = sub {
         ( my $msg = shift ) =~ s/\s+at\s+.+/\n/ms;
-        die $msg;
+        hurl ipc => $msg;
     };
     IPC::System::Simple::run $cmd;
     return $self;
@@ -363,7 +363,7 @@ sub capture {
     my $self = shift;
     local $SIG{__DIE__} = sub {
         ( my $msg = shift ) =~ s/\s+at\s+.+/\n/ms;
-        die $msg;
+        hurl ipc => $msg;
     };
     return capturex ( shift, $self->quote_shell(@_) )
         if ISWIN && IPC::System::Simple->VERSION <= 1.25;
