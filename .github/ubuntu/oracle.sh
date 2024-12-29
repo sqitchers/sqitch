@@ -2,8 +2,8 @@
 
 set -e
 
-version=21.9.0.0.0dbru
-icdr=219000
+version=23.6.0.24.10
+icdr=2360000
 
 # Install bsdtar, required to get --strip-components for a zip file.
 if [ -z "$SKIP_DEPENDS" ]; then

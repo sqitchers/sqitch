@@ -98,6 +98,7 @@ sub run {
                 ) unless $ENV{'LIVE_' . uc $engine->key . '_REQUIRED'};
                 fail 'Connect to ' . $class->name;
                 diag substr $msg, 2;
+                diag $_->previous_exception;
             } or return;
         }
         if (my $q = $p{version_query}) {
