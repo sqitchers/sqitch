@@ -11,8 +11,8 @@ BEGIN {
     if ($Locale::Messages::package eq 'gettext_pp') {
         no warnings qw(redefine prototype);
         no strict 'refs';
-        my $orig = \&Locale::Messages::gettext_pp::__locale_category;
-        *{"Locale::Messages::gettext_pp::__locale_category"} = sub {
+        my $orig = \&Locale::gettext_pp::__locale_category;
+        *{"Locale::gettext_pp::__locale_category"} = sub {
             local $SIG{__WARN__} = sub {};
             $orig->();
         }
