@@ -143,7 +143,7 @@ my $err = try {
         PrintError  => 0,
         RaiseError  => 0,
         AutoCommit  => 1,
-        HandleError => App::Sqitch::Role::DBIEngine::error_handler,
+        HandleError => $cockroach->_error_handler,
         cockroach_lc_messages => 'C',
     });
     $dbh->do("CREATE DATABASE $db");

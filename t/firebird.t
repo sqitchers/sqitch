@@ -419,7 +419,7 @@ my $err = try {
         PrintError  => 0,
         RaiseError  => 0,
         AutoCommit  => 1,
-        HandleError => App::Sqitch::Role::DBIEngine::error_handler,
+        HandleError => $fb->_error_handler,
     });
     $fb_version = $dbh->selectcol_arrayref(q{
         SELECT rdb$get_context('SYSTEM', 'ENGINE_VERSION')

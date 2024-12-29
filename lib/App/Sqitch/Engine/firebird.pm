@@ -79,7 +79,7 @@ has dbh => (
             AutoCommit       => 1,
             ib_enable_utf8   => 1,
             FetchHashKeyName => 'NAME_lc',
-            HandleError       => App::Sqitch::Role::DBIEngine::error_handler,
+            HandleError       => $self->_error_handler,
         });
     }
 );

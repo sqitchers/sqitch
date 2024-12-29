@@ -602,7 +602,7 @@ my $err = try {
         PrintError  => 0,
         RaiseError  => 0,
         AutoCommit  => 1,
-        HandleError => App::Sqitch::Role::DBIEngine::error_handler,
+        HandleError => $mysql->_error_handler,
     });
 
     # Make sure we have a version we can use.

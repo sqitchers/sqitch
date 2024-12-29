@@ -1016,12 +1016,14 @@ sub rollback_work {
     return $self;
 }
 
-sub error_handler {
+sub _eh {
     my ($err, $dbh) = @_;
     $@ = $err;
     @_ = ($dbh->state || 'DEV' => $dbh->errstr);
     goto &hurl;
 }
+
+sub _error_handler { \&_eh }
 
 1;
 
@@ -1099,8 +1101,6 @@ DBI-powered engines.
 =head3 C<change_id_for>
 
 =head3 C<registry_version>
-
-=head3 C<error_handler>
 
 =head1 See Also
 

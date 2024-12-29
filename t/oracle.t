@@ -678,7 +678,7 @@ my $err = try {
         PrintError  => 0,
         RaiseError  => 0,
         AutoCommit  => 1,
-        HandleError => App::Sqitch::Role::DBIEngine::error_handler,
+        HandleError => $ora->_error_handler,
     });
     undef;
 } catch {
