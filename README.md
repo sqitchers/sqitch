@@ -163,7 +163,7 @@ SOFTWARE.
   [OSes]:      https://github.com/sqitchers/sqitch/actions/workflows/os.yml/badge.svg
   [💿]:        https://github.com/sqitchers/sqitch/actions/workflows/os.yml "Tested on Linux, macOS, and Windows"
   [Exasol]:    https://github.com/sqitchers/sqitch/actions/workflows/exasol.yml/badge.svg
-  [☀️]:         https://github.com/sqitchers/sqitch/actions/workflows/exasol.yml "Tested with Exasol 7.0–7.1"
+  [☀️]:         https://github.com/sqitchers/sqitch/actions/workflows/exasol.yml "Tested with Exasol 7.0–8.32"
   [Oracle]:    https://github.com/sqitchers/sqitch/actions/workflows/oracle.yml/badge.svg
   [🔮]:        https://github.com/sqitchers/sqitch/actions/workflows/oracle.yml "Tested with Oracle 11, 18, and 21"
   [Docker]:    https://img.shields.io/docker/v/sqitch/sqitch?label=%F0%9F%90%B3%20Docker&sort=semver
