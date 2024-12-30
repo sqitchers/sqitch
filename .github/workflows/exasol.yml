@@ -11,12 +11,12 @@ jobs:
   Exasol:
     strategy:
       matrix:
-        exasol: ['8.32.0'] #, '7.1.30', '7.0.22']
+        exasol: ['8', '7.1', '7.0']
     name: ☀️ Exasol ${{ matrix.exasol }}
     runs-on: ubuntu-latest
     services:
       exasol:
-        image: exasol/docker-db:${{ matrix.exasol }}
+        image: exasol/docker-db:latest-${{ matrix.exasol }}
         ports: [ 8563 ]
         options: --privileged
     steps:
