@@ -169,7 +169,7 @@ SOFTWARE.
   [Docker]:    https://img.shields.io/docker/v/sqitch/sqitch?label=%F0%9F%90%B3%20Docker&sort=semver
   [🐳]:        https://hub.docker.com/r/sqitch/sqitch "Latest version on Docker Hub"
   [Perl]:      https://github.com/sqitchers/sqitch/actions/workflows/perl.yml/badge.svg
-  [🧅]:        https://github.com/sqitchers/sqitch/actions/workflows/perl.yml "Tested with Perl 5.12–5.38"
+  [🧅]:        https://github.com/sqitchers/sqitch/actions/workflows/perl.yml "Tested with Perl 5.12–5.40"
   [Firebird]:  https://github.com/sqitchers/sqitch/actions/workflows/firebird.yml/badge.svg
   [🔥]:        https://github.com/sqitchers/sqitch/actions/workflows/firebird.yml "Tested with Firebird 3.0–5.0"
   [Snowflake]: https://github.com/sqitchers/sqitch/actions/workflows/snowflake.yml/badge.svg
