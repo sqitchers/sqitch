@@ -179,7 +179,7 @@ SOFTWARE.
   [Coverage]:  https://img.shields.io/coveralls/github/sqitchers/sqitch?label=%F0%9F%93%88%20Coverage
   [📈]:        https://coveralls.io/r/sqitchers/sqitch "Test Coverage"
   [MySQL]:     https://github.com/sqitchers/sqitch/actions/workflows/mysql.yml/badge.svg
-  [🐬]:        https://github.com/sqitchers/sqitch/actions/workflows/mysql.yml "Tested with MySQL 5.5–8 and MariaDB 10.0–11.0"
+  [🐬]:        https://github.com/sqitchers/sqitch/actions/workflows/mysql.yml "Tested with MySQL 5.5–9.1 and MariaDB 10.0–11.6"
   [SQLite]:    https://github.com/sqitchers/sqitch/actions/workflows/sqlite.yml/badge.svg
   [💡]:        https://github.com/sqitchers/sqitch/actions/workflows/sqlite.yml "Tested with SQLite 3.8–3.42"
   [Debian]:    https://img.shields.io/debian/v/sqitch?label=%F0%9F%8D%A5%20Debian
