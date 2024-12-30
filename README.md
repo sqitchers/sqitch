@@ -171,7 +171,7 @@ SOFTWARE.
   [Perl]:      https://github.com/sqitchers/sqitch/actions/workflows/perl.yml/badge.svg
   [🧅]:        https://github.com/sqitchers/sqitch/actions/workflows/perl.yml "Tested with Perl 5.12–5.40"
   [Firebird]:  https://github.com/sqitchers/sqitch/actions/workflows/firebird.yml/badge.svg
-  [🔥]:        https://github.com/sqitchers/sqitch/actions/workflows/firebird.yml "Tested with Firebird 3.0–5.0"
+  [🔥]:        https://github.com/sqitchers/sqitch/actions/workflows/firebird.yml "Tested with Firebird 2.5–5.0"
   [Snowflake]: https://github.com/sqitchers/sqitch/actions/workflows/snowflake.yml/badge.svg
   [❄️]:         https://github.com/sqitchers/sqitch/actions/workflows/snowflake.yml "Tested with Snowflake"
   [Homebrew]:  https://img.shields.io/github/v/tag/sqitchers/homebrew-sqitch?label=%F0%9F%8D%BA%20Homebrew&sort=semver
