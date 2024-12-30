@@ -347,9 +347,10 @@ for my $i (1..30) {
     $err = try {
         $vta->use_driver;
         $dbh = DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {
-            PrintError => 0,
-            RaiseError => 1,
-            AutoCommit => 1,
+            PrintError  => 0,
+            RaiseError  => 0,
+            AutoCommit  => 1,
+            HandleError => $vta->_error_handler,
         });
         undef;
     } catch {
