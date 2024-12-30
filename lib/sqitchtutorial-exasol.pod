@@ -218,8 +218,8 @@ L</Connection Configuration> for details):
     + appschema .. ok
 
 (If you see an error resolving the TLS certificate, you can disable
-certificate verification by adding C<&FINGERPRINT=NoCertCheck> to the end of
-the URL. Only do this for testing!)
+certificate verification by adding C<&SSLCERTIFICATE=SSL_VERIFY_NONE> to the
+end of the URL. Only do this for testing!)
 
 First Sqitch created registry tables used to track database changes. The
 structure and name of the registry varies between databases (Exasol uses a
