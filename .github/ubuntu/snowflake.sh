@@ -22,14 +22,14 @@ sudo mv /opt/snowflake/ErrorMessages/en-US /opt/snowflake/lib/
 # Install, update, and configure SnowSQL.
 sed -e '1,/^exit$/d' snowsql.bash | sudo tar -C /opt/snowflake -zxf -
 /opt/snowflake/snowsql -Uv
-echo "[options]\nnoup = true" > /opt/snowflake/config
+printf "[options]\nnoup = true\n" > /opt/snowflake/config
 
 # Add to the path.
-if [[ ! -z "$GITHUB_PATH" ]]; then
-    echo "/opt/snowflake" >> $GITHUB_PATH
+if [[ -n "$GITHUB_PATH" ]]; then
+    echo "/opt/snowflake" >> "$GITHUB_PATH"
 fi
 
 # Tell SnowSQL where to find the config.
-if [[ ! -z "$GITHUB_ENV" ]]; then
-    echo "WORKSPACE=/opt/snowflake" >> $GITHUB_ENV
+if [[ -n "$GITHUB_ENV" ]]; then
+    echo "WORKSPACE=/opt/snowflake" >> "$GITHUB_ENV"
 fi

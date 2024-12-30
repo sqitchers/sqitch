@@ -28,15 +28,15 @@ bsdtar -C /opt/instantclient --strip-components 1 -zxf "instantclient-basic-linu
 bsdtar -C /opt/instantclient --strip-components 1 -zxf "instantclient-sqlplus-linux.x64-${version}.zip"
 bsdtar -C /opt/instantclient --strip-components 1 -zxf "instantclient-sdk-linux.x64-${version}.zip"
 
-if [[ ! -z "$GITHUB_PATH" ]]; then
-    echo "/opt/instantclient" >> $GITHUB_PATH
+if [[ -n "$GITHUB_PATH" ]]; then
+    echo "/opt/instantclient" >> "$GITHUB_PATH"
 fi
 
-if [[ ! -z "$GITHUB_ENV" ]]; then
-    echo "ORACLE_HOME=/opt/instantclient" >> $GITHUB_ENV
+if [[ -n "$GITHUB_ENV" ]]; then
+    echo "ORACLE_HOME=/opt/instantclient" >> "$GITHUB_ENV"
     if [[ -z "$LD_LIBRARY_PATH" ]]; then
-        echo "LD_LIBRARY_PATH=/opt/instantclient" >> $GITHUB_ENV
+        echo "LD_LIBRARY_PATH=/opt/instantclient" >> "$GITHUB_ENV"
     else
-        echo "LD_LIBRARY_PATH=/opt/instantclient:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+        echo "LD_LIBRARY_PATH=/opt/instantclient:$LD_LIBRARY_PATH" >> "$GITHUB_ENV"
     fi
 fi

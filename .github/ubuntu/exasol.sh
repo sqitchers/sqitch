@@ -30,5 +30,5 @@ sudo tar -xzf EXAplus-24.2.1.tar.gz                  -C /opt/exasol --strip-comp
 
 # Add to the path.
 if [[ -n "$GITHUB_PATH" ]]; then
-    echo "/opt/exasol" >> $GITHUB_PATH
+    echo "/opt/exasol" >> "$GITHUB_PATH"
 fi

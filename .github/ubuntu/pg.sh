@@ -9,6 +9,6 @@ curl -O https://salsa.debian.org/postgresql/postgresql-common/-/raw/master/pgdg/
 sudo sh apt.postgresql.org.sh -i -t -v $PGVERSION
 sudo pg_createcluster --start $PGVERSION test -p 5432 --locale=C -- -A trust -E UTF8
 
-if [[ ! -z "$GITHUB_PATH" ]]; then
-    echo "/usr/lib/postgresql/$POSTGRES/bin" >> $GITHUB_PATH
+if [[ -n "$GITHUB_PATH" ]]; then
+    echo "/usr/lib/postgresql/$POSTGRES/bin" >> "$GITHUB_PATH"
 fi
