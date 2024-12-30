@@ -77,12 +77,7 @@ has dbh => (
             AutoCommit        => 1,
             sqlite_unicode    => 1,
             sqlite_use_immediate_transaction => 1,
-            HandleError       => sub {
-                my ($err, $dbh) = @_;
-                $@ = $err;
-                @_ = ($dbh->state || 'DEV' => $dbh->errstr);
-                goto &hurl;
-            },
+            HandleError       => $self->error_handler,
             Callbacks         => {
                 connected => sub {
                     my $dbh = shift;

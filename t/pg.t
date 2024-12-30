@@ -510,8 +510,9 @@ my $err = try {
     $pg->use_driver;
     $dbh = DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {
         PrintError     => 0,
-        RaiseError     => 1,
+        RaiseError     => 0,
         AutoCommit     => 1,
+        HandleError    => $pg->error_handler,
         pg_lc_messages => 'C',
     });
     unless ($ENV{SQITCH_TEST_PG_URI}) {
@@ -520,7 +521,7 @@ my $err = try {
     }
     undef;
 } catch {
-    eval { $_->message } || $_;
+    $_
 };
 
 DBIEngineTest->run(

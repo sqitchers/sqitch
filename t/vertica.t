@@ -347,18 +347,19 @@ for my $i (1..30) {
     $err = try {
         $vta->use_driver;
         $dbh = DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {
-            PrintError => 0,
-            RaiseError => 1,
-            AutoCommit => 1,
+            PrintError  => 0,
+            RaiseError  => 0,
+            AutoCommit  => 1,
+            HandleError => $vta->error_handler,
         });
         undef;
     } catch {
-        eval { $_->message } || $_;
+        $_
     };
     # Sleep if it failed but Vertica is still starting up.
     # SQL-57V03: `failed: FATAL 4149:  Node startup/recovery in progress. Not yet ready to accept connections`
     # SQL-08001: `failed: [Vertica][DSI] An error occurred while attempting to retrieve the error message for key 'VConnectFailed' and component ID 101: Could not open error message files`
-    last unless $err && (($DBI::state || '') eq '57V03' || $err =~ /VConnectFailed/);
+    last unless $err && (($DBI::state || '') eq '57V03' || $err->message =~ /VConnectFailed/);
     sleep 1 if $i < 30;
 }
 

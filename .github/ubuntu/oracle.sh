@@ -2,13 +2,17 @@
 
 set -e
 
-version=21.9.0.0.0dbru
-icdr=219000
+version=23.6.0.24.10
+icdr=2360000
 
-# Install bsdtar, required to get --strip-components for a zip file.
+# Download dependencies.
 if [ -z "$SKIP_DEPENDS" ]; then
+    # Install libaio and bsdtar, required to get --strip-components for a zip file.
     sudo apt-get update -qq
-    sudo env DEBIAN_FRONTEND=noninteractive apt-get install -qq libarchive-tools
+    sudo env DEBIAN_FRONTEND=noninteractive apt-get install -qq libarchive-tools libaio1t64
+
+    # instantclient still wants libaio.so.1. https://askubuntu.com/a/1514001
+    sudo ln -s /usr/lib/x86_64-linux-gnu/libaio.so.1t64 /usr/lib/x86_64-linux-gnu/libaio.so.1
 fi
 
 # Download Instant Client.
@@ -24,15 +28,15 @@ bsdtar -C /opt/instantclient --strip-components 1 -zxf "instantclient-basic-linu
 bsdtar -C /opt/instantclient --strip-components 1 -zxf "instantclient-sqlplus-linux.x64-${version}.zip"
 bsdtar -C /opt/instantclient --strip-components 1 -zxf "instantclient-sdk-linux.x64-${version}.zip"
 
-if [[ ! -z "$GITHUB_PATH" ]]; then
-    echo "/opt/instantclient" >> $GITHUB_PATH
+if [[ -n "$GITHUB_PATH" ]]; then
+    echo "/opt/instantclient" >> "$GITHUB_PATH"
 fi
 
-if [[ ! -z "$GITHUB_ENV" ]]; then
-    echo "ORACLE_HOME=/opt/instantclient" >> $GITHUB_ENV
+if [[ -n "$GITHUB_ENV" ]]; then
+    echo "ORACLE_HOME=/opt/instantclient" >> "$GITHUB_ENV"
     if [[ -z "$LD_LIBRARY_PATH" ]]; then
-        echo "LD_LIBRARY_PATH=/opt/instantclient" >> $GITHUB_ENV
+        echo "LD_LIBRARY_PATH=/opt/instantclient" >> "$GITHUB_ENV"
     else
-        echo "LD_LIBRARY_PATH=/opt/instantclient:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+        echo "LD_LIBRARY_PATH=/opt/instantclient:$LD_LIBRARY_PATH" >> "$GITHUB_ENV"
     fi
 fi

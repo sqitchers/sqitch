@@ -200,12 +200,7 @@ has dbh => (
             AutoCommit        => 1,
             odbc_utf8_on      => 1,
             FetchHashKeyName  => 'NAME_lc',
-            HandleError       => sub {
-                my ($err, $dbh) = @_;
-                $@ = $err;
-                @_ = ($dbh->state || 'DEV' => $dbh->errstr);
-                goto &hurl;
-            },
+            HandleError       => $self->error_handler,
             Callbacks         => {
                 connected => sub {
                     my $dbh = shift;

@@ -102,12 +102,7 @@ has dbh => (
             RaiseError        => 0,
             AutoCommit        => 1,
             FetchHashKeyName  => 'NAME_lc',
-            HandleError       => sub {
-                my ($err, $dbh) = @_;
-                $@ = $err;
-                @_ = ($dbh->state || 'DEV' => $dbh->errstr);
-                goto &hurl;
-            },
+            HandleError       => $self->error_handler,
             Callbacks         => {
                 connected => sub {
                     my $dbh = shift;

@@ -127,12 +127,7 @@ has dbh => (
             AutoCommit        => 1,
             pg_enable_utf8    => 1,
             pg_server_prepare => 1,
-            HandleError       => sub {
-                my ($err, $dbh) = @_;
-                $@ = $err;
-                @_ = ($dbh->state || 'DEV' => $dbh->errstr);
-                goto &hurl;
-            },
+            HandleError       => $self->error_handler,
             Callbacks         => {
                 connected => sub {
                     my $dbh = shift;

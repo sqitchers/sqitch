@@ -9,6 +9,6 @@ if [ -z "$SKIP_DEPENDS" ]; then
 fi
 
 # Tell DBD::Firebird where to find the libraries.
-if [[ ! -z "$GITHUB_ENV" ]]; then
-    echo "FIREBIRD_HOME=/usr" >> $GITHUB_ENV
+if [[ -n "$GITHUB_ENV" ]]; then
+    echo "FIREBIRD_HOME=/usr" >> "$GITHUB_ENV"
 fi

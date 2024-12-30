@@ -89,12 +89,7 @@ has dbh => (
             RaiseError        => 0,
             AutoCommit        => 1,
             odbc_utf8_on      => 1,
-            HandleError       => sub {
-                my ($err, $dbh) = @_;
-                $@ = $err;
-                @_ = ($dbh->state || 'DEV' => $dbh->errstr);
-                goto &hurl;
-            },
+            HandleError       => $self->error_handler,
             Callbacks         => {
                 connected => sub {
                     my $dbh = shift;

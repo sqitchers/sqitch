@@ -18,10 +18,10 @@ jobs:
         ports: [ 8563 ]
         options: --privileged
       firebird:
-        image: jacobalberty/firebird:latest
+        image: ghcr.io/fdcastel/firebird:latest
         ports: [ 3050 ]
         env:
-          ISC_PASSWORD: nix
+          FIREBIRD_ROOT_PASSWORD: nix
           FIREBIRD_DATABASE: sqitchtest.db
       mysql:
         image: mysql:latest
@@ -44,9 +44,9 @@ jobs:
         image: vertica/vertica-ce:latest
         ports: [ 5433 ]
     steps:
-      # https://github.com/orgs/community/discussions/25678#discussioncomment-5242449
+      # https://github.com/orgs/community/discussions/25678#discussioncomment-9017167
       - name: Free Disk Space
-        run: rm -rf /opt/hostedtoolcache
+        run: find /opt -maxdepth 1 -mindepth 1 '!' -path ./containerd '!' -path ./actionarchivecache '!' -path ./runner '!' -path ./runner-cache -exec rm -rf '{}' ';'
       - name: Start CockroachDB
         run: docker run -d -p 26257:26257 cockroachdb/cockroach:latest start-single-node --insecure
       - uses: actions/checkout@v4
@@ -81,9 +81,9 @@ jobs:
           PERL5LIB: "${{ github.workspace }}/local/lib/perl5"
           HARNESS_PERL_SWITCHES: -MDevel::Cover=-ignore,^(?:x?t|inc|bin|local)/
           LIVE_EXASOL_REQUIRED: true
-          SQITCH_TEST_EXASOL_URI: db:exasol://sys:exasol@127.0.0.1:${{ job.services.exasol.ports[8563] }}/?Driver=Exasol;SSLCertificate=SSL_VERIFY_NONE
+          SQITCH_TEST_EXASOL_URI: db:exasol://sys:exasol@127.0.0.1:${{ job.services.exasol.ports[8563] }}/?Driver=Exasol;SSLCERTIFICATE=SSL_VERIFY_NONE
           LIVE_FIREBIRD_REQUIRED: true
-          SQITCH_TEST_FIREBIRD_URI: db:firebird://sysdba:nix@127.0.0.1:${{ job.services.firebird.ports[3050] }}//firebird/data/sqitchtest.db
+          SQITCH_TEST_FIREBIRD_URI: db:firebird://sysdba:nix@127.0.0.1:${{ job.services.firebird.ports[3050] }}//var/lib/firebird/data/sqitchtest.db
           LIVE_MYSQL_REQUIRED: true
           SQITCH_TEST_MYSQL_URI: "db:mysql://root@127.0.0.1:${{ job.services.mysql.ports[3306] }}/information_schema"
           LIVE_ORACLE_REQUIRED: true

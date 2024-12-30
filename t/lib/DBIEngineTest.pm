@@ -90,14 +90,14 @@ sub run {
             try {
                 $code->( $engine ) || die 'NO';
             } catch {
-                (my $msg = eval { $_->message } || $_) =~ s/^/# /g;
                 plan skip_all => sprintf(
                     'Unable to live-test %s engine: %s',
                     $class->name,
-                    substr($msg, 2),
+                    $_->message,
                 ) unless $ENV{'LIVE_' . uc $engine->key . '_REQUIRED'};
                 fail 'Connect to ' . $class->name;
-                diag substr $msg, 2;
+                diag $_->message;
+                diag $_->previous_exception;
             } or return;
         }
         if (my $q = $p{version_query}) {
@@ -1774,9 +1774,10 @@ sub run {
 
             # Make a second connection to the database.
             my $dbh = DBI->connect($engine->uri->dbi_dsn, $engine->username, $engine->password, {
-                PrintError        => 0,
-                RaiseError        => 1,
-                AutoCommit        => 1,
+                PrintError  => 0,
+                RaiseError  => 0,
+                AutoCommit  => 1,
+                HandleError => $engine->error_handler,
             });
             ok !$dbh->selectcol_arrayref($sql->{try_lock})->[0],
                 'Should fail to get same lock in second connection';

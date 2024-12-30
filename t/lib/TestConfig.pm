@@ -4,6 +4,21 @@ use warnings;
 use base 'App::Sqitch::Config';
 use Path::Class;
 
+BEGIN {
+    # Suppress warnings from Locale::Messages.
+    # https://github.com/gflohr/libintl-perl/issues/14
+    use Locale::Messages;
+    if ($Locale::Messages::package eq 'gettext_pp') {
+        no warnings qw(redefine prototype);
+        no strict 'refs';
+        my $orig = \&Locale::gettext_pp::__locale_category;
+        *{"Locale::gettext_pp::__locale_category"} = sub {
+            local $SIG{__WARN__} = sub {};
+            $orig->();
+        }
+    }
+}
+
 # Creates and returns a new TestConfig, which inherits from
 # App::Sqitch::Config. Sets nonexistent values for the file locations and
 # calls update() on remaining args.

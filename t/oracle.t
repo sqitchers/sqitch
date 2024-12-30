@@ -16,7 +16,7 @@
 # Client](https://www.oracle.com/database/technologies/instant-client/downloads.html),
 # specifically the Basic, SQL*Plus, and SDK packages. Unpack them into a
 # directory and set `ORACLE_HOME` and `LD_LIBRARY_PATH` to point to that
-# director, and add it to the Path. Then install DBD::Oracle.
+# directory, and add it to the Path. Then install DBD::Oracle.
 #
 # ## Oracle-XE Docker Image
 #
@@ -675,13 +675,14 @@ my $uri = $ENV{SQITCH_TEST_ORACLE_URI} ? URI->new($ENV{SQITCH_TEST_ORACLE_URI}) 
 my $err = try {
     $ora->use_driver;
     $dbh = DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {
-        PrintError => 0,
-        RaiseError => 1,
-        AutoCommit => 1,
+        PrintError  => 0,
+        RaiseError  => 0,
+        AutoCommit  => 1,
+        HandleError => $ora->error_handler,
     });
     undef;
 } catch {
-    eval { $_->message } || $_;
+    $_;
 };
 
 DBIEngineTest->run(

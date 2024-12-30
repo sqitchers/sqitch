@@ -599,9 +599,10 @@ $uri->dbname('information_schema') unless $uri->dbname;
 my $err = try {
     $mysql->use_driver;
     $dbh = DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {
-        PrintError => 0,
-        RaiseError => 1,
-        AutoCommit => 1,
+        PrintError  => 0,
+        RaiseError  => 0,
+        AutoCommit  => 1,
+        HandleError => $mysql->error_handler,
     });
 
     # Make sure we have a version we can use.
@@ -618,7 +619,7 @@ my $err = try {
     $uri->dbname($db);
     undef;
 } catch {
-    eval { $_->message } || $_;
+    $_
 };
 
 DBIEngineTest->run(
