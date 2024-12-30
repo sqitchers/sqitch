@@ -432,9 +432,7 @@ for my $i (1..30) {
         $_;
     };
 
-    # Sleep if it failed but Vertica is still starting up.
-    # SQL-57V03: `failed: FATAL 4149:  Node startup/recovery in progress. Not yet ready to accept connections`
-    # SQL-08001: `failed: [Vertica][DSI] An error occurred while attempting to retrieve the error message for key 'VConnectFailed' and component ID 101: Could not open error message files`
+    # Sleep if it failed but Exasol is still starting up.
     last unless $err && ($DBI::state || '') eq 'HY000';
     sleep 1 if $i < 30;
 }
@@ -451,7 +449,7 @@ DBIEngineTest->run(
         $self->sqitch->probe( $self->client, '-version' );
         $self->_capture('SELECT 1 FROM dual;');
     },
-    engine_err_regex  => qr/\[EXASOL\]\[EXASolution driver\]syntax error/,
+    engine_err_regex  => qr/\[Exasol\]\[Exasol(?:ution)? Driver\]syntax error/i,
     init_error        => __x(
         'Sqitch already initialized',
         schema => $reg2,
