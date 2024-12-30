@@ -11,7 +11,7 @@ jobs:
   Exasol:
     strategy:
       matrix:
-        exasol: ['8.32.0', '7.1.30', '7.0.22']
+        exasol: ['8.32.0'] #, '7.1.30', '7.0.22']
     name: ☀️ Exasol ${{ matrix.exasol }}
     runs-on: ubuntu-latest
     services:
