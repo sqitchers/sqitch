@@ -11,7 +11,7 @@ jobs:
   Postgres:
     strategy:
       matrix:
-        pg: [16, 15, 14, 13, 12, 11, 10, 9.6, 9.5, 9.4, 9.3, 9.2, 9.1, '9.0', 8.4]
+        pg: [17, 16, 15, 14, 13, 12, 11, 10, 9.6, 9.5, 9.4, 9.3, 9.2, 9.1, '9.0', 8.4]
     name: 🐘 Postgres ${{ matrix.pg }}
     runs-on: ubuntu-latest
     steps:

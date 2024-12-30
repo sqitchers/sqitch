@@ -512,7 +512,7 @@ my $err = try {
         PrintError     => 0,
         RaiseError     => 0,
         AutoCommit     => 1,
-        HandleError    => $pg->error_handler,
+        HandleError    => $pg->_error_handler,
         pg_lc_messages => 'C',
     });
     unless ($ENV{SQITCH_TEST_PG_URI}) {
