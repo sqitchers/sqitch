@@ -104,13 +104,6 @@ sub name   { 'PostgreSQL' }
 sub driver { 'DBD::Pg 2.0' }
 sub default_client { 'psql' }
 
-has _provider => (
-    is      => 'rw',
-    isa     => enum([qw( postgres yugabyte )]),
-    default => 'postgres',
-    lazy    => 1,
-);
-
 has dbh => (
     is      => 'rw',
     isa     => DBH,
@@ -144,7 +137,9 @@ has dbh => (
                     my $v = $dbh->selectcol_arrayref(
                         q{SELECT split_part(version(), ' ', 2)}
                     )->[0] // '';
-                    $self->_provider('yugabyte') if $v =~ /-YB-/;
+                    $dbh->{private_sqitch_info} = {
+                        provider => $v =~ /-YB-/ ? 'yugabyte' : 'postgres',
+                    };
                     return;
                 },
             },
@@ -270,6 +265,11 @@ sub _run_registry_file {
     $self->dbh->do('SET search_path = ?', undef, $schema);
 }
 
+# Returns the name of the provider.
+sub _provider {
+    shift->dbh->{private_sqitch_info}{provider}
+}
+
 # Override to lock the changes table. This ensures that only one instance of
 # Sqitch runs at one time.
 sub begin_work {
@@ -287,7 +287,9 @@ sub begin_work {
 
 # Override to try to acquire a lock on a constant number without waiting.
 sub try_lock {
-    shift->dbh->selectcol_arrayref(
+    my $self = shift;
+    return 1 if $self->_provider ne 'postgres';
+    $self->dbh->selectcol_arrayref(
         'SELECT pg_try_advisory_lock(75474063)'
     )->[0]
 }
