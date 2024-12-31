@@ -197,7 +197,7 @@ is_deeply [$ora->sqlplus], [$client, @std_opts],
 is $ora->_script, join( "\n" => (
     'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF VERIFY OFF',
     'WHENEVER OSERROR EXIT 9;',
-    'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
+    'WHENEVER SQLERROR EXIT 4;',
     'connect ',
     $ora->_registry_variable,
 ) ), '_script should work';
@@ -215,7 +215,7 @@ isa_ok $ora = $CLASS->new(
 is $ora->_script, join( "\n" => (
     'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF VERIFY OFF',
     'WHENEVER OSERROR EXIT 9;',
-    'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
+    'WHENEVER SQLERROR EXIT 4;',
     'connect fred/"derf"@"blah"',
     $ora->_registry_variable,
 ) ), '_script should assemble connection string';
@@ -233,7 +233,7 @@ isa_ok $ora = $CLASS->new(
 is $ora->_script('@foo'), join( "\n" => (
     'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF VERIFY OFF',
     'WHENEVER OSERROR EXIT 9;',
-    'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
+    'WHENEVER SQLERROR EXIT 4;',
     'connect fred/"derf"@//there/"blah"',
     $ora->_registry_variable,
     '@foo',
@@ -256,7 +256,7 @@ ok $ora->set_variables(foo => 'baz', whu => 'hi there', yo => q{"stellar"}),
 is $ora->_script, join( "\n" => (
     'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF VERIFY OFF',
     'WHENEVER OSERROR EXIT 9;',
-    'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
+    'WHENEVER SQLERROR EXIT 4;',
     'DEFINE foo="baz"',
     'DEFINE whu="hi there"',
     'DEFINE yo="""stellar"""',
@@ -278,7 +278,7 @@ isa_ok $ora = $CLASS->new(
 is $ora->_script('@foo'), join( "\n" => (
     'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF VERIFY OFF',
     'WHENEVER OSERROR EXIT 9;',
-    'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
+    'WHENEVER SQLERROR EXIT 4;',
     'connect /@"secure_user_tns.tpg"',
     $ora->_registry_variable,
     '@foo',
@@ -298,12 +298,11 @@ isa_ok $ora = $CLASS->new(
 is $ora->_script('@foo'), join( "\n" => (
     'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF VERIFY OFF',
     'WHENEVER OSERROR EXIT 9;',
-    'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
+    'WHENEVER SQLERROR EXIT 4;',
     'connect /@"wallet_tns_name"',
     $ora->_registry_variable,
     '@foo',
 ) ), '_script should assemble connection string with double-slash and dbname';
-
 
 ##############################################################################
 # Test other configs for the destination.

@@ -734,7 +734,7 @@ sub _script {
     return join "\n" => (
         'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF VERIFY OFF',
         'WHENEVER OSERROR EXIT 9;',
-        'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
+        'WHENEVER SQLERROR EXIT 4;',
         (map {; (my $v = $vars{$_}) =~ s/"/""/g; qq{DEFINE $_="$v"} } sort keys %vars),
         "connect $conn",
         $self->_registry_variable,

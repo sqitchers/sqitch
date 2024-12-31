@@ -23,6 +23,13 @@ Revision history for Perl extension App::Sqitch
        underlying error loading the engine package and the stack trace remain
        available by using triple verbosity (`-vvv`). Thanks to Martin Fischer
        for the report (#838).
+     - Changed the default error code from Oracle `sqlplus` from `SQL.SQLCODE`
+       to `4`, because otherwise the exit code is returned `modulo 256`,
+       meaning it can end up `0` for success for an SQL error code like
+       `ORA-01792`. Selected `4` as the replacement to match the behavior of
+       Exasol and because `FAILURE` maps to exit code `1`, which has in the
+       past been more akin to a warning from Sqitch. Thanks to @vectro for the
+       report (#831).
 
 1.4.1  2024-02-04T16:35:32Z
      - Removed the quoting of the role and warehouse identifiers that was
