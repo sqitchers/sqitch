@@ -159,7 +159,7 @@ my $unknown_target = App::Sqitch::Target->new(
 );
 throws_ok { $CLASS->load({ sqitch => $sqitch, target => $unknown_target }) }
     'App::Sqitch::X', 'Should die on unknown target';
-is $@->message, 'Unable to load App::Sqitch::Engine::nonexistent',
+is $@->message, __x('Unknown engine: {engine}', engine =>  'nonexistent'),
     'Should get load error message';
 like $@->previous_exception, qr/\QCan't locate/,
     'Should have relevant previoius exception';
@@ -180,7 +180,7 @@ my $bad_target = App::Sqitch::Target->new(
 );
 throws_ok { $CLASS->load({ sqitch => $sqitch, target => $bad_target }) }
     'App::Sqitch::X', 'Should die on bad engine module';
-is $@->message, 'Unable to load App::Sqitch::Engine::bad',
+is $@->message, __x('Unknown engine: {engine}', engine =>  'bad'),
     'Should get another load error message';
 like $@->previous_exception, qr/^LOL BADZ/,
     'Should have relevant previoius exception from the bad module';

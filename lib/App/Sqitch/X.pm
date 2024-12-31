@@ -54,8 +54,16 @@ sub hurl {
 
 sub as_string {
     my $self = shift;
-    join "\n", grep { defined } (
+    join "\n", grep { $_ } (
         $self->message,
+        $self->previous_exception,
+        $self->stack_trace
+    );
+}
+
+sub details_string {
+    my $self = shift;
+    join "\n", grep { $_ } (
         $self->previous_exception,
         $self->stack_trace
     );
@@ -147,6 +155,13 @@ Returns the stringified representation of the exception. This value is also
 used for string overloading of the exception object, which means it is the
 output shown for uncaught exceptions. Its contents are the concatenation of
 the exception message, the previous exception (if any), and the stack trace.
+
+=head3 C<details_string>
+
+  my $errstr = $x->details;
+
+Returns the the stringified version of the previous exception (if any), and
+the stack trace.
 
 =head1 Handling Exceptions
 

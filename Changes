@@ -17,6 +17,12 @@ Revision history for Perl extension App::Sqitch
      - Removed a wayward mention of the long-deprecated `SQITCH_URI`
        environment variable from the Oracle tutorial. Thanks to Austin Hanson
        for the report (#845).
+     - Improved error output by including any previous exception.
+     - Improved the unknown engine error to be a runtime error, rather than
+       development time, and to provide a localized error message. The stack
+       underlying error loading the engine package and the stack trace remain
+       available by using triple verbosity (`-vvv`). Thanks to Martin Fischer
+       for the report (#838).
 
 1.4.1  2024-02-04T16:35:32Z
      - Removed the quoting of the role and warehouse identifiers that was

@@ -213,13 +213,13 @@ sub go {
         if ($_->exitval == 1) {
             # Non-fatal exception; just send the message to info.
             $sqitch->info($_->message);
+        } elsif ($_->ident eq 'DEV') {
+            # Vent complete details of fatal DEV error.
+            $sqitch->vent($_->as_string);
         } else {
-            # Fatal exception; vent.
+            # Vent fatal error message, trace details.
             $sqitch->vent($_->message);
-
-            # Emit the stack trace. DEV errors should be vented; otherwise trace.
-            my $meth = $_->ident eq 'DEV' ? 'vent' : 'trace';
-            $sqitch->$meth($_->stack_trace->as_string);
+            $sqitch->trace($_->details_string);
         }
 
         # Bail.

@@ -169,7 +169,10 @@ sub load {
     );
 
     my $pkg = __PACKAGE__ . '::' . $target->engine_key;
-    eval "require $pkg" or hurl "Unable to load $pkg";
+    eval "require $pkg" or hurl engine => __x(
+        'Unknown engine: {engine}',
+        engine => $ekey,
+    );
     return $pkg->new( $p );
 }
 
