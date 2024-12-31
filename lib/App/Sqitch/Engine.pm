@@ -1041,7 +1041,12 @@ sub deploy_change {
     $self->begin_work($change);
 
     return try {
-        $self->run_deploy($change->deploy_file) unless $self->log_only;
+        my $file = $change->deploy_file;
+        hurl deploy => __x(
+            'Deploy script {file} does not exist',
+            file => $file,
+        ) unless -e $file;
+        $self->run_deploy($file) unless $self->log_only;
         try {
             $self->verify_change( $change ) if $self->with_verify;
             $self->log_deploy_change($change);
@@ -1084,7 +1089,12 @@ sub revert_change {
     $self->begin_work($change);
 
     try {
-        $self->run_revert($change->revert_file) unless $self->log_only;
+        my $file = $change->revert_file;
+        hurl revert => __x(
+            'Revert script {file} does not exist',
+            file => $file,
+        ) unless -e $file;
+        $self->run_revert($file) unless $self->log_only;
         try {
             $self->log_revert_change($change);
             $sqitch->info(__ 'ok');

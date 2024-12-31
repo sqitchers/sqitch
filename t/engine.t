@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 781;
+use Test::More tests => 794;
 # use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -724,7 +724,7 @@ is_deeply +MockOutput->get_info_literal, [[
 is_deeply +MockOutput->get_info, [[__ 'ok' ]],
     'Output should reflect deploy success';
 
-# Make it fail.
+# Make run_file fail.
 $die = 'run_file';
 $engine->log_only(0);
 throws_ok { $engine->deploy_change($change) } 'App::Sqitch::X',
@@ -787,7 +787,7 @@ is_deeply +MockOutput->get_vent, [['WTF!']],
 # Try a change with no verify file.
 $engine->log_only(0);
 $mock_engine->unmock( 'verify_change' );
-$change = App::Sqitch::Plan::Change->new( name => 'foo', plan => $target->plan );
+$change = App::Sqitch::Plan::Change->new( name => 'roles', plan => $target->plan );
 ok $engine->deploy_change($change), 'Deploy a change with no verify script';
 is_deeply $engine->seen, [
     ['begin_work'],
@@ -796,7 +796,7 @@ is_deeply $engine->seen, [
     ['finish_work'],
 ], 'deploy_change with no verify file should not run it';
 is_deeply +MockOutput->get_info_literal, [[
-    '  + foo ..', '..' , ' '
+    '  + roles ..', '' , ' '
 ]], 'Output should reflect the logging';
 is_deeply +MockOutput->get_info, [[__ 'ok' ]],
     'Output should reflect deploy success';
@@ -804,9 +804,32 @@ is_deeply +MockOutput->get_vent, [
     [__x 'Verify script {file} does not exist', file => $change->verify_file],
 ], 'A warning about no verify file should have been emitted';
 
+# Try a change with no deploy file.
+$change = App::Sqitch::Plan::Change->new( name => 'foo', plan => $target->plan );
+throws_ok { $engine->deploy_change($change) } 'App::Sqitch::X',
+    'Deploy change with log-only and failed verification';
+is $@->message, __x(
+    'Deploy script {file} does not exist',
+    file => $change->deploy_file,
+), 'Error should be from deploy_change';
+is_deeply $engine->seen, [
+    ['begin_work'],
+    ['log_fail_change', $change],
+    ['finish_work'],
+], 'Should have logged just begin and finish';
+$die = '';
+is_deeply +MockOutput->get_info_literal, [[
+    '  + foo ..', '..', ' ',
+]], 'Output should reflect start of deployment';
+is_deeply +MockOutput->get_info, [[__ 'not ok']],
+    'Output should acknowldge failure';
+is_deeply +MockOutput->get_vent, [], 'Vent should be empty';
+
 # Alright, disable verify now.
 $engine->with_verify(0);
 
+# Revert a change.
+$change = App::Sqitch::Plan::Change->new( name => 'users', plan => $target->plan );
 ok $engine->revert_change($change), 'Revert a change';
 is_deeply $engine->seen, [
     ['begin_work'],
@@ -815,7 +838,7 @@ is_deeply $engine->seen, [
     ['finish_work'],
 ], 'revert_change should have called the proper methods';
 is_deeply +MockOutput->get_info_literal, [[
-    '  - foo ..', '..', ' '
+    '  - users ..', '', ' '
 ]], 'Output should reflect reversion';
 is_deeply +MockOutput->get_info, [[__ 'ok']],
     'Output should acknowldge revert success';
@@ -829,7 +852,7 @@ is_deeply $engine->seen, [
     ['finish_work'],
 ], 'Log-only revert_change should not have run the change script';
 is_deeply +MockOutput->get_info_literal, [[
-    '  - foo ..', '..', ' '
+    '  - users ..', '', ' '
 ]], 'Output should reflect logged reversion';
 is_deeply +MockOutput->get_info, [[__ 'ok']],
     'Output should acknowldge revert success';
@@ -843,17 +866,37 @@ is $@->message, 'Revert failed','Should get revert failure error message';
 is_deeply $engine->seen, [
     ['begin_work'],
     ['finish_work'],
-], 'Log failure should not have seen log_rever_change';
+], 'Log failure should not have seen log_revert_change';
 is_deeply +MockOutput->get_info_literal, [[
-    '  - foo ..', '..', ' '
+    '  - users ..', '', ' '
 ]], 'Output should reflect reversion';
 is_deeply +MockOutput->get_info, [[__ 'not ok']],
-    'Output should acknowldge success failure';
+    'Output should acknowldge failure';
 is_deeply +MockOutput->get_vent, [
     ['AAAH!'],
 ], 'The logging error should have been vented';
-$record_work = 0;
 $die = '';
+
+# Try a change with no revert file.
+$change = App::Sqitch::Plan::Change->new( name => 'oops', plan => $target->plan );
+throws_ok { $engine->revert_change($change) } 'App::Sqitch::X',
+    'Should die on missing revert script';
+is $@->ident, 'revert', 'Sould have revert ident error';
+is $@->message, __x(
+    'Revert script {file} does not exist',
+    file => $change->revert_file,
+), 'Error should be from revert_change';
+is_deeply $engine->seen, [
+    ['begin_work'],
+    ['finish_work'],
+], 'Log failure should not have seen log_revert_change';
+is_deeply +MockOutput->get_info_literal, [[
+    '  - oops ..', '.', ' '
+]], 'Output should reflect revert start';
+is_deeply +MockOutput->get_info, [[__ 'not ok']],
+    'Output should acknowldge failure';
+is_deeply +MockOutput->get_vent, [], 'Should have vented nothing';
+$record_work = 0;
 
 ##############################################################################
 # Test earliest_change() and latest_change().
@@ -866,7 +909,7 @@ $config->update(
 );
 $sqitch = App::Sqitch->new(config => $config);
 $target = App::Sqitch::Target->new( sqitch => $sqitch );
-$change = App::Sqitch::Plan::Change->new( name => 'foo', plan => $target->plan );
+$change = App::Sqitch::Plan::Change->new( name => 'lolz', plan => $target->plan );
 ok $engine = App::Sqitch::Engine::whu->new( sqitch => $sqitch, target => $target ),
     'Engine with sqitch with plan file';
 $plan = $target->plan;
@@ -1805,7 +1848,7 @@ is_deeply $engine->seen, [
     [log_deploy_change => $change],
 ], 'It should have been deployed';
 is_deeply +MockOutput->get_info_literal, [
-    ['  + foo ..', '..........', ' ']
+    ['  + lolz ..', '.........', ' ']
 ], 'Should have shown change name';
 is_deeply +MockOutput->get_info, [
     [__ 'ok' ],
@@ -1823,7 +1866,7 @@ is_deeply $engine->seen, [
     ['log_fail_change', $change],
 ], 'It should have been deployed and reverted';
 is_deeply +MockOutput->get_info_literal, [
-    ['  + foo ..', '..........', ' ']
+    ['  + lolz ..', '.........', ' ']
 ], 'Should have shown change name';
 is_deeply +MockOutput->get_info, [
     [__ 'not ok' ],
@@ -1843,7 +1886,7 @@ is_deeply $engine->seen, [
     ['log_fail_change', $change],
 ], 'It should have been deployed but not reverted';
 is_deeply +MockOutput->get_info_literal, [
-    ['  + foo ..', '..........', ' ']
+    ['  + lolz ..', '.........', ' ']
 ], 'Should have shown change name';
 is_deeply +MockOutput->get_info, [
     [__ 'not ok' ],
@@ -1879,7 +1922,7 @@ DEPLOYDIE: {
     my @requires  = $make_deps->( 0, qw(foo bar) );
     my @conflicts = $make_deps->( 1, qw(dr_evil) );
     my $change    = App::Sqitch::Plan::Change->new(
-        name      => 'foo',
+        name      => 'lolz',
         plan      => $target->plan,
         requires  => \@requires,
         conflicts => \@conflicts,
@@ -1896,7 +1939,7 @@ DEPLOYDIE: {
         ['AAAH!'],
     ], 'Should have vented the original error';
     is_deeply +MockOutput->get_info_literal, [
-        ['  + foo ..', '..........', ' '],
+        ['  + lolz ..', '.........', ' '],
     ], 'Should have shown change name';
         is_deeply +MockOutput->get_info, [
             [__ 'not ok' ],
@@ -1913,7 +1956,7 @@ is_deeply $engine->seen, [
     [log_revert_change => $change],
 ], 'It should have been reverted';
 is_deeply +MockOutput->get_info_literal, [
-    ['  - foo ..', '..........', ' ']
+    ['  - lolz ..', '.........', ' ']
 ], 'Should have shown reverted change name';
 is_deeply +MockOutput->get_info, [
     [__ 'ok'],
@@ -2107,7 +2150,6 @@ is_deeply +MockOutput->get_info, [
 # Try with log-only.
 ok $engine->log_only(1), 'Enable log_only';
 ok $engine->revert(undef, 1, 1), 'Revert all changes log-only';
-delete @{ $_ }{qw(_path_segments _rework_tags)} for @dbchanges; # These need to be invisible.
 is_deeply $engine->seen, [
     [lock_destination => []],
     [deployed_changes => undef],

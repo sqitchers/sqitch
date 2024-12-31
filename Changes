@@ -30,6 +30,10 @@ Revision history for Perl extension App::Sqitch
        Exasol and because `FAILURE` maps to exit code `1`, which has in the
        past been more akin to a warning from Sqitch. Thanks to @vectro for the
        report (#831).
+     - Added checks for the existence of deploy and revert files when
+       deploying and reverting. Previously Sqitch deferred such errors to the
+       CLIs, but they're never called when using `--log-only`. Thanks to
+       @vectro and Erik Wienhold for the suggestion (#828).
 
 1.4.1  2024-02-04T16:35:32Z
      - Removed the quoting of the role and warehouse identifiers that was
