@@ -34,6 +34,9 @@ Revision history for Perl extension App::Sqitch
        deploying and reverting. Previously Sqitch deferred such errors to the
        CLIs, but they're never called when using `--log-only`. Thanks to
        @vectro and Erik Wienhold for the suggestion (#828).
+     - Fixed a bug where the MySQL engine failed to properly handle target
+       URIs with no database name. Thanks to Felix Zedén Yverås for the report
+       (#821).
 
 1.4.1  2024-02-04T16:35:32Z
      - Removed the quoting of the role and warehouse identifiers that was

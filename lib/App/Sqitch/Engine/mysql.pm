@@ -307,7 +307,7 @@ sub begin_work {
 # stick with the least surprising behavior.
 # https://github.com/sqitchers/sqitch/issues/670
 sub _lock_name {
-    'sqitch working on ' . shift->uri->dbname
+    'sqitch working on ' . (shift->uri->dbname // '')
 }
 
 # Override to try to acquire a lock on the string "sqitch working on $dbname"
@@ -446,7 +446,16 @@ sub run_verify {
 sub run_upgrade {
     my ($self, $file) = @_;
     my @cmd = $self->mysql;
-    $cmd[1 + firstidx { $_ eq '--database' } @cmd ] = $self->registry;
+
+    my $idx = firstidx { $_ eq '--database' } @cmd;
+    if ($idx > 0) {
+        # Replace the database name with the registry database.
+        $cmd[$idx + 1] = $self->registry;
+    } else {
+        # Append the registry database name.
+        push @cmd => '--database', $self->registry;
+    }
+
     return $self->sqitch->run( @cmd, $self->_source($file) )
         if $self->_fractional_seconds;
 

@@ -516,7 +516,7 @@ UPGRADE: {
     my $fracsec;
     my $version = 50500;
     $mock->mock(_fractional_seconds => sub { $fracsec });
-    $mock->mock(dbh =>  sub { { mysql_serverversion => $version } });
+    $mock->mock(dbh => sub { { mysql_serverversion => $version } });
 
     # Mock run.
     my @run;
@@ -531,7 +531,8 @@ UPGRADE: {
 
     # Assemble the expected command.
     my @cmd = $mysql->mysql;
-    $cmd[1 + firstidx { $_ eq '--database' } @cmd ] = $mysql->registry;
+    my $db_opt_idx = firstidx { $_ eq '--database' } @cmd;
+    $cmd[$db_opt_idx + 1] = $mysql->registry;
     my $fn = file($INC{'App/Sqitch/Engine/mysql.pm'})->dir->file('mysql.sql');
 
     # Test with fractional seconds supported.
@@ -541,12 +542,14 @@ UPGRADE: {
     is_deeply \@run, [@cmd, $mysql->_source($fn)],
         'It should have run the unchanged file';
 
-    # Now disable fractional seconds.
+    # Now disable fractional seconds and no --database param.
+    my @db_opt = splice @cmd, $db_opt_idx, 2;
+    $mock->mock(mysql => sub { @cmd });
     $fracsec = 0;
     ok $mysql->run_upgrade($fn), 'Run the upgrade again';
     ok $tmp_fh, 'Should have created a temp file';
-    is_deeply \@run, [@cmd, $mysql->_source($tmp_fh)],
-        'It should have run the temp file';
+    is_deeply \@run, [@cmd, @db_opt, $mysql->_source($tmp_fh)],
+        'It should have appended the registry and run the temp file';
 
     # Make sure the file was changed to remove precision from datetimes.
     file_contents_unlike $tmp_fh, qr/DATETIME\(\d+\)/,
@@ -561,8 +564,8 @@ UPGRADE: {
     $tmp_fh = undef;
     ok $mysql->run_upgrade($fn), 'Run the upgrade on 5.4';
     ok $tmp_fh, 'Should have created another temp file';
-    is_deeply \@run, [@cmd, $mysql->_source($tmp_fh)],
-        'It should have the new temp file';
+    is_deeply \@run, [@cmd, @db_opt, $mysql->_source($tmp_fh)],
+        'It should have appended the registry and run the new temp file';
 
     file_contents_unlike $tmp_fh, qr/-- ## BEGIN 5\.5/,
         'Should have removed MySQL 5.5-requiring block BEGIN';
@@ -588,7 +591,6 @@ END {
     return unless $dbh->{Active};
     $dbh->do("DROP DATABASE IF EXISTS $_") for ($db, $reg1, $reg2);
 }
-
 
 $uri = URI->new(
     $ENV{SQITCH_TEST_MYSQL_URI} ||
