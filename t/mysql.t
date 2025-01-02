@@ -517,6 +517,7 @@ UPGRADE: {
     my $version = 50500;
     $mock->mock(_fractional_seconds => sub { $fracsec });
     $mock->mock(dbh => sub { { mysql_serverversion => $version } });
+    $mock->mock(_can_create_immutable_function => 1);
 
     # Mock run.
     my @run;

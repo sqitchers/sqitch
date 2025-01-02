@@ -37,6 +37,9 @@ Revision history for Perl extension App::Sqitch
      - Fixed a bug where the MySQL engine failed to properly handle target
        URIs with no database name. Thanks to Felix Zedén Yverås for the report
        (#821).
+     - Updated the MySQL engine to omit the `checkit()` function when using
+       binary logging and Sqitch lacks super user permissions. Thanks to Scott
+       Edwards for the report and to Janosch Peters for the solution (#824).
 
 1.4.1  2024-02-04T16:35:32Z
      - Removed the quoting of the role and warehouse identifiers that was

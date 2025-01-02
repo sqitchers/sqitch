@@ -447,8 +447,7 @@ sub run_upgrade {
     my ($self, $file) = @_;
     my @cmd = $self->mysql;
 
-    my $idx = firstidx { $_ eq '--database' } @cmd;
-    if ($idx > 0) {
+    if ((my $idx = firstidx { $_ eq '--database' } @cmd) > 0) {
         # Replace the database name with the registry database.
         $cmd[$idx + 1] = $self->registry;
     } else {
@@ -456,22 +455,60 @@ sub run_upgrade {
         push @cmd => '--database', $self->registry;
     }
 
-    return $self->sqitch->run( @cmd, $self->_source($file) )
-        if $self->_fractional_seconds;
+    return $self->sqitch->run(
+        @cmd,
+        $self->_source($self->_prepare_registry_file($file)),
+    );
+}
 
-    # Need to strip out datetime precision.
-    (my $sql = scalar $file->slurp) =~ s{DATETIME\(\d+\)}{DATETIME}g;
+# Prepares $file for execution, editing its contents for various MySQL
+# configurations.
+sub _prepare_registry_file {
+    my ($self, $file) = @_;
+    my $can_create_checkit = $self->_can_create_immutable_function;
+    my $has_frac = $self->_fractional_seconds;
+    return $file if $has_frac && $can_create_checkit;
 
-    # Strip out 5.5 stuff on earlier versions.
-    $sql =~ s/-- ## BEGIN 5[.]5.+?-- ## END 5[.]5//ms
-        if $self->dbh->{mysql_serverversion} < 50500;
+    # Read in the file to modify it.
+    my $sql = $file->slurp;
 
-    # Write out a temp file and execute it.
+    if (!$has_frac) {
+        # Need to strip out datetime precision.
+        $sql =~ s{DATETIME\(\d+\)}{DATETIME}g;
+
+        # Strip out 5.5 stuff on earlier versions.
+        $sql =~ s/-- ## BEGIN 5[.]5.+?-- ## END 5[.]5//ms
+            if $self->dbh->{mysql_serverversion} < 50500;
+    }
+
+    if (!$can_create_checkit) {
+        # Strip out checkit() function if logging binary and not super user.
+        $self->sqitch->warn(__(
+            'Insufficient permissions to create the checkit() function; skipping.',
+        ));
+        $sql =~ s/-- ## BEGIN checkit.+?-- ## END checkit//ms;
+    }
+
+    # Write out a temp file and return it.
     require File::Temp;
     my $fh = File::Temp->new;
     print $fh $sql;
     close $fh;
-    $self->sqitch->run( @cmd, $self->_source($fh) );
+    return $fh;
+}
+
+# Based on https://dev.mysql.com/doc/refman/8.4/en/stored-programs-logging.html,
+# determine whether we have binary logging disabled, or trust function
+# creators, or have the SUPER privilege.
+sub _can_create_immutable_function {
+    shift->dbh->selectcol_arrayref(q{
+        SELECT @@log_bin = 0
+            OR @@log_bin_trust_function_creators = 1
+            OR (
+                SELECT super_priv = 'Y' FROM mysql.user
+                 WHERE CONCAT(user, '@', host) = current_user
+            )
+    })->[0]
 }
 
 sub run_handle {

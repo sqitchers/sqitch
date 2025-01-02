@@ -228,7 +228,7 @@ Here's where the C<verify> script comes in. Its job is to test that the deploy
 did was it was supposed to. It should do so without regard to any data that
 might be in the database, and should throw an error if the deploy was not
 successful. The simplest way to see if a user exists is to check the
-C<mysql.user> table. However, throwing an error in the event that the user
+C<mysql.user> table.However, throwing an error in the event that the user
 does not exist is tricky in MySQL. To simplify things, on MySQL 5.5.0 and
 higher, Sqitch provides a custom function you can use in your tests,
 C<checkit()>. It works kind of like a C<CHECK> constraint in other databases:
@@ -244,6 +244,19 @@ Give it a try. Put this query into F<verify/appuser.sql>:
 This will work well as long as we know that the registry database is named
 C<sqitch>. If you've set C<engine.mysql.registry> to a different value, you
 will need to make sure you specify the correct database name in the script.
+
+In some configurations, Sqitch does not include C<checkit()>. You can add it
+by connecting to the sqitch registry database as a super user and running:
+
+  DELIMITER |
+  CREATE FUNCTION checkit(doit INTEGER, message VARCHAR(256)) RETURNS INTEGER DETERMINISTIC
+  BEGIN
+      IF doit IS NULL OR doit = 0 THEN
+          SIGNAL SQLSTATE 'ERR0R' SET MESSAGE_TEXT = message;
+      END IF;
+      RETURN doit;
+  END;
+  |
 
 Now you can run the C<verify> script with the L<C<verify>|sqitch-verify>
 command:
