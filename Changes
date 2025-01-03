@@ -40,6 +40,10 @@ Revision history for Perl extension App::Sqitch
      - Updated the MySQL engine to omit the `checkit()` function when using
        binary logging and Sqitch lacks super user permissions. Thanks to Scott
        Edwards for the report and to Janosch Peters for the solution (#824).
+     - Taught the Snowflake engine to detect when the Sqitch user lacks
+       permission to create a schema and to skip the creation of the registry
+       schema. Useful for cases when the registry schema was created in
+       advance. Thanks to Peter Wimsey for the suggestion (#826).
 
 1.4.1  2024-02-04T16:35:32Z
      - Removed the quoting of the role and warehouse identifiers that was

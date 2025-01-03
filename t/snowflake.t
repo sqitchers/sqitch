@@ -1,8 +1,8 @@
 #!/usr/bin/perl -w
 
 # To test against a live Snowflake database, you must set the
-# SQITCH_TEST_SNOWFLAKE_URI environment variable. this is a stanard URI::db URI,
-# and should look something like this:
+# SQITCH_TEST_SNOWFLAKE_URI environment variable. this is a standard URI::db
+# URI, and should look something like this:
 #
 #     export SQITCH_TEST_SNOWFLAKE_URI=db:snowflake://username:password@accountname/dbname?Driver=Snowflake;warehouse=warehouse
 #
@@ -15,6 +15,8 @@ use 5.010;
 use Test::More 0.94;
 use Test::MockModule;
 use Test::Exception;
+use Test::File::Contents qw(file_contents_unlike);
+use DBD::Mem;
 use Locale::TextDomain qw(App-Sqitch);
 use Capture::Tiny 0.12 qw(:all);
 use File::Temp 'tempdir';
@@ -514,6 +516,45 @@ is $dt->time_zone->name, 'UTC', 'DateTime TZ should be set';
 ok my $now = App::Sqitch::DateTime->now, 'Construct a datetime object';
 is $snow->_char2ts($now), $now->as_string(format => 'iso'),
     'Should get ISO output from _char2ts';
+
+##############################################################################
+# Test run_upgrade.
+UPGRADE: {
+    my $file;
+    $mock_snow->mock(run_file => sub { $file = $_[1] });
+
+    # Need to mock the database handle.
+    my $dbh = DBI->connect('dbi:Mem:', undef, undef, {});
+    $mock_snow->mock(dbh => $dbh);
+    my $mock_dbh = Test::MockModule->new(ref $dbh, no_auto => 1);
+    my (@do, $do_err);
+    $mock_dbh->mock(do => sub { shift; @do = @_; die $do_err if $do_err });
+
+    # Deploy with schema permissions.
+    my $fn = file($INC{'App/Sqitch/Engine/snowflake.pm'})->dir->file('snowflake.sql');
+    ok $snow->run_upgrade($fn), 'Run upgrade';
+    is $file, $fn, 'Should have executed the unmodified file';
+
+    # Deploy withouit schema permissions.
+    $do_err = 'Ooops';
+    local *DBI::state;
+    $DBI::state = '42501';
+    ok $snow->run_upgrade($fn), 'Run upgrade again';
+    isnt $file, $fn, 'Should have a modified file';
+
+    # Make sure no schema stuff remains in the file.
+    file_contents_unlike $file, qr/CREATE SCHEMA/,
+        'Should have no CREATE SCHEMA';
+    file_contents_unlike $file, qr/COMMENT ON SCHEMA/,
+        'Should have no COMMENT ON SCHEMA';
+
+    # Die with any other error.
+    $DBI::state = '10030';
+    throws_ok { $snow->run_upgrade($fn) } qr/Ooops/,
+        'Should have any other error';
+    $mock_snow->unmock('run_file');
+    $mock_snow->unmock('dbh');
+}
 
 ##############################################################################
 # Can we do live tests?
