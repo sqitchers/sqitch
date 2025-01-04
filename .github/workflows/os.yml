@@ -7,6 +7,8 @@ on:
   push:
     branches: ['*']
   pull_request:
+  schedule:
+    - cron:  '0 14 2 * *' # Monthly at 2pm on the second
 jobs:
   OS:
     strategy:
