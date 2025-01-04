@@ -219,7 +219,7 @@ Runtime-only dependencies
         DBD-ODBC
         DBD-Oracle
         DBD-Pg
-        DBD-mysql
+        DBD-MariaDB
         Data-OptList
         DateTime
         DateTime-Locale

@@ -48,6 +48,7 @@ is $sqlite->destination, $sqlite->uri->as_string,
     'Destination should be uri stringified';
 is $sqlite->registry_destination, $sqlite->registry_uri->as_string,
     'Registry target should be registry_uri stringified';
+is $sqlite->_dsn, $sqlite->registry_uri->dbi_dsn, 'Should use registry DSN';
 
 # Pretend for now that we always have a valid SQLite.
 my $mock_sqitch = Test::MockModule->new(ref $sqitch);

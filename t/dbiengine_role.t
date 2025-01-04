@@ -32,6 +32,7 @@ can_ok $CLASS, qw(
     _in_expr
     _register_release
     _version_query
+    _dsn
     registry_version
     _cid
     earliest_change_id
@@ -72,10 +73,12 @@ can_ok $CLASS, qw(
     begin_work
     finish_work
     rollback_work
+    _eh
+    error_handler
 );
 
 is App::Sqitch::Role::DBIEngine::_ts_default, 'DEFAULT',
-    '_ts_default shoudld return DEFAULT';
+    '_ts_default should return DEFAULT';
 
 # Test various failure modes.
 my $role = bless {} => $CLASS;

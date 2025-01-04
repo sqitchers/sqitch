@@ -1618,7 +1618,7 @@ msgstr "L'email utilisateur ne peut contenir \">\""
 #~ msgstr "Cible de déploiement inconnue : \"{target}\""
 
 #, fuzzy
-#~ msgid "DBD::mysql module required to manage MySQL"
+#~ msgid "DBD::MariaDB module required to manage MySQL"
 #~ msgstr "Module DBD::Pg requis pour gérer PostgreSQL"
 
 #, fuzzy

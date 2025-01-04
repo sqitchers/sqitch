@@ -112,9 +112,8 @@ has dbh => (
         my $self = shift;
         $self->use_driver;
 
-        my $uri = $self->uri;
         local $ENV{PGCLIENTENCODING} = 'UTF8';
-        DBI->connect($uri->dbi_dsn, $self->username, $self->password, {
+        DBI->connect($self->_dsn, $self->username, $self->password, {
             PrintError        => 0,
             RaiseError        => 0,
             AutoCommit        => 1,

@@ -240,7 +240,7 @@ Group:          Development/Libraries
 Requires:       sqitch >= %{version}
 Requires:       mysql >= 5.1.0
 Requires:       perl(DBI) >= 1.631
-Requires:       perl(DBD::mysql) >= 4.018
+Requires:       perl(DBD::MariaDB) >= 1.0
 Requires:       perl(MySQL::Config)
 Provides:       sqitch-mysql
 

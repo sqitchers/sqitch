@@ -44,6 +44,11 @@ Revision history for Perl extension App::Sqitch
        permission to create a schema and to skip the creation of the registry
        schema. Useful for cases when the registry schema was created in
        advance. Thanks to Peter Wimsey for the suggestion (#826).
+     - Switched the MySQL engine from DBD::mysql to DBD::MariaDB for better
+       compatibility with older versions of the MySQL client library and for
+       its Unicode improvements. Thanks to Mark Tyrrell for the report and
+       @tiberiusferreira and Perl Monks `1nickt` and`InfiniteSilence` for the
+       feedback (#825).
 
 1.4.1  2024-02-04T16:35:32Z
      - Removed the quoting of the role and warehouse identifiers that was

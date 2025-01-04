@@ -61,6 +61,7 @@ sub key    { 'sqlite' }
 sub name   { 'SQLite' }
 sub driver { 'DBD::SQLite 1.37' }
 sub default_client { 'sqlite3' }
+sub _dsn { shift->registry_uri->dbi_dsn }
 
 has dbh => (
     is      => 'rw',
@@ -70,8 +71,7 @@ has dbh => (
         my $self = shift;
         $self->use_driver;
 
-        my $uri = $self->registry_uri;
-        my $dbh = DBI->connect($uri->dbi_dsn, '', '', {
+        my $dbh = DBI->connect($self->_dsn, '', '', {
             PrintError        => 0,
             RaiseError        => 0,
             AutoCommit        => 1,

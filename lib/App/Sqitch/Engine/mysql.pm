@@ -64,6 +64,11 @@ has _mycnf => (
 sub _def_user { $_[0]->_mycnf->{user} || $_[0]->sqitch->sysuser }
 sub _def_pass { $ENV{MYSQL_PWD} || shift->_mycnf->{password} }
 
+sub _dsn {
+    (my $dsn = shift->uri->dbi_dsn) =~ s/\Adbi:mysql/dbi:MariaDB/;
+    return $dsn;
+}
+
 has dbh => (
     is      => 'rw',
     isa     => DBH,
@@ -71,22 +76,18 @@ has dbh => (
     default => sub {
         my $self = shift;
         $self->use_driver;
-        my $uri = $self->registry_uri;
-        my $dbh = DBI->connect($uri->dbi_dsn, $self->username, $self->password, {
-            PrintError           => 0,
-            RaiseError           => 0,
-            AutoCommit           => 1,
-            mysql_enable_utf8    => 1,
-            mysql_auto_reconnect => 0,
-            mysql_use_result     => 0, # Prevent "Commands out of sync" error.
-            HandleError          => $self->error_handler,
-            Callbacks            => {
+        my $dbh = DBI->connect($self->_dsn, $self->username, $self->password, {
+            PrintError  => 0,
+            RaiseError  => 0,
+            AutoCommit  => 1,
+            HandleError => $self->error_handler,
+            Callbacks   => {
                 connected => sub {
                     my $dbh = shift;
                     $dbh->do("SET SESSION $_") or return for (
                         q{character_set_client   = 'utf8'},
                         q{character_set_server   = 'utf8'},
-                        ($dbh->{mysql_serverversion} || 0 < 50500 ? () : (q{default_storage_engine = 'InnoDB'})),
+                        ($dbh->{mariadb_serverversion} || 0 < 50500 ? () : (q{default_storage_engine = 'InnoDB'})),
                         q{time_zone              = '+00:00'},
                         q{group_concat_max_len   = 32768},
                         q{sql_mode = '} . join(',', qw(
@@ -105,7 +106,7 @@ has dbh => (
         });
 
         # Make sure we support this version.
-        my ($dbms, $vnum, $vstr) = $dbh->{mysql_serverinfo} =~ /mariadb/i
+        my ($dbms, $vnum, $vstr) = $dbh->{mariadb_serverinfo} =~ /mariadb/i
             ? ('MariaDB', 50300, '5.3')
             : ('MySQL',   50100, '5.1.0');
         hurl mysql => __x(
@@ -113,7 +114,7 @@ has dbh => (
             rdbms        => $dbms,
             want_version => $vstr,
             have_version => $dbh->selectcol_arrayref('SELECT version()')->[0],
-        ) unless $dbh->{mysql_serverversion} >= $vnum;
+        ) unless $dbh->{mariadb_serverversion} >= $vnum;
 
         return $dbh;
     }
@@ -211,9 +212,9 @@ has _fractional_seconds => (
     lazy    => 1,
     default => sub {
         my $dbh = shift->dbh;
-        return $dbh->{mysql_serverinfo} =~ /mariadb/i
-            ? $dbh->{mysql_serverversion} >= 50305
-            : $dbh->{mysql_serverversion} >= 50604;
+        return $dbh->{mariadb_serverinfo} =~ /mariadb/i
+            ? $dbh->{mariadb_serverversion} >= 50305
+            : $dbh->{mariadb_serverversion} >= 50604;
     },
 );
 
@@ -221,7 +222,7 @@ sub mysql { @{ shift->_mysql } }
 
 sub key    { 'mysql' }
 sub name   { 'MySQL' }
-sub driver { 'DBD::mysql 4.018' }
+sub driver { 'DBD::MariaDB 1.0' }
 sub default_client { 'mysql' }
 
 sub _char2ts {
@@ -282,6 +283,7 @@ sub _initialize {
     # Deploy the registry to the Sqitch database.
     $self->run_upgrade( file(__FILE__)->dir->file('mysql.sql') );
     $self->_set_initialized(1);
+    $self->dbh->do('USE ' . $self->dbh->quote_identifier($self->registry));
     $self->_register_release;
 }
 
@@ -478,7 +480,7 @@ sub _prepare_registry_file {
 
         # Strip out 5.5 stuff on earlier versions.
         $sql =~ s/-- ## BEGIN 5[.]5.+?-- ## END 5[.]5//ms
-            if $self->dbh->{mysql_serverversion} < 50500;
+            if $self->dbh->{mariadb_serverversion} < 50500;
     }
 
     if (!$can_create_checkit) {
@@ -501,11 +503,12 @@ sub _prepare_registry_file {
 # determine whether we have binary logging disabled, or trust function
 # creators, or have the SUPER privilege.
 sub _can_create_immutable_function {
+    # Use md5() to prevent "Illegal mix of collations" errors.
     shift->dbh->selectcol_arrayref(q{
         SELECT @@log_bin = 0
             OR @@log_bin_trust_function_creators = 1
             OR (
-                SELECT super_priv = 'Y' FROM mysql.user
+                SELECT md5(super_priv) = md5('Y') FROM mysql.user
                  WHERE CONCAT(user, '@', host) = current_user
             )
     })->[0]

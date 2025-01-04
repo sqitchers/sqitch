@@ -1773,7 +1773,7 @@ sub run {
             ok $engine->wait_lock, 'Should not have to wait for lock';
 
             # Make a second connection to the database.
-            my $dbh = DBI->connect($engine->uri->dbi_dsn, $engine->username, $engine->password, {
+            my $dbh = DBI->connect($engine->_dsn, $engine->username, $engine->password, {
                 PrintError  => 0,
                 RaiseError  => 0,
                 AutoCommit  => 1,

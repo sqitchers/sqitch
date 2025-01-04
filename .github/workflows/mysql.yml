@@ -42,7 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       # Run the MySQL service in a container we can connect to. Means that the
-      # CLI and libraries DBD::mysql use are static to the version on the runner
+      # CLI and libraries DBD::MariaDB use are static to the version on the runner
       # machine.
       mysql:
         image: "${{ matrix.image }}:${{ matrix.version }}"
@@ -63,7 +63,7 @@ jobs:
           path: local
           key: perl-${{ steps.perl.outputs.perl-hash }}
       - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends --cpanfile dist/cpanfile
-      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends DBD::mysql
+      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends DBD::MariaDB
       - name: prove
         env:
           PERL5LIB: "${{ github.workspace }}/local/lib/perl5"

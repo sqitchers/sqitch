@@ -68,6 +68,17 @@ has _vsql => (
 
 sub vsql { @{ shift->_vsql } }
 
+sub _dsn {
+    my $self = shift;
+    # Set defaults in the URI.
+    my $uri = $self->uri;
+    # https://my.vertica.com/docs/5.1.6/HTML/index.htm#2736.htm
+    $uri->dbname($ENV{VSQL_DATABASE}) if !$uri->dbname   && $ENV{VSQL_DATABASE};
+    $uri->host($ENV{VSQL_HOST})       if !$uri->host     && $ENV{VSQL_HOST};
+    $uri->port($ENV{VSQL_PORT})       if !$uri->_port    && $ENV{VSQL_PORT};
+    return $uri->dbi_dsn;
+}
+
 has dbh => (
     is      => 'rw',
     isa     => DBH,
@@ -76,15 +87,7 @@ has dbh => (
         my $self = shift;
         $self->use_driver;
 
-        # Set defaults in the URI.
-        my $target = $self->target;
-        my $uri = $self->uri;
-        # https://my.vertica.com/docs/5.1.6/HTML/index.htm#2736.htm
-        $uri->dbname($ENV{VSQL_DATABASE}) if !$uri->dbname   && $ENV{VSQL_DATABASE};
-        $uri->host($ENV{VSQL_HOST})       if !$uri->host     && $ENV{VSQL_HOST};
-        $uri->port($ENV{VSQL_PORT})       if !$uri->_port    && $ENV{VSQL_PORT};
-
-        DBI->connect($uri->dbi_dsn, $self->username, $self->password, {
+        DBI->connect($self->_dsn, $self->username, $self->password, {
             PrintError        => 0,
             RaiseError        => 0,
             AutoCommit        => 1,
