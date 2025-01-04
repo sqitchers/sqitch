@@ -221,6 +221,10 @@ sub _run_registry_file {
     # Fetch the client version. 8.4 == 80400
     my $version =  $self->_probe('-c', 'SHOW server_version_num');
     my $psql_maj = $self->_psql_major_version;
+    my $yb_version = $self->_provider eq 'postgres' ? 9999 : do {
+        my ($v) = $self->_probe('-c', 'SHOW server_version') =~ /-YB-(\d+\.\d+)/;
+        $v;
+    };
 
     # Is this XC?
     my $opts =  $self->_probe('-c', q{
@@ -231,19 +235,24 @@ sub _run_registry_file {
            AND proname = 'pgxc_version';
     }) ? ' DISTRIBUTE BY REPLICATION' : '';
 
-    if ($version < 90300 || $psql_maj < 9) {
+    if ($version < 90300 || $psql_maj < 9 || $yb_version < 2.9) {
         # Need to transform the SQL and write it to a temp file.
         my $sql = scalar $file->slurp;
 
         # No CREATE SCHEMA IF NOT EXISTS syntax prior to 9.3.
         $sql =~ s/SCHEMA IF NOT EXISTS/SCHEMA/ if $version < 90300;
+
+        # No COLLATE expression prior to 9.1 or Yugabyte 2.9.
+        $sql =~ s/COLLATE "POSIX"//g if $version < 90100 || $yb_version < 2.9;
+
         if ($psql_maj < 9) {
-            # Also no :"registry" variable syntax prior to psql 9.0.s
+            # No :"registry" variable syntax prior to psql 9.0.
             ($schema) = $self->dbh->selectrow_array(
                 'SELECT quote_ident(?)', undef, $schema
             );
             $sql =~ s{:"registry"}{$schema}g;
         }
+
         require File::Temp;
         my $fh = File::Temp->new;
         print $fh $sql;

@@ -49,6 +49,9 @@ Revision history for Perl extension App::Sqitch
        its Unicode improvements. Thanks to Mark Tyrrell for the report and
        @tiberiusferreira and Perl Monks `1nickt` and`InfiniteSilence` for the
        feedback (#825).
+     - Set all text column collations to "POSIX" on Postgres 9.1 and higher.
+       and Yugabyte 2.9 and higher. Does not apply to existing registries,
+       only new ones. Thanks to @datafoo for the suggestion (#763)!
 
 1.4.1  2024-02-04T16:35:32Z
      - Removed the quoting of the role and warehouse identifiers that was
