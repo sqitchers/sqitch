@@ -406,13 +406,14 @@ RUNREG: {
 
     # Start with a recent version and no XC.
     $psql_maj = 11;
-    @prob_ret = (110000, 0);
+    @prob_ret = (110000, '11.0', 0);
     my $registry = $pg->registry;
     ok $pg->_run_registry_file($ddl), 'Run the registry file';
     is_deeply \@probed, [
         ['-c', 'SHOW server_version_num'],
+        ['-c', 'SHOW server_version'],
         ['-c', $xc_query],
-    ], 'Should have fetched the server version and checked for XC';
+    ], 'Should have fetched the server version and checked for YB and XC';
     is_deeply \@ran, [[
         '--file' => $ddl,
         '--set'  => "registry=$registry",
@@ -426,35 +427,68 @@ RUNREG: {
     # Reset and try Postgres 9.2 server
     @probed = @ran = @done = ();
     $psql_maj = 11;
-    @prob_ret = (90200, 1);
+    @prob_ret = (90200, '9.2.0', 1);
     ok $pg->_run_registry_file($ddl), 'Run the registry file again';
     is_deeply \@probed, [
         ['-c', 'SHOW server_version_num'],
+        ['-c', 'SHOW server_version'],
         ['-c', $xc_query],
-    ], 'Should have again fetched the server version and checked for XC';
+    ], 'Should have again fetched the server version and checked for YB and XC';
     isnt $tmp_fh, undef, 'Should now have a temp file handle';
     is_deeply \@ran, [[
         '--file' => $tmp_fh,
         '--set'  => "tableopts= DISTRIBUTE BY REPLICATION",
     ]], 'Shoud have deployed the temp SQL file';
-    is_deeply \@sra_args, [], 'Still hould not have have called selectrow_array';
+    is_deeply \@sra_args, [], 'Still should not have have called selectrow_array';
     is_deeply \@done, [['SET search_path = ?', undef, $registry]],
         'The registry should have been added to the search path again';
 
     # Make sure the file was changed to remove SCHEMA IF NOT EXISTS.
     file_contents_like $tmp_fh, qr/\QCREATE SCHEMA :"registry";/,
         'Should have removed IF NOT EXISTS from CREATE SCHEMA';
+    file_contents_like $tmp_fh, qr/COLLATE/,
+        'Should not have removed collation';
+
+    # Reset and try Postgres 9.0 server
+    @probed = @ran = @done = ();
+    @prob_ret = (90000, 1);
+    $tmp_fh = undef;
+    $ENV{FOO} = 1;
+    ok $pg->_run_registry_file($ddl), 'Run the registry file again';
+    delete $ENV{FOO};
+    is_deeply \@probed, [
+        ['-c', 'SHOW server_version_num'],
+        ['-c', 'SHOW server_version'],
+        ['-c', $xc_query],
+    ], 'Should have again fetched the server version & checked for YB and XC';
+    isnt $tmp_fh, undef, 'Should again have a temp file handle';
+    is_deeply \@ran, [[
+        '--file' => $tmp_fh,
+        '--set'  => "tableopts=",
+    ]], 'Shoud have again deployed the temp SQL file';
+    is_deeply \@sra_args, [], 'Again should not have have called selectrow_array';
+    is_deeply \@done, [['SET search_path = ?', undef, $registry]],
+        'The registry again should have been added to the search path';
+
+    # Make sure the file was changed to remove SCHEMA IF NOT EXISTS.
+    file_contents_unlike $tmp_fh, qr/\QCREATE SCHEMA IF NOT EXISTS/,
+        'Should have removed IF NOT EXISTS from CREATE SCHEMA';
+
+    # Make sure the file was changed to remove COLLATE "POSIX".
+    file_contents_unlike $tmp_fh, qr/\QCOLLATE "C"/,
+        'Should have removed collation';
 
     # Reset and try with Server 11 and psql 8.x.
     @probed = @ran = @done = ();
     $psql_maj = 8;
     $tmp_fh = undef;
-    @prob_ret = (110000, 0);
+    @prob_ret = (110000, '11.0', 0);
     ok $pg->_run_registry_file($ddl), 'Run the registry file again';
     is_deeply \@probed, [
         ['-c', 'SHOW server_version_num'],
+        ['-c', 'SHOW server_version'],
         ['-c', $xc_query],
-    ], 'Should have again fetched the server version and checked for XC';
+    ], 'Should have again fetched the server version and checked for YB and XC';
     isnt $tmp_fh, undef, 'Should now have a temp file handle';
     is_deeply \@ran, [[
         '--file' => $tmp_fh,
@@ -467,6 +501,8 @@ RUNREG: {
 
     file_contents_like $tmp_fh, qr/\QCREATE SCHEMA IF NOT EXISTS "$registry";/,
         'Should not have removed IF NOT EXISTS from CREATE SCHEMA';
+    file_contents_like $tmp_fh, qr/COLLATE/,
+        'Should not have removed collation';
     file_contents_unlike $tmp_fh, qr/:"registry"/,
         'Should have removed the :"registry" variable';
 }

@@ -19,7 +19,7 @@ CREATE TABLE releases (
 CREATE TABLE projects (
     project         VARCHAR(255) PRIMARY KEY
                     COMMENT 'Unique Name of a project.',
-    uri             VARCHAR(255) NULL UNIQUE
+    uri             VARCHAR(255) CHARACTER SET ascii NULL UNIQUE
                     COMMENT 'Optional project URI',
     created_at      DATETIME(6)  NOT NULL
                     COMMENT 'Date the project was added to the database.',
@@ -33,9 +33,9 @@ CREATE TABLE projects (
 ;
 
 CREATE TABLE changes (
-    change_id       VARCHAR(40)  PRIMARY KEY
+    change_id       VARCHAR(40) CHARACTER SET ascii PRIMARY KEY
                     COMMENT 'Change primary key.',
-    script_hash     VARCHAR(40)      NULL
+    script_hash     VARCHAR(40) CHARACTER SET ascii NULL
                     COMMENT 'Deploy script SHA-1 hash.',
     "change"        VARCHAR(255) NOT NULL
                     COMMENT 'Name of a deployed change.',
@@ -63,14 +63,14 @@ CREATE TABLE changes (
 ;
 
 CREATE TABLE tags (
-    tag_id          VARCHAR(40)  PRIMARY KEY
+    tag_id          VARCHAR(40) CHARACTER SET ascii PRIMARY KEY
                     COMMENT 'Tag primary key.',
     tag             VARCHAR(255) NOT NULL
                     COMMENT 'Project-unique tag name.',
     project         VARCHAR(255) NOT NULL
                     COMMENT 'Name of the Sqitch project to which the tag belongs.'
                     REFERENCES projects(project) ON UPDATE CASCADE,
-    change_id       VARCHAR(40)  NOT NULL
+    change_id       VARCHAR(40) CHARACTER SET ascii NOT NULL
                     COMMENT 'ID of last change deployed before the tag was applied.'
                     REFERENCES changes(change_id) ON UPDATE CASCADE,
     note            VARCHAR(255) NOT NULL
@@ -94,14 +94,14 @@ CREATE TABLE tags (
 ;
 
 CREATE TABLE dependencies (
-    change_id       VARCHAR(40)  NOT NULL
+    change_id       VARCHAR(40) CHARACTER SET ascii NOT NULL
                     COMMENT 'ID of the depending change.'
                     REFERENCES changes(change_id) ON UPDATE CASCADE ON DELETE CASCADE,
-    type            VARCHAR(8)   NOT NULL
+    type            VARCHAR(8)  CHARACTER SET ascii NOT NULL
                     COMMENT 'Type of dependency.',
     dependency      VARCHAR(255) NOT NULL
                     COMMENT 'Dependency name.',
-    dependency_id   VARCHAR(40)      NULL
+    dependency_id   VARCHAR(40) CHARACTER SET ascii NULL
                     COMMENT 'Change ID the dependency resolves to.'
                     REFERENCES changes(change_id) ON UPDATE CASCADE,
     PRIMARY KEY (change_id, dependency)
@@ -111,9 +111,9 @@ CREATE TABLE dependencies (
 ;
 
 CREATE TABLE events (
-    event           ENUM ('deploy', 'fail', 'merge', 'revert') NOT NULL
+    event           ENUM ('deploy', 'fail', 'merge', 'revert') CHARACTER SET ascii NOT NULL
                     COMMENT 'Type of event.',
-    change_id       VARCHAR(40)  NOT NULL
+    change_id       VARCHAR(40) CHARACTER SET ascii NOT NULL
                     COMMENT 'Change ID.',
     "change"        VARCHAR(255) NOT NULL
                     COMMENT 'Change name.',

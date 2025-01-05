@@ -16,12 +16,14 @@ COMMENT ON COLUMN :"registry".releases.installed_at    IS 'Date the registry rel
 COMMENT ON COLUMN :"registry".releases.installer_name  IS 'Name of the user who installed the registry release.';
 COMMENT ON COLUMN :"registry".releases.installer_email IS 'Email address of the user who installed the registry release.';
 
+-- "C" collation bug: https://github.com/cockroachdb/cockroach/issues/108657
+
 CREATE TABLE :"registry".projects (
-    project         TEXT        PRIMARY KEY,
-    uri             TEXT            NULL UNIQUE,
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
-    creator_name    TEXT        NOT NULL,
-    creator_email   TEXT        NOT NULL
+    project         TEXT             PRIMARY KEY,
+    uri             TEXT COLLATE "en-US-u-va-posix"     NULL UNIQUE,
+    created_at      TIMESTAMPTZ      NOT NULL DEFAULT clock_timestamp(),
+    creator_name    TEXT             NOT NULL,
+    creator_email   TEXT             NOT NULL
 );
 
 COMMENT ON TABLE  :"registry".projects                IS 'Sqitch projects deployed to this database.';
@@ -32,17 +34,17 @@ COMMENT ON COLUMN :"registry".projects.creator_name   IS 'Name of the user who a
 COMMENT ON COLUMN :"registry".projects.creator_email  IS 'Email address of the user who added the project.';
 
 CREATE TABLE :"registry".changes (
-    change_id       TEXT        PRIMARY KEY,
-    script_hash     TEXT            NULL,
-    change          TEXT        NOT NULL,
-    project         TEXT        NOT NULL REFERENCES :"registry".projects(project) ON UPDATE CASCADE,
-    note            TEXT        NOT NULL DEFAULT '',
-    committed_at    TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
-    committer_name  TEXT        NOT NULL,
-    committer_email TEXT        NOT NULL,
-    planned_at      TIMESTAMPTZ NOT NULL,
-    planner_name    TEXT        NOT NULL,
-    planner_email   TEXT        NOT NULL,
+    change_id       TEXT COLLATE "en-US-u-va-posix" PRIMARY KEY,
+    script_hash     TEXT COLLATE "en-US-u-va-posix"     NULL,
+    change          TEXT             NOT NULL,
+    project         TEXT             NOT NULL REFERENCES :"registry".projects(project) ON UPDATE CASCADE,
+    note            TEXT             NOT NULL DEFAULT '',
+    committed_at    TIMESTAMPTZ      NOT NULL DEFAULT clock_timestamp(),
+    committer_name  TEXT             NOT NULL,
+    committer_email TEXT             NOT NULL,
+    planned_at      TIMESTAMPTZ      NOT NULL,
+    planner_name    TEXT             NOT NULL,
+    planner_email   TEXT             NOT NULL,
     UNIQUE(project, script_hash)
 );
 
@@ -60,17 +62,17 @@ COMMENT ON COLUMN :"registry".changes.planner_name    IS 'Name of the user who p
 COMMENT ON COLUMN :"registry".changes.planner_email   IS 'Email address of the user who planned the change.';
 
 CREATE TABLE :"registry".tags (
-    tag_id          TEXT        PRIMARY KEY,
-    tag             TEXT        NOT NULL,
-    project         TEXT        NOT NULL REFERENCES :"registry".projects(project) ON UPDATE CASCADE,
-    change_id       TEXT        NOT NULL REFERENCES :"registry".changes(change_id) ON UPDATE CASCADE,
-    note            TEXT        NOT NULL DEFAULT '',
-    committed_at    TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
-    committer_name  TEXT        NOT NULL,
-    committer_email TEXT        NOT NULL,
-    planned_at      TIMESTAMPTZ NOT NULL,
-    planner_name    TEXT        NOT NULL,
-    planner_email   TEXT        NOT NULL,
+    tag_id          TEXT COLLATE "en-US-u-va-posix" PRIMARY KEY,
+    tag             TEXT             NOT NULL,
+    project         TEXT             NOT NULL REFERENCES :"registry".projects(project) ON UPDATE CASCADE,
+    change_id       TEXT COLLATE "en-US-u-va-posix" NOT NULL REFERENCES :"registry".changes(change_id) ON UPDATE CASCADE,
+    note            TEXT             NOT NULL DEFAULT '',
+    committed_at    TIMESTAMPTZ      NOT NULL DEFAULT clock_timestamp(),
+    committer_name  TEXT             NOT NULL,
+    committer_email TEXT             NOT NULL,
+    planned_at      TIMESTAMPTZ      NOT NULL,
+    planner_name    TEXT             NOT NULL,
+    planner_email   TEXT             NOT NULL,
     UNIQUE(project, tag)
 );
 
@@ -88,10 +90,10 @@ COMMENT ON COLUMN :"registry".tags.planner_name    IS 'Name of the user who plan
 COMMENT ON COLUMN :"registry".tags.planner_email   IS 'Email address of the user who planned the tag.';
 
 CREATE TABLE :"registry".dependencies (
-    change_id       TEXT        NOT NULL REFERENCES :"registry".changes(change_id) ON UPDATE CASCADE ON DELETE CASCADE,
-    type            TEXT        NOT NULL,
-    dependency      TEXT        NOT NULL,
-    dependency_id   TEXT            NULL REFERENCES :"registry".changes(change_id) ON UPDATE CASCADE CONSTRAINT dependencies_check CHECK (
+    change_id       TEXT COLLATE "en-US-u-va-posix" NOT NULL REFERENCES :"registry".changes(change_id) ON UPDATE CASCADE ON DELETE CASCADE,
+    type            TEXT COLLATE "en-US-u-va-posix" NOT NULL,
+    dependency      TEXT             NOT NULL,
+    dependency_id   TEXT COLLATE "en-US-u-va-posix" NULL REFERENCES :"registry".changes(change_id) ON UPDATE CASCADE CONSTRAINT dependencies_check CHECK (
             (type = 'require'  AND dependency_id IS NOT NULL)
          OR (type = 'conflict' AND dependency_id IS NULL)
     ),
@@ -105,22 +107,22 @@ COMMENT ON COLUMN :"registry".dependencies.dependency    IS 'Dependency name.';
 COMMENT ON COLUMN :"registry".dependencies.dependency_id IS 'Change ID the dependency resolves to.';
 
 CREATE TABLE :"registry".events (
-    event           TEXT        NOT NULL CONSTRAINT events_event_check CHECK (
+    event           TEXT COLLATE "en-US-u-va-posix" NOT NULL CONSTRAINT events_event_check CHECK (
         event IN ('deploy', 'revert', 'fail', 'merge')
     ),
-    change_id       TEXT        NOT NULL,
-    change          TEXT        NOT NULL,
-    project         TEXT        NOT NULL REFERENCES :"registry".projects(project) ON UPDATE CASCADE,
-    note            TEXT        NOT NULL DEFAULT '',
-    requires        TEXT[]      NOT NULL DEFAULT '{}',
-    conflicts       TEXT[]      NOT NULL DEFAULT '{}',
-    tags            TEXT[]      NOT NULL DEFAULT '{}',
-    committed_at    TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
-    committer_name  TEXT        NOT NULL,
-    committer_email TEXT        NOT NULL,
-    planned_at      TIMESTAMPTZ NOT NULL,
-    planner_name    TEXT        NOT NULL,
-    planner_email   TEXT        NOT NULL,
+    change_id       TEXT COLLATE "en-US-u-va-posix" NOT NULL,
+    change          TEXT             NOT NULL,
+    project         TEXT             NOT NULL REFERENCES :"registry".projects(project) ON UPDATE CASCADE,
+    note            TEXT             NOT NULL DEFAULT '',
+    requires        TEXT[]           NOT NULL DEFAULT '{}',
+    conflicts       TEXT[]           NOT NULL DEFAULT '{}',
+    tags            TEXT[]           NOT NULL DEFAULT '{}',
+    committed_at    TIMESTAMPTZ      NOT NULL DEFAULT clock_timestamp(),
+    committer_name  TEXT             NOT NULL,
+    committer_email TEXT             NOT NULL,
+    planned_at      TIMESTAMPTZ      NOT NULL,
+    planner_name    TEXT             NOT NULL,
+    planner_email   TEXT             NOT NULL,
     PRIMARY KEY (change_id, committed_at)
 );
 

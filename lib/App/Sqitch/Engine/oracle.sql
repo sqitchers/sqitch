@@ -12,11 +12,11 @@ COMMENT ON COLUMN &registry..releases.installer_name  IS 'Name of the user who i
 COMMENT ON COLUMN &registry..releases.installer_email IS 'Email address of the user who installed the registry release.';
 
 CREATE TABLE &registry..projects (
-    project         VARCHAR2(512 CHAR)       PRIMARY KEY,
-    uri             VARCHAR2(512 CHAR)       NULL UNIQUE,
+    project         VARCHAR2(512 CHAR)                PRIMARY KEY,
+    uri             VARCHAR2(512 CHAR) COLLATE ASCII7     NULL UNIQUE,
     created_at      TIMESTAMP WITH TIME ZONE DEFAULT current_timestamp NOT NULL,
-    creator_name    VARCHAR2(512 CHAR)       NOT NULL,
-    creator_email   VARCHAR2(512 CHAR)       NOT NULL
+    creator_name    VARCHAR2(512 CHAR)                NOT NULL,
+    creator_email   VARCHAR2(512 CHAR)                NOT NULL
 );
 
 COMMENT ON TABLE  &registry..projects                IS 'Sqitch projects deployed to this database.';
@@ -27,8 +27,8 @@ COMMENT ON COLUMN &registry..projects.creator_name   IS 'Name of the user who ad
 COMMENT ON COLUMN &registry..projects.creator_email  IS 'Email address of the user who added the project.';
 
 CREATE TABLE &registry..changes (
-    change_id       CHAR(40)                 PRIMARY KEY,
-    script_hash     CHAR(40)                     NULL,
+    change_id       CHAR(40) COLLATE ASCII7  PRIMARY KEY,
+    script_hash     CHAR(40) COLLATE ASCII7      NULL,
     change          VARCHAR2(512 CHAR)       NOT NULL,
     project         VARCHAR2(512 CHAR)       NOT NULL REFERENCES &registry..projects(project),
     note            VARCHAR2(4000 CHAR)      DEFAULT '',
@@ -55,10 +55,10 @@ COMMENT ON COLUMN &registry..changes.planner_name    IS 'Name of the user who pl
 COMMENT ON COLUMN &registry..changes.planner_email   IS 'Email address of the user who planned the change.';
 
 CREATE TABLE &registry..tags (
-    tag_id          CHAR(40)                 PRIMARY KEY,
+    tag_id          CHAR(40) COLLATE ASCII7  PRIMARY KEY,
     tag             VARCHAR2(512 CHAR)       NOT NULL,
     project         VARCHAR2(512 CHAR)       NOT NULL REFERENCES &registry..projects(project),
-    change_id       CHAR(40)                 NOT NULL REFERENCES &registry..changes(change_id),
+    change_id       CHAR(40) COLLATE ASCII7  NOT NULL REFERENCES &registry..changes(change_id),
     note            VARCHAR2(4000 CHAR)      DEFAULT '',
     committed_at    TIMESTAMP WITH TIME ZONE DEFAULT current_timestamp NOT NULL,
     committer_name  VARCHAR2(512 CHAR)       NOT NULL,
@@ -83,10 +83,10 @@ COMMENT ON COLUMN &registry..tags.planner_name    IS 'Name of the user who plane
 COMMENT ON COLUMN &registry..tags.planner_email   IS 'Email address of the user who planned the tag.';
 
 CREATE TABLE &registry..dependencies (
-    change_id       CHAR(40)                 NOT NULL REFERENCES &registry..changes(change_id) ON DELETE CASCADE,
-    type            VARCHAR2(8)              NOT NULL,
-    dependency      VARCHAR2(1024 CHAR)      NOT NULL,
-    dependency_id   CHAR(40)                     NULL REFERENCES &registry..changes(change_id),
+    change_id       CHAR(40) COLLATE ASCII7    NOT NULL REFERENCES &registry..changes(change_id) ON DELETE CASCADE,
+    type            VARCHAR2(8) COLLATE ASCII7 NOT NULL,
+    dependency      VARCHAR2(1024 CHAR)        NOT NULL,
+    dependency_id   CHAR(40) COLLATE ASCII7        NULL REFERENCES &registry..changes(change_id),
     CONSTRAINT dependencies_check CHECK (
             (type = 'require'  AND dependency_id IS NOT NULL)
          OR (type = 'conflict' AND dependency_id IS NULL)
@@ -104,11 +104,11 @@ CREATE TYPE &registry..sqitch_array AS varray(1024) OF VARCHAR2(512);
 /
 
 CREATE TABLE &registry..events (
-    event           VARCHAR2(6)                   NOT NULL
+    event           VARCHAR2(6) COLLATE ASCII7    NOT NULL
     CONSTRAINT events_event_check CHECK (
         event IN ('deploy', 'revert', 'fail', 'merge')
     ),
-    change_id       CHAR(40)                      NOT NULL,
+    change_id       CHAR(40) COLLATE ASCII7       NOT NULL,
     change          VARCHAR2(512 CHAR)            NOT NULL,
     project         VARCHAR2(512 CHAR)            NOT NULL REFERENCES &registry..projects(project),
     note            VARCHAR2(4000 CHAR)           DEFAULT '',

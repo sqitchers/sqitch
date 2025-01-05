@@ -556,6 +556,8 @@ UPGRADE: {
     # Make sure the file was changed to remove precision from datetimes.
     file_contents_unlike $tmp_fh, qr/DATETIME\(\d+\)/,
         'Should have removed datetime precision';
+    file_contents_unlike $tmp_fh, qr/CHARACTER SET/,
+        'Should have removed character sets';
     file_contents_like $tmp_fh, qr/-- ## BEGIN 5\.5/,
         'Should not have removed MySQL 5.5-requiring block BEGIN';
     file_contents_like $tmp_fh, qr/-- ## END 5\.5/,
@@ -569,6 +571,10 @@ UPGRADE: {
     is_deeply \@run, [@cmd, @db_opt, $mysql->_source($tmp_fh)],
         'It should have appended the registry and run the new temp file';
 
+    file_contents_unlike $tmp_fh, qr/DATETIME\(\d+\)/,
+        'Should have removed datetime precision';
+    file_contents_unlike $tmp_fh, qr/CHARACTER SET/,
+        'Should have removed character sets';
     file_contents_unlike $tmp_fh, qr/-- ## BEGIN 5\.5/,
         'Should have removed MySQL 5.5-requiring block BEGIN';
     file_contents_unlike $tmp_fh, qr/-- ## END 5\.5/,
