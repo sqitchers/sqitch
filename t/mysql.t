@@ -62,6 +62,7 @@ my $sqitch_uri = $uri->clone;
 $sqitch_uri->dbname('sqitch');
 is $mysql->registry_uri, $sqitch_uri, 'registry_uri should be correct';
 is $mysql->uri, $uri, qq{uri should be "$uri"};
+is $mysql->_dsn, 'dbi:MariaDB:database=mydb', 'DSN should use MariaDB';
 is $mysql->registry_destination, 'db:mysql:sqitch',
     'registry_destination should be the same as registry_uri';
 is $mysql->_lock_name, 'sqitch working on ' . $uri->dbname,
@@ -381,23 +382,23 @@ is $mysql->_limit_default, '18446744073709551615', 'Should have _limit_default';
 
 SECS: {
     my $mock = Test::MockModule->new($CLASS);
-    my $dbh = {mysql_serverinfo => 'foo', mysql_serverversion => 50604};
+    my $dbh = {mariadb_serverinfo => 'foo', mariadb_serverversion => 50604};
     $mock->mock(dbh => $dbh);
     is $mysql->_ts_default, 'utc_timestamp(6)',
         'Should have _ts_default with fractional seconds';
 
-    $dbh->{mysql_serverversion} = 50101;
+    $dbh->{mariadb_serverversion} = 50101;
     my $my51 = $CLASS->new(sqitch => $sqitch, target => $target);
     is $my51->_ts_default, 'utc_timestamp',
         'Should have _ts_default without fractional seconds on 5.1';
 
-    $dbh->{mysql_serverversion} = 50304;
-    $dbh->{mysql_serverinfo} = 'Something about MariaDB man';
+    $dbh->{mariadb_serverversion} = 50304;
+    $dbh->{mariadb_serverinfo} = 'Something about MariaDB man';
     my $maria = $CLASS->new(sqitch => $sqitch, target => $target);
     is $maria->_ts_default, 'utc_timestamp',
         'Should have _ts_default without fractional seconds on early mariadb';
 
-    $dbh->{mysql_serverversion} = 50305;
+    $dbh->{mariadb_serverversion} = 50305;
     is $mysql->_ts_default, 'utc_timestamp(6)',
         'Should have _ts_default with fractional secondson mariadb 5.03.05';
 }
@@ -516,7 +517,8 @@ UPGRADE: {
     my $fracsec;
     my $version = 50500;
     $mock->mock(_fractional_seconds => sub { $fracsec });
-    $mock->mock(dbh =>  sub { { mysql_serverversion => $version } });
+    $mock->mock(dbh => sub { { mariadb_serverversion => $version } });
+    $mock->mock(_can_create_immutable_function => 1);
 
     # Mock run.
     my @run;
@@ -531,7 +533,8 @@ UPGRADE: {
 
     # Assemble the expected command.
     my @cmd = $mysql->mysql;
-    $cmd[1 + firstidx { $_ eq '--database' } @cmd ] = $mysql->registry;
+    my $db_opt_idx = firstidx { $_ eq '--database' } @cmd;
+    $cmd[$db_opt_idx + 1] = $mysql->registry;
     my $fn = file($INC{'App/Sqitch/Engine/mysql.pm'})->dir->file('mysql.sql');
 
     # Test with fractional seconds supported.
@@ -541,12 +544,14 @@ UPGRADE: {
     is_deeply \@run, [@cmd, $mysql->_source($fn)],
         'It should have run the unchanged file';
 
-    # Now disable fractional seconds.
+    # Now disable fractional seconds and no --database param.
+    my @db_opt = splice @cmd, $db_opt_idx, 2;
+    $mock->mock(mysql => sub { @cmd });
     $fracsec = 0;
     ok $mysql->run_upgrade($fn), 'Run the upgrade again';
     ok $tmp_fh, 'Should have created a temp file';
-    is_deeply \@run, [@cmd, $mysql->_source($tmp_fh)],
-        'It should have run the temp file';
+    is_deeply \@run, [@cmd, @db_opt, $mysql->_source($tmp_fh)],
+        'It should have appended the registry and run the temp file';
 
     # Make sure the file was changed to remove precision from datetimes.
     file_contents_unlike $tmp_fh, qr/DATETIME\(\d+\)/,
@@ -561,8 +566,8 @@ UPGRADE: {
     $tmp_fh = undef;
     ok $mysql->run_upgrade($fn), 'Run the upgrade on 5.4';
     ok $tmp_fh, 'Should have created another temp file';
-    is_deeply \@run, [@cmd, $mysql->_source($tmp_fh)],
-        'It should have the new temp file';
+    is_deeply \@run, [@cmd, @db_opt, $mysql->_source($tmp_fh)],
+        'It should have appended the registry and run the new temp file';
 
     file_contents_unlike $tmp_fh, qr/-- ## BEGIN 5\.5/,
         'Should have removed MySQL 5.5-requiring block BEGIN';
@@ -589,36 +594,37 @@ END {
     $dbh->do("DROP DATABASE IF EXISTS $_") for ($db, $reg1, $reg2);
 }
 
-
 $uri = URI->new(
     $ENV{SQITCH_TEST_MYSQL_URI} ||
     $ENV{MYSQL_URI} ||
-    'db:mysql://root@/information_schema'
+    'db:mariadb://root@/information_schema'
 );
 $uri->dbname('information_schema') unless $uri->dbname;
 my $err = try {
     $mysql->use_driver;
-    $dbh = DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {
-        PrintError => 0,
-        RaiseError => 1,
-        AutoCommit => 1,
+    (my $dsn = $uri->dbi_dsn) =~ s/\Adbi:mysql/dbi:MariaDB/;
+    $dbh = DBI->connect($dsn, $uri->user, $uri->password, {
+        PrintError  => 0,
+        RaiseError  => 0,
+        AutoCommit  => 1,
+        HandleError => $mysql->error_handler,
     });
 
     # Make sure we have a version we can use.
-    if ($dbh->{mysql_serverinfo} =~ /mariadb/i) {
-        die "MariaDB >= 50300 required; this is $dbh->{mysql_serverversion}\n"
-            unless $dbh->{mysql_serverversion} >= 50300;
+    if ($dbh->{mariadb_serverinfo} =~ /mariadb/i) {
+        die "MariaDB >= 50300 required; this is $dbh->{mariadb_serverversion}\n"
+            unless $dbh->{mariadb_serverversion} >= 50300;
     }
     else {
-        die "MySQL >= 50100 required; this is $dbh->{mysql_serverversion}\n"
-            unless $dbh->{mysql_serverversion} >= 50100;
+        die "MySQL >= 50100 required; this is $dbh->{mariadb_serverversion}\n"
+            unless $dbh->{mariadb_serverversion} >= 50100;
     }
 
     $dbh->do("CREATE DATABASE $db");
     $uri->dbname($db);
     undef;
 } catch {
-    eval { $_->message } || $_;
+    $_
 };
 
 DBIEngineTest->run(
@@ -646,7 +652,7 @@ DBIEngineTest->run(
         for my $spec (
             [character_set_client   => qr/^utf8/],
             [character_set_server   => qr/^utf8/],
-            ($dbh->{mysql_serverversion} < 50500 ? () : ([default_storage_engine => qr/^InnoDB$/])),
+            ($dbh->{mariadb_serverversion} < 50500 ? () : ([default_storage_engine => qr/^InnoDB$/])),
             [time_zone              => qr/^\+00:00$/],
             [group_concat_max_len   => qr/^32768$/],
         ) {

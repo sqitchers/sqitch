@@ -213,13 +213,13 @@ sub go {
         if ($_->exitval == 1) {
             # Non-fatal exception; just send the message to info.
             $sqitch->info($_->message);
+        } elsif ($_->ident eq 'DEV') {
+            # Vent complete details of fatal DEV error.
+            $sqitch->vent($_->as_string);
         } else {
-            # Fatal exception; vent.
+            # Vent fatal error message, trace details.
             $sqitch->vent($_->message);
-
-            # Emit the stack trace. DEV errors should be vented; otherwise trace.
-            my $meth = $_->ident eq 'DEV' ? 'vent' : 'trace';
-            $sqitch->$meth($_->stack_trace->as_string);
+            $sqitch->trace($_->details_string);
         }
 
         # Bail.
@@ -329,7 +329,7 @@ sub run {
     my $self = shift;
     local $SIG{__DIE__} = sub {
         ( my $msg = shift ) =~ s/\s+at\s+.+/\n/ms;
-        die $msg;
+        hurl ipc => $msg;
     };
     if (ISWIN && IPC::System::Simple->VERSION < 1.28) {
         runx ( shift, $self->quote_shell(@_) );
@@ -343,7 +343,7 @@ sub shell {
     my ($self, $cmd) = @_;
     local $SIG{__DIE__} = sub {
         ( my $msg = shift ) =~ s/\s+at\s+.+/\n/ms;
-        die $msg;
+        hurl ipc => $msg;
     };
     IPC::System::Simple::run $cmd;
     return $self;
@@ -363,7 +363,7 @@ sub capture {
     my $self = shift;
     local $SIG{__DIE__} = sub {
         ( my $msg = shift ) =~ s/\s+at\s+.+/\n/ms;
-        die $msg;
+        hurl ipc => $msg;
     };
     return capturex ( shift, $self->quote_shell(@_) )
         if ISWIN && IPC::System::Simple->VERSION <= 1.25;
@@ -904,7 +904,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2024 iovation Inc., David E. Wheeler
+Copyright (c) 2012-2025 David E. Wheeler, 2012-2021 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

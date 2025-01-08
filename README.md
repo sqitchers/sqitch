@@ -1,4 +1,4 @@
-App/Sqitch version v1.4.1
+App/Sqitch version v1.5.0
 =========================
 
 | Release           | Coverage          | Database                              ||
@@ -138,7 +138,7 @@ Linux distributions and Windows, see the [Installation documentation].
 License
 -------
 
-Copyright (c) 2012-2024 iovation Inc., David E. Wheeler
+Copyright (c) 2012-2025 David E. Wheeler, 2012-2021 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -163,15 +163,15 @@ SOFTWARE.
   [OSes]:      https://github.com/sqitchers/sqitch/actions/workflows/os.yml/badge.svg
   [💿]:        https://github.com/sqitchers/sqitch/actions/workflows/os.yml "Tested on Linux, macOS, and Windows"
   [Exasol]:    https://github.com/sqitchers/sqitch/actions/workflows/exasol.yml/badge.svg
-  [☀️]:         https://github.com/sqitchers/sqitch/actions/workflows/exasol.yml "Tested with Exasol 7.0–7.1"
+  [☀️]:         https://github.com/sqitchers/sqitch/actions/workflows/exasol.yml "Tested with Exasol 7.0–8.32"
   [Oracle]:    https://github.com/sqitchers/sqitch/actions/workflows/oracle.yml/badge.svg
   [🔮]:        https://github.com/sqitchers/sqitch/actions/workflows/oracle.yml "Tested with Oracle 11, 18, and 21"
   [Docker]:    https://img.shields.io/docker/v/sqitch/sqitch?label=%F0%9F%90%B3%20Docker&sort=semver
   [🐳]:        https://hub.docker.com/r/sqitch/sqitch "Latest version on Docker Hub"
   [Perl]:      https://github.com/sqitchers/sqitch/actions/workflows/perl.yml/badge.svg
-  [🧅]:        https://github.com/sqitchers/sqitch/actions/workflows/perl.yml "Tested with Perl 5.12–5.38"
+  [🧅]:        https://github.com/sqitchers/sqitch/actions/workflows/perl.yml "Tested with Perl 5.12–5.40"
   [Firebird]:  https://github.com/sqitchers/sqitch/actions/workflows/firebird.yml/badge.svg
-  [🔥]:        https://github.com/sqitchers/sqitch/actions/workflows/firebird.yml "Tested with Firebird 2.5, 3, and 4"
+  [🔥]:        https://github.com/sqitchers/sqitch/actions/workflows/firebird.yml "Tested with Firebird 2.5–5.0"
   [Snowflake]: https://github.com/sqitchers/sqitch/actions/workflows/snowflake.yml/badge.svg
   [❄️]:         https://github.com/sqitchers/sqitch/actions/workflows/snowflake.yml "Tested with Snowflake"
   [Homebrew]:  https://img.shields.io/github/v/tag/sqitchers/homebrew-sqitch?label=%F0%9F%8D%BA%20Homebrew&sort=semver
@@ -179,15 +179,15 @@ SOFTWARE.
   [Coverage]:  https://img.shields.io/coveralls/github/sqitchers/sqitch?label=%F0%9F%93%88%20Coverage
   [📈]:        https://coveralls.io/r/sqitchers/sqitch "Test Coverage"
   [MySQL]:     https://github.com/sqitchers/sqitch/actions/workflows/mysql.yml/badge.svg
-  [🐬]:        https://github.com/sqitchers/sqitch/actions/workflows/mysql.yml "Tested with MySQL 5.5–8 and MariaDB 10.0–11.0"
+  [🐬]:        https://github.com/sqitchers/sqitch/actions/workflows/mysql.yml "Tested with MySQL 5.5–9.1 and MariaDB 10.0–11.6"
   [SQLite]:    https://github.com/sqitchers/sqitch/actions/workflows/sqlite.yml/badge.svg
-  [💡]:        https://github.com/sqitchers/sqitch/actions/workflows/sqlite.yml "Tested with SQLite 3.8–3.42"
+  [💡]:        https://github.com/sqitchers/sqitch/actions/workflows/sqlite.yml "Tested with SQLite 3.8–3.47"
   [Debian]:    https://img.shields.io/debian/v/sqitch?label=%F0%9F%8D%A5%20Debian
   [🍥]:        https://packages.debian.org/stable/sqitch "Latest version on Debian"
   [Postgres]:  https://github.com/sqitchers/sqitch/actions/workflows/pg.yml/badge.svg
-  [🐘]:        https://github.com/sqitchers/sqitch/actions/workflows/pg.yml "Tested with PostgreSQL 8.4–16"
+  [🐘]:        https://github.com/sqitchers/sqitch/actions/workflows/pg.yml "Tested with PostgreSQL 8.4–17"
   [Yugabyte]:  https://github.com/sqitchers/sqitch/actions/workflows/yugabyte.yml/badge.svg
-  [💫]:        https://github.com/sqitchers/sqitch/actions/workflows/yugabyte.yml "Tested with YugabyteDB 2.6–2.19"
+  [💫]:        https://github.com/sqitchers/sqitch/actions/workflows/yugabyte.yml "Tested with YugabyteDB 2.6–2024.2"
   [Vertica]:   https://github.com/sqitchers/sqitch/actions/workflows/vertica.yml/badge.svg
   [🔺]:        https://github.com/sqitchers/sqitch/actions/workflows/vertica.yml "Tested with Vertica 7.2–12.0"
 [Cockroach]: https://github.com/sqitchers/sqitch/actions/workflows/cockroach.yml/badge.svg

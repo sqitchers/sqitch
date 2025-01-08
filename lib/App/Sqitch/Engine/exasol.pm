@@ -124,19 +124,13 @@ has dbh => (
         my $self = shift;
         $self->use_driver;
 
-        my $uri = $self->uri;
-        DBI->connect($uri->dbi_dsn, $self->username, $self->password, {
+        DBI->connect($self->_dsn, $self->username, $self->password, {
             PrintError        => 0,
             RaiseError        => 0,
             AutoCommit        => 1,
             odbc_utf8_on      => 1,
             FetchHashKeyName  => 'NAME_lc',
-            HandleError       => sub {
-                my ($err, $dbh) = @_;
-                $@ = $err;
-                @_ = ($dbh->state || 'DEV' => $dbh->errstr);
-                goto &hurl;
-            },
+            HandleError       => $self->error_handler,
             Callbacks         => {
                 connected => sub {
                     my $dbh = shift;
@@ -572,7 +566,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2024 iovation Inc., David E. Wheeler
+Copyright (c) 2012-2025 David E. Wheeler, 2012-2021 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

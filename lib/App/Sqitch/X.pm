@@ -54,8 +54,16 @@ sub hurl {
 
 sub as_string {
     my $self = shift;
-    join "\n", grep { defined } (
+    join "\n", grep { $_ } (
         $self->message,
+        $self->previous_exception,
+        $self->stack_trace
+    );
+}
+
+sub details_string {
+    my $self = shift;
+    join "\n", grep { $_ } (
         $self->previous_exception,
         $self->stack_trace
     );
@@ -148,6 +156,13 @@ used for string overloading of the exception object, which means it is the
 output shown for uncaught exceptions. Its contents are the concatenation of
 the exception message, the previous exception (if any), and the stack trace.
 
+=head3 C<details_string>
+
+  my $errstr = $x->details;
+
+Returns the the stringified version of the previous exception (if any), and
+the stack trace.
+
 =head1 Handling Exceptions
 
 use L<Try::Tiny> to do exception handling, like so:
@@ -175,7 +190,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2024 iovation Inc., David E. Wheeler
+Copyright (c) 2012-2025 David E. Wheeler, 2012-2021 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

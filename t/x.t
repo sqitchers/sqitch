@@ -45,18 +45,33 @@ is $x->message, 'OMFG!', 'The message should have been passed';
 is $x->exitval, 2, 'Exit val should again be 2';
 is $x->previous_exception, 'Yo dawg',
     'Previous exception should have been passed';
-
-throws_ok { hurl {ident => 'blah', message => 'OMFG!', exitval => 1} } $CLASS;
-isa_ok $x = $@, $CLASS, 'Thrown object';
-is $x->message, 'OMFG!', 'The params should have been passed';
-is $x->exitval, 1, 'Exit val should be 1';
-is $x->as_string, join("\n", grep { defined }
+is $x->as_string, join("\n",
     $x->message,
     $x->previous_exception,
     $x->stack_trace
 ), 'Stringification should work';
 
 is $x->as_string, "$x", 'Stringification should work';
+
+is $x->details_string, join("\n",
+    $x->previous_exception,
+    $x->stack_trace
+), 'Details string should work';
+
+throws_ok { hurl {ident => 'blah', message => 'OMFG!', exitval => 1} } $CLASS;
+isa_ok $x = $@, $CLASS, 'Thrown object';
+is $x->message, 'OMFG!', 'The params should have been passed';
+is $x->exitval, 1, 'Exit val should be 1';
+is $x->as_string, join("\n",
+    $x->message,
+    $x->stack_trace
+), 'Stringification should work';
+
+is $x->as_string, "$x", 'Stringification should work';
+
+is $x->details_string, join("\n",
+    $x->stack_trace
+), 'Details string should work';
 
 # Do some actual exception handling.
 try {

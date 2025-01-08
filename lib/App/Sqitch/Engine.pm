@@ -169,7 +169,10 @@ sub load {
     );
 
     my $pkg = __PACKAGE__ . '::' . $target->engine_key;
-    eval "require $pkg" or hurl "Unable to load $pkg";
+    eval "require $pkg" or hurl engine => __x(
+        'Unknown engine: {engine}',
+        engine => $ekey,
+    );
     return $pkg->new( $p );
 }
 
@@ -1038,7 +1041,12 @@ sub deploy_change {
     $self->begin_work($change);
 
     return try {
-        $self->run_deploy($change->deploy_file) unless $self->log_only;
+        my $file = $change->deploy_file;
+        hurl deploy => __x(
+            'Deploy script {file} does not exist',
+            file => $file,
+        ) unless -e $file;
+        $self->run_deploy($file) unless $self->log_only;
         try {
             $self->verify_change( $change ) if $self->with_verify;
             $self->log_deploy_change($change);
@@ -1081,7 +1089,12 @@ sub revert_change {
     $self->begin_work($change);
 
     try {
-        $self->run_revert($change->revert_file) unless $self->log_only;
+        my $file = $change->revert_file;
+        hurl revert => __x(
+            'Revert script {file} does not exist',
+            file => $file,
+        ) unless -e $file;
+        $self->run_revert($file) unless $self->log_only;
         try {
             $self->log_revert_change($change);
             $sqitch->info(__ 'ok');
@@ -1763,7 +1776,6 @@ their C<psql> and C<vsql> clients via the C<--set> option, while the
 L<MySQL engine|App::Sqitch::Engine::mysql> engine sets them via the C<SET>
 command and the L<Oracle engine|App::Sqitch::Engine::oracle> engine sets them
 via the SQL*Plus C<DEFINE> command.
-
 
 =head3 C<deploy>
 
@@ -2759,7 +2771,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2024 iovation Inc., David E. Wheeler
+Copyright (c) 2012-2025 David E. Wheeler, 2012-2021 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

@@ -11,7 +11,7 @@ jobs:
   Exasol:
     strategy:
       matrix:
-        exasol: ['7.1', '7.0']
+        exasol: ['8', '7.1', '7.0']
     name: ☀️ Exasol ${{ matrix.exasol }}
     runs-on: ubuntu-latest
     services:
@@ -38,5 +38,5 @@ jobs:
         env:
           PERL5LIB: "${{ github.workspace }}/local/lib/perl5"
           LIVE_EXASOL_REQUIRED: true
-          SQITCH_TEST_EXASOL_URI: db:exasol://sys:exasol@127.0.0.1:${{ job.services.exasol.ports[8563] }}/?Driver=Exasol;SSLCertificate=SSL_VERIFY_NONE
+          SQITCH_TEST_EXASOL_URI: db:exasol://sys:exasol@127.0.0.1:${{ job.services.exasol.ports[8563] }}/?Driver=Exasol;SSLCERTIFICATE=SSL_VERIFY_NONE
         run: prove -lvr t/exasol.t

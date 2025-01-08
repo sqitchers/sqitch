@@ -12,10 +12,11 @@ jobs:
     strategy:
       matrix:
         include:
-          - { version: '4.0'    }
-          - { version: '3.0'    }
-          - { version: '2.5-ss' }
-          - { version: '2.5-sc' }
+          - { version: '5',      image: ghcr.io/fdcastel/firebird, dir: /var/lib/firebird/data }
+          - { version: '4',      image: ghcr.io/fdcastel/firebird, dir: /var/lib/firebird/data }
+          - { version: '3',      image: ghcr.io/fdcastel/firebird, dir: /var/lib/firebird/data }
+          - { version: '2.5-ss', image: jacobalberty/firebird,     dir: /firebird/data         } # deprecated
+          - { version: '2.5-sc', image: jacobalberty/firebird,     dir: /firebird/data         } # deprecated
     name: 🔥 Firebird ${{ matrix.version }}
     runs-on: ubuntu-latest
     services:
@@ -23,10 +24,11 @@ jobs:
       # CLI and libraries DBD::firebird use are static to the version on the runner
       # machine.
       firebird:
-        image: jacobalberty/firebird:${{ matrix.version }}
+        image: ${{ matrix.image }}:${{ matrix.version }}
         ports: [ 3050 ]
         env:
-          ISC_PASSWORD: nix
+          ISC_PASSWORD: nix # for jacobalberty/firebird only
+          FIREBIRD_ROOT_PASSWORD: nix
           FIREBIRD_DATABASE: sqitchtest.db
     steps:
       - uses: actions/checkout@v4
@@ -47,5 +49,5 @@ jobs:
         env:
           PERL5LIB: "${{ github.workspace }}/local/lib/perl5"
           LIVE_FIREBIRD_REQUIRED: true
-          SQITCH_TEST_FIREBIRD_URI: db:firebird://sysdba:nix@127.0.0.1:${{ job.services.firebird.ports[3050] }}//firebird/data/sqitchtest.db
+          SQITCH_TEST_FIREBIRD_URI: db:firebird://sysdba:nix@127.0.0.1:${{ job.services.firebird.ports[3050] }}/${{ matrix.dir }}/sqitchtest.db
         run: prove -lvr t/firebird.t

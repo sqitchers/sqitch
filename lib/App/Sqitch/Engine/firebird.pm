@@ -61,6 +61,10 @@ sub registry_destination {
 
 sub _def_user { $ENV{ISC_USER} }
 sub _def_pass { $ENV{ISC_PASSWORD} }
+sub _dsn {
+    my $uri = shift->registry_uri;
+    return $uri->dbi_dsn . ';ib_dialect=3;ib_charset=UTF8';
+}
 
 has dbh => (
     is      => 'rw',
@@ -69,22 +73,15 @@ has dbh => (
     clearer => '_clear_dbh',
     default => sub {
         my $self = shift;
-        my $uri  = $self->registry_uri;
         $self->use_driver;
 
-        my $dsn = $uri->dbi_dsn . ';ib_dialect=3;ib_charset=UTF8';
-        return DBI->connect($dsn, scalar $self->username, scalar $self->password, {
+        return DBI->connect($self->_dsn, scalar $self->username, scalar $self->password, {
             PrintError       => 0,
             RaiseError       => 0,
             AutoCommit       => 1,
             ib_enable_utf8   => 1,
             FetchHashKeyName => 'NAME_lc',
-            HandleError      => sub {
-                my ($err, $dbh) = @_;
-                $@ = $err;
-                @_ = ($dbh->state || 'DEV' => $dbh->errstr);
-                goto &hurl;
-            },
+            HandleError       => $self->error_handler,
         });
     }
 );
@@ -996,7 +993,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2024 iovation Inc., David E. Wheeler
+Copyright (c) 2012-2025 David E. Wheeler, 2012-2021 iovation Inc.
 
 Copyright (c) 2013 Ștefan Suciu
 

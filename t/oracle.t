@@ -16,7 +16,7 @@
 # Client](https://www.oracle.com/database/technologies/instant-client/downloads.html),
 # specifically the Basic, SQL*Plus, and SDK packages. Unpack them into a
 # directory and set `ORACLE_HOME` and `LD_LIBRARY_PATH` to point to that
-# director, and add it to the Path. Then install DBD::Oracle.
+# directory, and add it to the Path. Then install DBD::Oracle.
 #
 # ## Oracle-XE Docker Image
 #
@@ -197,7 +197,7 @@ is_deeply [$ora->sqlplus], [$client, @std_opts],
 is $ora->_script, join( "\n" => (
     'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF VERIFY OFF',
     'WHENEVER OSERROR EXIT 9;',
-    'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
+    'WHENEVER SQLERROR EXIT 4;',
     'connect ',
     $ora->_registry_variable,
 ) ), '_script should work';
@@ -215,7 +215,7 @@ isa_ok $ora = $CLASS->new(
 is $ora->_script, join( "\n" => (
     'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF VERIFY OFF',
     'WHENEVER OSERROR EXIT 9;',
-    'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
+    'WHENEVER SQLERROR EXIT 4;',
     'connect fred/"derf"@"blah"',
     $ora->_registry_variable,
 ) ), '_script should assemble connection string';
@@ -233,7 +233,7 @@ isa_ok $ora = $CLASS->new(
 is $ora->_script('@foo'), join( "\n" => (
     'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF VERIFY OFF',
     'WHENEVER OSERROR EXIT 9;',
-    'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
+    'WHENEVER SQLERROR EXIT 4;',
     'connect fred/"derf"@//there/"blah"',
     $ora->_registry_variable,
     '@foo',
@@ -256,7 +256,7 @@ ok $ora->set_variables(foo => 'baz', whu => 'hi there', yo => q{"stellar"}),
 is $ora->_script, join( "\n" => (
     'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF VERIFY OFF',
     'WHENEVER OSERROR EXIT 9;',
-    'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
+    'WHENEVER SQLERROR EXIT 4;',
     'DEFINE foo="baz"',
     'DEFINE whu="hi there"',
     'DEFINE yo="""stellar"""',
@@ -278,7 +278,7 @@ isa_ok $ora = $CLASS->new(
 is $ora->_script('@foo'), join( "\n" => (
     'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF VERIFY OFF',
     'WHENEVER OSERROR EXIT 9;',
-    'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
+    'WHENEVER SQLERROR EXIT 4;',
     'connect /@"secure_user_tns.tpg"',
     $ora->_registry_variable,
     '@foo',
@@ -298,12 +298,11 @@ isa_ok $ora = $CLASS->new(
 is $ora->_script('@foo'), join( "\n" => (
     'SET ECHO OFF NEWP 0 SPA 0 PAGES 0 FEED OFF HEAD OFF TRIMS ON TAB OFF VERIFY OFF',
     'WHENEVER OSERROR EXIT 9;',
-    'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
+    'WHENEVER SQLERROR EXIT 4;',
     'connect /@"wallet_tns_name"',
     $ora->_registry_variable,
     '@foo',
 ) ), '_script should assemble connection string with double-slash and dbname';
-
 
 ##############################################################################
 # Test other configs for the destination.
@@ -675,13 +674,14 @@ my $uri = $ENV{SQITCH_TEST_ORACLE_URI} ? URI->new($ENV{SQITCH_TEST_ORACLE_URI}) 
 my $err = try {
     $ora->use_driver;
     $dbh = DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {
-        PrintError => 0,
-        RaiseError => 1,
-        AutoCommit => 1,
+        PrintError  => 0,
+        RaiseError  => 0,
+        AutoCommit  => 1,
+        HandleError => $ora->error_handler,
     });
     undef;
 } catch {
-    eval { $_->message } || $_;
+    $_;
 };
 
 DBIEngineTest->run(

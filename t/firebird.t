@@ -65,6 +65,8 @@ is $fb->name, 'Firebird', 'Name should be "Firebird"';
 is $fb->username, $ENV{ISC_USER}, 'Should have username from environment';
 is $fb->password, $ENV{ISC_PASSWORD}, 'Should have password from environment';
 is $fb->_limit_default, '18446744073709551615', 'Should have _limit_default';
+is $fb->_dsn, 'dbi:Firebird:dbname=sqitch.fdb;ib_dialect=3;ib_charset=UTF8',
+    'Should append "ib_dialect=3;ib_charset=UTF8" to the DSN';
 
 my $have_fb_client;
 if ($have_fb_driver && (my $client = try { $fb->client })) {
@@ -416,9 +418,10 @@ my $err = try {
 
     # Try to connect.
     my $dbh = DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {
-        PrintError => 0,
-        RaiseError => 1,
-        AutoCommit => 1,
+        PrintError  => 0,
+        RaiseError  => 0,
+        AutoCommit  => 1,
+        HandleError => $fb->error_handler,
     });
     $fb_version = $dbh->selectcol_arrayref(q{
         SELECT rdb$get_context('SYSTEM', 'ENGINE_VERSION')
@@ -429,7 +432,7 @@ my $err = try {
     push @cleanup => map { catfile $data_dir, $_ } $reg1, $reg2;
     return undef;
 } catch {
-    eval { $_->message } || $_;
+    $_
 };
 
 END {

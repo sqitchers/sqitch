@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 208;
+use Test::More tests => 224;
 # use Test::More 'no_plan';
 use Test::MockModule 0.17;
 use Path::Class;
@@ -138,8 +138,8 @@ GO: {
     my $sqitch_mock = Test::MockModule->new($CLASS);
     my @vented;
     $sqitch_mock->mock(vent => sub { shift; push @vented => @_ });
-    my $traced;
-    $sqitch_mock->mock(trace => sub { $traced = $_[1]; });
+    my @traced;
+    $sqitch_mock->mock(trace => sub { shift; push @traced => @_ });
     my @infoed;
     $sqitch_mock->mock(info => sub { shift; push @infoed => @_ });
     my @emitted;
@@ -153,29 +153,47 @@ GO: {
     is_deeply \@vented, ['OMGWTF!'], 'The error should have been vented';
     is_deeply \@infoed, [], 'Should have no info output';
     is_deeply \@emitted, [], 'Should have no emitted output';
-    is $traced, $ex->stack_trace->as_string,
+    is_deeply \@traced, [$ex->stack_trace->as_string],
         'The stack trace should have been sent to trace';
 
+    # Make it die with a previous exception.
+    $ex = puke(ident => 'yikes', message => 'Yikes!', previous_exception => 'Invalid snicker');
+    @vented = @traced = ();
+    is $sqitch->go, 2, 'Go should return 2 on next Sqitch exception';
+    is_deeply \@vented, ['Yikes!'], 'The next error should have been vented';
+    is_deeply \@infoed, [], 'Should have no info output';
+    is_deeply \@emitted, [], 'Should have no emitted output';
+    is_deeply \@traced, ["Invalid snicker\n" . $ex->stack_trace->as_string],
+        'The previous exceptin and stack trace should have been sent to trace';
+
     # Make it die with a developer exception.
-    @vented = ();
-    $traced = undef;
+    @vented = @traced = ();
     $ex = puke( message => 'OUCH!', exitval => 4 );
     is $sqitch->go, 4, 'Go should return exitval on another exception';
-    is_deeply \@vented, ['OUCH!', $ex->stack_trace->as_string],
+    is_deeply \@vented, ["OUCH!\n" . $ex->stack_trace->as_string],
         'Both the message and the trace should have been vented';
     is_deeply \@infoed, [], 'Should still have no info output';
     is_deeply \@emitted, [], 'Should still have no emitted output';
-    is $traced, undef, 'Nothing should have been traced';
+    is_deeply \@traced, [], 'Nothing should have been traced';
+
+    # Make it die with a developer previous exception.
+    @vented = @traced = ();
+    $ex = puke( message => 'OOOF!', exitval => 3, previous_exception => 'Cannot open file' );
+    is $sqitch->go, 3, 'Go should return exitval on wrapped exception';
+    is_deeply \@vented, ["OOOF!\nCannot open file\n" . $ex->stack_trace->as_string],
+        'Should have vented the message, previous exception, and trace';
+    is_deeply \@infoed, [], 'Should still have no info output';
+    is_deeply \@emitted, [], 'Should still have no emitted output';
+    is_deeply \@traced, [], 'Nothing should have been traced';
 
     # Make it die with a non-fatal exception (error code 1)
     @vented = ();
-    $traced = undef;
     $ex = puke( message => 'OOPS!', exitval => 1 );
     is $sqitch->go, 1, 'Go should return exitval on non-fatal exception';
     is_deeply \@vented, [], 'Should not have vented';
     is_deeply \@infoed, ['OOPS!'], 'Should have sent the message to message';
     is_deeply \@emitted, [], 'Should still have no emitted output';
-    is $traced, undef, 'Nothing should have been traced';
+    is_deeply \@traced, [], 'Nothing should have been traced';
 
     # Make it die without an exception object.
     $ex = 'LOLZ';
@@ -185,7 +203,7 @@ GO: {
     like $vented[0], qr/^LOLZ\b/, 'And it should include our message';
     is_deeply \@infoed, [], 'Should again have no info output';
     is_deeply \@emitted, [], 'Should still have no emitted output';
-    is $traced, undef, 'Nothing should have been traced';
+    is_deeply \@traced, [], 'Nothing should have been traced';
 }
 
 ##############################################################################
@@ -420,7 +438,11 @@ is $stderr, '', 'Nothing should have gone to STDERR';
 ($stdout, $stderr) = capture {
     throws_ok {
         $sqitch->run( $^X, 'die.pl', qw(hi there))
-    } qr/unexpectedly returned/, 'run die should, well, die';
+    } 'App::Sqitch::X', 'run die should, well, die';
+    is $@->ident, 'ipc', 'Error ident should be "ipc"';
+    like $@->message,
+        qr/unexpectedly returned/,
+        'The error message should be from the exit error';
 };
 
 is $stdout, "hi there\n", 'The die script should have its STDOUT ummolested';
@@ -442,7 +464,11 @@ is $stderr, '', 'Nothing should have gone to STDERR';
 ($stdout, $stderr) = capture {
     throws_ok {
         $sqitch->shell( "$pl die.pl hi there" )
-    } qr/unexpectedly returned/, 'shell die should, well, die';
+    } 'App::Sqitch::X', 'shell die should, well, die';
+    is $@->ident, 'ipc', 'Error ident should be "ipc"';
+    like $@->message,
+        qr/unexpectedly returned/,
+        'The error message should be from the exit error';
 };
 
 is $stdout, "hi there\n", 'The die script should have its STDOUT ummolested';
@@ -470,8 +496,12 @@ is $sqitch->capture($^X, 'echo.pl', qw(hi there)),
     "hi there\n", 'The echo script output should have been returned';
 like capture_stderr {
     throws_ok { $sqitch->capture($^X, 'die.pl', qw(hi there)) }
-        qr/unexpectedly returned/,
+        'App::Sqitch::X',
         'Should get an error if the command errors out';
+    is $@->ident, 'ipc', 'Error ident should be "ipc"';
+    like $@->message,
+        qr/unexpectedly returned/,
+        'The error message should be from the exit error';
 }, qr/OMGWTF/m, 'The die script STDERR should have passed through';
 
 ##############################################################################

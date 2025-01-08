@@ -104,7 +104,7 @@ is $exa->_script, join( "\n" => (
 # Make sure the URI query properly affect the client options.
 for my $spec (
     {
-        qry => 'SSLCertificate=SSL_VERIFY_NONE',
+        qry => 'SSLCERTIFICATE=SSL_VERIFY_NONE',
         opt => [qw(-jdbcparam validateservercertificate=0)],
     },
     {
@@ -128,7 +128,7 @@ for my $spec (
         opt => [qw(-jdbcparam authmethod=xyz)],
     },
     {
-        qry => 'SSLCertificate=SSL_VERIFY_NONE&AUTHMETHOD=xyz',
+        qry => 'SSLCERTIFICATE=SSL_VERIFY_NONE&AUTHMETHOD=xyz',
         opt => [qw(-jdbcparam validateservercertificate=0 -jdbcparam authmethod=xyz)],
     },
 ) {
@@ -416,17 +416,26 @@ $uri = URI->new(
     $ENV{EXA_URI} ||
     'db:dbadmin:password@localhost/dbadmin'
 );
-my $err = try {
-    $exa->use_driver;
-    $dbh = DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {
-        PrintError => 0,
-        RaiseError => 1,
-        AutoCommit => 1,
-    });
-    undef;
-} catch {
-    eval { $_->message } || $_;
-};
+my $err;
+for my $i (1..30) {
+    $err = try {
+        $exa->use_driver;
+        $dbh = DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {
+            PrintError  => 0,
+            RaiseError  => 0,
+            AutoCommit  => 1,
+            HandleError => $exa->error_handler,
+        });
+        undef;
+    } catch {
+        $_;
+    };
+
+    # Sleep if it failed but Exasol is still starting up.
+    last unless $err && ($DBI::state || '') eq 'HY000';
+    sleep 1 if $i < 30;
+}
+
 
 DBIEngineTest->run(
     class             => $CLASS,
@@ -439,7 +448,7 @@ DBIEngineTest->run(
         $self->sqitch->probe( $self->client, '-version' );
         $self->_capture('SELECT 1 FROM dual;');
     },
-    engine_err_regex  => qr/\[EXASOL\]\[EXASolution driver\]syntax error/,
+    engine_err_regex  => qr/\[Exasol\]\[Exasol(?:ution)? Driver\]syntax error/i,
     init_error        => __x(
         'Sqitch already initialized',
         schema => $reg2,

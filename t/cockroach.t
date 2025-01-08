@@ -140,16 +140,17 @@ my $err = try {
     $cockroach->_capture('--version');
     $cockroach->use_driver;
     $dbh = DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {
-        PrintError     => 0,
-        RaiseError     => 1,
-        AutoCommit     => 1,
+        PrintError  => 0,
+        RaiseError  => 0,
+        AutoCommit  => 1,
+        HandleError => $cockroach->error_handler,
         cockroach_lc_messages => 'C',
     });
     $dbh->do("CREATE DATABASE $db");
     $uri->dbname($db);
     undef;
 } catch {
-    eval { $_->message } || $_;
+    $_
 };
 
 DBIEngineTest->run(

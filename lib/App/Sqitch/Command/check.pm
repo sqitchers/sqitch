@@ -176,7 +176,7 @@ Matthieu Foucault <matthieu@button.is>
 
 =head1 License
 
-Copyright (c) 2012-2024 iovation Inc., David E. Wheeler, Button Inc.
+Copyright (c) 2012-2025 David E. Wheeler, 2012-2021 iovation Inc., Button Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

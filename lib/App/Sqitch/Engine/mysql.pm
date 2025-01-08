@@ -64,6 +64,11 @@ has _mycnf => (
 sub _def_user { $_[0]->_mycnf->{user} || $_[0]->sqitch->sysuser }
 sub _def_pass { $ENV{MYSQL_PWD} || shift->_mycnf->{password} }
 
+sub _dsn {
+    (my $dsn = shift->uri->dbi_dsn) =~ s/\Adbi:mysql/dbi:MariaDB/;
+    return $dsn;
+}
+
 has dbh => (
     is      => 'rw',
     isa     => DBH,
@@ -71,27 +76,18 @@ has dbh => (
     default => sub {
         my $self = shift;
         $self->use_driver;
-        my $uri = $self->registry_uri;
-        my $dbh = DBI->connect($uri->dbi_dsn, $self->username, $self->password, {
-            PrintError           => 0,
-            RaiseError           => 0,
-            AutoCommit           => 1,
-            mysql_enable_utf8    => 1,
-            mysql_auto_reconnect => 0,
-            mysql_use_result     => 0, # Prevent "Commands out of sync" error.
-            HandleError          => sub {
-                my ($err, $dbh) = @_;
-                $@ = $err;
-                @_ = ($dbh->state || 'DEV' => $dbh->errstr);
-                goto &hurl;
-            },
-            Callbacks             => {
+        my $dbh = DBI->connect($self->_dsn, $self->username, $self->password, {
+            PrintError  => 0,
+            RaiseError  => 0,
+            AutoCommit  => 1,
+            HandleError => $self->error_handler,
+            Callbacks   => {
                 connected => sub {
                     my $dbh = shift;
                     $dbh->do("SET SESSION $_") or return for (
                         q{character_set_client   = 'utf8'},
                         q{character_set_server   = 'utf8'},
-                        ($dbh->{mysql_serverversion} || 0 < 50500 ? () : (q{default_storage_engine = 'InnoDB'})),
+                        ($dbh->{mariadb_serverversion} || 0 < 50500 ? () : (q{default_storage_engine = 'InnoDB'})),
                         q{time_zone              = '+00:00'},
                         q{group_concat_max_len   = 32768},
                         q{sql_mode = '} . join(',', qw(
@@ -110,7 +106,7 @@ has dbh => (
         });
 
         # Make sure we support this version.
-        my ($dbms, $vnum, $vstr) = $dbh->{mysql_serverinfo} =~ /mariadb/i
+        my ($dbms, $vnum, $vstr) = $dbh->{mariadb_serverinfo} =~ /mariadb/i
             ? ('MariaDB', 50300, '5.3')
             : ('MySQL',   50100, '5.1.0');
         hurl mysql => __x(
@@ -118,7 +114,7 @@ has dbh => (
             rdbms        => $dbms,
             want_version => $vstr,
             have_version => $dbh->selectcol_arrayref('SELECT version()')->[0],
-        ) unless $dbh->{mysql_serverversion} >= $vnum;
+        ) unless $dbh->{mariadb_serverversion} >= $vnum;
 
         return $dbh;
     }
@@ -216,9 +212,9 @@ has _fractional_seconds => (
     lazy    => 1,
     default => sub {
         my $dbh = shift->dbh;
-        return $dbh->{mysql_serverinfo} =~ /mariadb/i
-            ? $dbh->{mysql_serverversion} >= 50305
-            : $dbh->{mysql_serverversion} >= 50604;
+        return $dbh->{mariadb_serverinfo} =~ /mariadb/i
+            ? $dbh->{mariadb_serverversion} >= 50305
+            : $dbh->{mariadb_serverversion} >= 50604;
     },
 );
 
@@ -226,7 +222,7 @@ sub mysql { @{ shift->_mysql } }
 
 sub key    { 'mysql' }
 sub name   { 'MySQL' }
-sub driver { 'DBD::mysql 4.018' }
+sub driver { 'DBD::MariaDB 1.0' }
 sub default_client { 'mysql' }
 
 sub _char2ts {
@@ -287,6 +283,7 @@ sub _initialize {
     # Deploy the registry to the Sqitch database.
     $self->run_upgrade( file(__FILE__)->dir->file('mysql.sql') );
     $self->_set_initialized(1);
+    $self->dbh->do('USE ' . $self->dbh->quote_identifier($self->registry));
     $self->_register_release;
 }
 
@@ -312,7 +309,7 @@ sub begin_work {
 # stick with the least surprising behavior.
 # https://github.com/sqitchers/sqitch/issues/670
 sub _lock_name {
-    'sqitch working on ' . shift->uri->dbname
+    'sqitch working on ' . (shift->uri->dbname // '')
 }
 
 # Override to try to acquire a lock on the string "sqitch working on $dbname"
@@ -451,23 +448,70 @@ sub run_verify {
 sub run_upgrade {
     my ($self, $file) = @_;
     my @cmd = $self->mysql;
-    $cmd[1 + firstidx { $_ eq '--database' } @cmd ] = $self->registry;
-    return $self->sqitch->run( @cmd, $self->_source($file) )
-        if $self->_fractional_seconds;
 
-    # Need to strip out datetime precision.
-    (my $sql = scalar $file->slurp) =~ s{DATETIME\(\d+\)}{DATETIME}g;
+    if ((my $idx = firstidx { $_ eq '--database' } @cmd) > 0) {
+        # Replace the database name with the registry database.
+        $cmd[$idx + 1] = $self->registry;
+    } else {
+        # Append the registry database name.
+        push @cmd => '--database', $self->registry;
+    }
 
-    # Strip out 5.5 stuff on earlier versions.
-    $sql =~ s/-- ## BEGIN 5[.]5.+?-- ## END 5[.]5//ms
-        if $self->dbh->{mysql_serverversion} < 50500;
+    return $self->sqitch->run(
+        @cmd,
+        $self->_source($self->_prepare_registry_file($file)),
+    );
+}
 
-    # Write out a temp file and execute it.
+# Prepares $file for execution, editing its contents for various MySQL
+# configurations.
+sub _prepare_registry_file {
+    my ($self, $file) = @_;
+    my $can_create_checkit = $self->_can_create_immutable_function;
+    my $has_frac = $self->_fractional_seconds;
+    return $file if $has_frac && $can_create_checkit;
+
+    # Read in the file to modify it.
+    my $sql = $file->slurp;
+
+    if (!$has_frac) {
+        # Need to strip out datetime precision.
+        $sql =~ s{DATETIME\(\d+\)}{DATETIME}g;
+
+        # Strip out 5.5 stuff on earlier versions.
+        $sql =~ s/-- ## BEGIN 5[.]5.+?-- ## END 5[.]5//ms
+            if $self->dbh->{mariadb_serverversion} < 50500;
+    }
+
+    if (!$can_create_checkit) {
+        # Strip out checkit() function if logging binary and not super user.
+        $self->sqitch->warn(__(
+            'Insufficient permissions to create the checkit() function; skipping.',
+        ));
+        $sql =~ s/-- ## BEGIN checkit.+?-- ## END checkit//ms;
+    }
+
+    # Write out a temp file and return it.
     require File::Temp;
     my $fh = File::Temp->new;
     print $fh $sql;
     close $fh;
-    $self->sqitch->run( @cmd, $self->_source($fh) );
+    return $fh;
+}
+
+# Based on https://dev.mysql.com/doc/refman/8.4/en/stored-programs-logging.html,
+# determine whether we have binary logging disabled, or trust function
+# creators, or have the SUPER privilege.
+sub _can_create_immutable_function {
+    # Use md5() to prevent "Illegal mix of collations" errors.
+    shift->dbh->selectcol_arrayref(q{
+        SELECT @@log_bin = 0
+            OR @@log_bin_trust_function_creators = 1
+            OR (
+                SELECT md5(super_priv) = md5('Y') FROM mysql.user
+                 WHERE CONCAT(user, '@', host) = current_user
+            )
+    })->[0]
 }
 
 sub run_handle {
@@ -566,7 +610,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2024 iovation Inc., David E. Wheeler
+Copyright (c) 2012-2025 David E. Wheeler, 2012-2021 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

@@ -39,6 +39,8 @@ after use_driver => sub {
     DBI->trace(1) if $_[0]->sqitch->verbosity > 2;
 };
 
+sub _dsn { shift->target->uri->dbi_dsn }
+
 sub _dt($) {
     require App::Sqitch::DateTime;
     return App::Sqitch::DateTime->new(split /:/ => shift);
@@ -1016,6 +1018,16 @@ sub rollback_work {
     return $self;
 }
 
+sub _eh {
+    my ($err, $dbh) = @_;
+    $@ = $err;
+    @_ = ($dbh->state || 'DEV' => $dbh->errstr);
+    goto &hurl;
+}
+
+
+sub error_handler { \&_eh }
+
 1;
 
 __END__
@@ -1093,6 +1105,8 @@ DBI-powered engines.
 
 =head3 C<registry_version>
 
+=head3 C<error_handler>
+
 =head1 See Also
 
 =over
@@ -1133,7 +1147,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2024 iovation Inc., David E. Wheeler
+Copyright (c) 2012-2025 David E. Wheeler, 2012-2021 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

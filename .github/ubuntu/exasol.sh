@@ -13,13 +13,12 @@ fi
 mkdir -p /opt/exasol
 
 # Download and unpack Exasol ODBC Driver & EXAplus.
-# https://www.exasol.com/portal/display/DOWNLOAD/
-curl -sSLO https://x-up.s3.amazonaws.com/7.x/7.1.17/EXASOL_ODBC-7.1.17.tar.gz
-curl -sSLO https://x-up.s3.amazonaws.com/7.x/7.1.17/EXAplus-7.1.17.tar.gz
-sudo tar -xzf EXASOL_ODBC-7.1.17.tar.gz -C /opt/exasol --strip-components 1
-sudo tar -xzf EXAplus-7.1.17.tar.gz     -C /opt/exasol --strip-components 1
+curl -sSLO https://x-up.s3.amazonaws.com/7.x/24.2.0/Exasol_ODBC-24.2.0-Linux_x86_64.tar.gz
+curl -sSLO https://x-up.s3.amazonaws.com/7.x/24.2.1/EXAplus-24.2.1.tar.gz
+sudo tar -xzf Exasol_ODBC-24.2.0-Linux_x86_64.tar.gz -C /opt/exasol --strip-components 2
+sudo tar -xzf EXAplus-24.2.1.tar.gz                  -C /opt/exasol --strip-components 2
 
 # Add to the path.
-if [[ ! -z "$GITHUB_PATH" ]]; then
-    echo "/opt/exasol" >> $GITHUB_PATH
+if [[ -n "$GITHUB_PATH" ]]; then
+    echo "/opt/exasol" >> "$GITHUB_PATH"
 fi

@@ -462,7 +462,7 @@ Want them all? Just query the targets and pass each in turn:
 The commands that accept a target name are identical to those that take
 an engine name or target URI, as described in L</Database Interactions>.
 
-=head3 Different Target, Different Plan
+=head2 Different Target, Different Plan
 
 What about a project that manages different -- but related -- schemas on the
 same engine? For example, say you have two plans for PostgreSQL, one for a

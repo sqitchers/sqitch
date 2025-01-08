@@ -191,21 +191,15 @@ has dbh => (
     default => sub {
         my $self = shift;
         $self->use_driver;
-        my $uri = $self->uri;
         my $wh = $self->warehouse;
         my $role = $self->role;
-        DBI->connect($uri->dbi_dsn, $self->username, $self->password, {
+        DBI->connect($self->_dsn, $self->username, $self->password, {
             PrintError        => 0,
             RaiseError        => 0,
             AutoCommit        => 1,
             odbc_utf8_on      => 1,
             FetchHashKeyName  => 'NAME_lc',
-            HandleError       => sub {
-                my ($err, $dbh) = @_;
-                $@ = $err;
-                @_ = ($dbh->state || 'DEV' => $dbh->errstr);
-                goto &hurl;
-            },
+            HandleError       => $self->error_handler,
             Callbacks         => {
                 connected => sub {
                     my $dbh = shift;
@@ -218,7 +212,7 @@ has dbh => (
                         "ALTER SESSION SET TIMESTAMP_OUTPUT_FORMAT='YYYY-MM-DD HH24:MI:SS'",
                         "ALTER SESSION SET TIMEZONE='UTC'",
                     );
-                    $dbh->do('USE SCHEMA ' . $self->registry)
+                    $dbh->do('USE SCHEMA ' . $dbh->quote_identifier($self->registry))
                         or $self->_handle_no_registry($dbh);
                     return;
                 },
@@ -304,9 +298,49 @@ sub _initialize {
         schema => $schema
     ) if $self->initialized;
 
-    $self->run_file( file(__FILE__)->dir->file('snowflake.sql') );
+    $self->run_upgrade(file(__FILE__)->dir->file('snowflake.sql') );
     $self->dbh->do("USE SCHEMA $schema");
     $self->_register_release;
+}
+
+# Determines whether we can create a schema and, if so, executes $file.
+# Otherwise creates and executes a copy of $file with schema commands removed.
+sub run_upgrade {
+    my ($self, $file) = @_;
+    try {
+        # Can we create a schema?
+        my $dbh = $self->dbh;
+        my $reg = $dbh->quote_identifier($self->registry);
+        $dbh->do("CREATE SCHEMA IF NOT EXISTS $reg");
+    } catch {
+        die $_ unless $DBI::state && $DBI::state eq '42501'; # ERRCODE_INSUFFICIENT_PRIVILEGE
+        # Cannot create schema; strip out schema stuff.
+        $file = $self->_strip_file($file);
+    };
+
+    # All good.
+    return $self->run_file($file);
+}
+
+# Creates and returns a copy of $file with C<CREATE SCHEMA> and C<COMMENT ON
+# SCHEMA> commands stripped out.
+sub _strip_file {
+    my ($self, $file) = @_;
+    my $in = $file->open('<:raw') or hurl io => __x(
+        'Cannot open {file}: {error}',
+        file  => $file,
+        error => $!
+    );
+
+    require File::Temp;
+    my $out = File::Temp->new;
+    while (<$in>) {
+        s/C(?:REATE|OMMENT ON) SCHEMA\b.+//;
+        print {$out} $_;
+    }
+
+    close $out;
+    return $out;
 }
 
 sub _no_table_error  {
@@ -718,7 +752,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2024 iovation Inc., David E. Wheeler
+Copyright (c) 2012-2025 David E. Wheeler, 2012-2021 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

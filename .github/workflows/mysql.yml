@@ -12,26 +12,37 @@ jobs:
     strategy:
       matrix:
         include:
-          # curl https://registry.hub.docker.com/v2/repositories/library/mysql/tags\?page_size\=10000 | jq '.results[].name
-          - { version: '8.0',  icon: 🐬, name: MySQL,   image: mysql   }
-          - { version: '5.7',  icon: 🐬, name: MySQL,   image: mysql   }
-          - { version: '5.6',  icon: 🐬, name: MySQL,   image: mysql   }
-          - { version: '5.5',  icon: 🐬, name: MySQL,   image: mysql   }
-          # https://registry.hub.docker.com/v2/repositories/library/mariadb/tags\?page_size\=10000 | jq '.results[].name'
-          - { version: '11.0', icon: 🦭, name: MariaDB, image: mariadb }
-          - { version: '10.9', icon: 🦭, name: MariaDB, image: mariadb }
-          - { version: '10.6', icon: 🦭, name: MariaDB, image: mariadb }
-          - { version: '10.5', icon: 🦭, name: MariaDB, image: mariadb }
-          - { version: '10.4', icon: 🦭, name: MariaDB, image: mariadb }
-          - { version: '10.3', icon: 🦭, name: MariaDB, image: mariadb }
-          - { version: '10.2', icon: 🦭, name: MariaDB, image: mariadb }
-          - { version: '10.1', icon: 🦭, name: MariaDB, image: mariadb }
-          - { version: '10.0', icon: 🦭, name: MariaDB, image: mariadb }
+          # curl -s https://registry.hub.docker.com/v2/repositories/library/mysql/tags\?page_size\=10000 | jq '.results[].name'
+          - { version: '9.1',   icon: 🐬, name: MySQL,   image: mysql   }
+          - { version: '8.4',   icon: 🐬, name: MySQL,   image: mysql   }
+          - { version: '5.7',   icon: 🐬, name: MySQL,   image: mysql   }
+          - { version: '5.6',   icon: 🐬, name: MySQL,   image: mysql   }
+          - { version: '5.5',   icon: 🐬, name: MySQL,   image: mysql   }
+          # curl -s https://registry.hub.docker.com/v2/repositories/library/mariadb/tags\?page_size\=10000 | jq '.results[].name'
+          - { version: '11.6',  icon: 🦭, name: MariaDB, image: mariadb }
+          - { version: '11.5',  icon: 🦭, name: MariaDB, image: mariadb }
+          - { version: '11.4',  icon: 🦭, name: MariaDB, image: mariadb }
+          - { version: '11.3',  icon: 🦭, name: MariaDB, image: mariadb }
+          - { version: '11.2',  icon: 🦭, name: MariaDB, image: mariadb }
+          - { version: '11.1',  icon: 🦭, name: MariaDB, image: mariadb }
+          - { version: '11.0',  icon: 🦭, name: MariaDB, image: mariadb }
+          - { version: '10.11', icon: 🦭, name: MariaDB, image: mariadb }
+          - { version: '10.10', icon: 🦭, name: MariaDB, image: mariadb }
+          - { version: '10.9',  icon: 🦭, name: MariaDB, image: mariadb }
+          - { version: '10.8',  icon: 🦭, name: MariaDB, image: mariadb }
+          - { version: '10.7',  icon: 🦭, name: MariaDB, image: mariadb }
+          - { version: '10.6',  icon: 🦭, name: MariaDB, image: mariadb }
+          - { version: '10.5',  icon: 🦭, name: MariaDB, image: mariadb }
+          - { version: '10.4',  icon: 🦭, name: MariaDB, image: mariadb }
+          - { version: '10.3',  icon: 🦭, name: MariaDB, image: mariadb }
+          - { version: '10.2',  icon: 🦭, name: MariaDB, image: mariadb }
+          - { version: '10.1',  icon: 🦭, name: MariaDB, image: mariadb }
+          - { version: '10.0',  icon: 🦭, name: MariaDB, image: mariadb }
     name: ${{ matrix.icon }} ${{ matrix.name }} ${{ matrix.version }}
     runs-on: ubuntu-latest
     services:
       # Run the MySQL service in a container we can connect to. Means that the
-      # CLI and libraries DBD::mysql use are static to the version on the runner
+      # CLI and libraries DBD::MariaDB use are static to the version on the runner
       # machine.
       mysql:
         image: "${{ matrix.image }}:${{ matrix.version }}"
@@ -52,7 +63,7 @@ jobs:
           path: local
           key: perl-${{ steps.perl.outputs.perl-hash }}
       - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends --cpanfile dist/cpanfile
-      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends DBD::mysql
+      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends DBD::MariaDB
       - name: prove
         env:
           PERL5LIB: "${{ github.workspace }}/local/lib/perl5"
