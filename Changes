@@ -1,5 +1,7 @@
 Revision history for Perl extension App::Sqitch
 
+1.5.1  Note yet released
+
 1.5.0  2025-01-08T03:22:40
      - Fix improperly nested Pod headers that were incrementing two levels
        relative to their parent headers, which messed with the HTML output on

@@ -6,7 +6,7 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: App-Sqitch v1.5.0\n"
+"Project-Id-Version: App-Sqitch v1.5.1-dev\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-01-04 14:21-0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
