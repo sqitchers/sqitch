@@ -127,10 +127,10 @@ sub report_on {
 
     # Recurse for required or recommended runtime, configure, or build
     # dependencies.
-    for my $dep (@{ $mod->{release}{_source}{dependency} }) {
+    for my $dep (@{ $mod->{dependency} }) {
         next if $dep->{relationship} !~ /^re(?:quires|commends)/;
         next if $dep->{phase} !~ /^(?:runtime|configure|build)/;
-        # If not runtine, collect as build dep. Otherwise keep existing dep list.
+        # If not runtime, collect as build dep. Otherwise keep existing dep list.
         local $self->{phase} = 'build' if is_build($dep);
         $self->report_on($dep->{module}, $indent+2);
     }
@@ -149,13 +149,17 @@ sub is_build {
 sub _fetch {
     my ($self, $module) = @_;
     return $self->{dist_for}{$module} ||= do {
-        my $uri = "$api_uri/module/$module?join=release";
-        my $res = $self->{http}->get($uri);
-        die "Fetch $uri failed: $res->{status} $res->{reason}" unless $res->{success};
-        decode_json $res->{content};
+        my $mod = $self->_get("$api_uri/module/$module");
+        $self->_get("$api_uri/release/$mod->{distribution}");
     };
 };
 
+sub _get {
+    my ($self, $uri) = @_;
+    my $res = $self->{http}->get($uri);
+    die "Fetch $uri failed: $res->{status} $res->{reason}" unless $res->{success};
+    decode_json $res->{content};
+}
 
 my %opts = (
     tree    => 1,

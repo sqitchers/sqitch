@@ -1,8 +1,9 @@
 Revision history for Perl extension App::Sqitch
 
-1.4.2
+1.5.0  2025-01-08T03:22:40
      - Fix improperly nested Pod headers that were incrementing two levels
-       relative to their parent headers.
+       relative to their parent headers, which messed with the HTML output on
+       sqitch.org.
      - Banned "[" and "]" in names (changes, tags, projects) because they
        muck with dependency parsing of the plan file. Thanks to Žiga Leber for
        the bug report (#829).
@@ -11,25 +12,25 @@ Revision history for Perl extension App::Sqitch
        handling throughout.
      - Removed duplicate DBI error handling code from engines and tests.
      - Fixed an order of operation issue that prevented Sqitch from detecting
-       Yugabyte before attempting to create an advisory lock, which results in
-       an error for more recent Yugabyte releases. Thanks to Stefano Ricciardi
-       for the report (#841).
+       Yugabyte before attempting to create an advisory lock, which resulted
+       in an error for more recent Yugabyte releases. Thanks to Stefano
+       Ricciardi for the report (#841).
      - Removed a wayward mention of the long-deprecated `SQITCH_URI`
        environment variable from the Oracle tutorial. Thanks to Austin Hanson
        for the report (#845).
-     - Improved error output by including any previous exception.
-     - Improved the unknown engine error to be a runtime error, rather than
-       development time, and to provide a localized error message. The stack
-       underlying error loading the engine package and the stack trace remain
-       available by using triple verbosity (`-vvv`). Thanks to Martin Fischer
-       for the report (#838).
+     - Improved unexpected error output by including any previous exception.
+     - Changed the "unknown engine" error to a runtime error, rather than
+       development time, with a localized error message. The error loading
+       the engine package and the stack trace remain available by using
+       triple verbosity (`-vvv`). Thanks to Martin Fischer for the report
+       (#838).
      - Changed the default error code from Oracle `sqlplus` from `SQL.SQLCODE`
        to `4`, because otherwise the exit code is returned `modulo 256`,
        meaning it can end up `0` for success for an SQL error code like
        `ORA-01792`. Selected `4` as the replacement to match the behavior of
        Exasol and because `FAILURE` maps to exit code `1`, which has in the
-       past been more akin to a warning from Sqitch. Thanks to @vectro for the
-       report (#831).
+       past been more akin to a warning. Thanks to @vectro for the report
+       (#831).
      - Added checks for the existence of deploy and revert files when
        deploying and reverting. Previously Sqitch deferred such errors to the
        CLIs, but they're never called when using `--log-only`. Thanks to

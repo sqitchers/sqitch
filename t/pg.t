@@ -437,7 +437,7 @@ RUNREG: {
         '--file' => $tmp_fh,
         '--set'  => "tableopts= DISTRIBUTE BY REPLICATION",
     ]], 'Shoud have deployed the temp SQL file';
-    is_deeply \@sra_args, [], 'Still hould not have have called selectrow_array';
+    is_deeply \@sra_args, [], 'Still should not have have called selectrow_array';
     is_deeply \@done, [['SET search_path = ?', undef, $registry]],
         'The registry should have been added to the search path again';
 

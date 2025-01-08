@@ -74,6 +74,7 @@ __DATA__
 Build-only dependencies
         Alien-Build
         Alien-cmake3
+        AppConfig
         Archive-Tar
         Archive-Zip
         CPAN
@@ -92,11 +93,9 @@ Build-only dependencies
         Compress-Raw-Lzma
         Compress-Raw-Zlib
         Config-AutoConf
-        DBD-CSV
         Data-Compare
-        Date-Manip
         Devel-CheckLib
-        Devel-GlobalDestruction
+        Devel-Hide
         Devel-Symdump
         Digest
         Digest-MD5
@@ -111,6 +110,7 @@ Build-only dependencies
         ExtUtils-InstallPaths
         ExtUtils-MakeMaker
         ExtUtils-MakeMaker-CPANfile
+        ExtUtils-Manifest
         ExtUtils-ParseXS
         FFI-CheckLib
         File-Fetch
@@ -143,10 +143,7 @@ Build-only dependencies
         JSON-PP
         LWP-MediaTypes
         Locale-Maketext-Simple
-        Log-Dispatch
-        Log-Dispatch-FileRotate
-        Log-Log4perl
-        Math-Base-Convert
+        MIME-Charset
         Math-BigInt
         Math-Complex
         Menlo
@@ -158,7 +155,6 @@ Build-only dependencies
         Module-Load-Conditional
         Module-Metadata
         Module-Signature
-        Mozilla-CA
         Mozilla-PublicSuffix
         Net-HTTP
         Net-Ping
@@ -169,61 +165,62 @@ Build-only dependencies
         Path-Tiny
         Perl-Tidy
         Pod-Coverage
-        SQL-Statement
+        Pod-Markdown
         Safe
         Search-Dict
         Sub-Uplevel
-        Sys-Syslog
+        Term-Size-Any
+        Term-Size-Perl
+        Term-Table
         Test
         Test-Exception
         Test-Fatal
         Test-Harness
-        Test-NoWarnings
         Test-Pod
         Test-Pod-Coverage
         Test-Simple
         Test-Version
-        Text-Balanced
-        Text-CSV_XS
         Text-Glob
-        Text-Soundex
-        Thread-Semaphore
         Tie-File
         Tie-Handle-Offset
         TimeDate
+        Unicode-LineBreak
         Unicode-UTF8
         WWW-RobotRules
         Win32-ShellQuote
-        XML-DOM
-        XML-Parser
-        XML-RegExp
         YAML
         YAML-LibYAML
         YAML-Syck
         bignum
         inc-latest
-        lib
         libwww-perl
-        libxml-perl
         local-lib
-        threads
-        threads-shared
 
 Runtime-only dependencies
         Algorithm-Backoff
+        B-Hooks-EndOfScope
+        Class-Data-Inheritable
         Class-Inspector
+        Class-Method-Modifiers
         Class-Singleton
+        Class-XSAccessor
         Clone-Choose
         Config-GitLike
         DBD-Firebird
+        DBD-MariaDB
         DBD-ODBC
         DBD-Oracle
         DBD-Pg
-        DBD-MariaDB
+        DBD-SQLite
         Data-OptList
         DateTime
         DateTime-Locale
         DateTime-TimeZone
+        Devel-Caller
+        Devel-LexAlias
+        Devel-StackTrace
+        Eval-Closure
+        Exception-Class
         Exporter-Tiny
         File-ShareDir
         Hash-Merge
@@ -231,15 +228,27 @@ Runtime-only dependencies
         IPC-System-Simple
         List-MoreUtils
         List-MoreUtils-XS
+        MRO-Compat
+        Module-Implementation
+        Module-Runtime
         Moo
         MooX-Types-MooseLike
         MySQL-Config
+        Package-Stash
+        Package-Stash-XS
+        PadWalker
+        Params-ValidationCompiler
         Path-Class
+        Ref-Util
         Ref-Util-XS
         Regexp-Util
+        Role-Tiny
+        Specio
         String-Formatter
         Sub-Exporter
+        Sub-Exporter-Progressive
         Sub-Install
+        Sub-Quote
         Template-Tiny
         Template-Toolkit
         Term-ANSIColor
@@ -249,27 +258,19 @@ Runtime-only dependencies
         URI-Nested
         URI-db
         libintl-perl
+        namespace-autoclean
+        namespace-clean
         strictures
 
 Overlapping dependencies
-        B-Hooks-EndOfScope
         Carp
-        Class-Data-Inheritable
-        Class-Method-Modifiers
-        Class-XSAccessor
         Clone
-        DBD-SQLite
         DBI
         Data-Dumper
-        Devel-Caller
-        Devel-LexAlias
-        Devel-StackTrace
         Digest-SHA
         Encode
         Encode-Locale
         Env
-        Eval-Closure
-        Exception-Class
         Exporter
         File-Path
         File-Temp
@@ -277,15 +278,9 @@ Overlapping dependencies
         Getopt-Long
         IO
         IPC-Run3
+        MIME-Base32
         MIME-Base64
-        MRO-Compat
-        Module-Implementation
-        Module-Runtime
-        Package-Stash
-        Package-Stash-XS
-        PadWalker
         Params-Util
-        Params-ValidationCompiler
         PathTools
         Perl-OSType
         PerlIO-utf8_strict
@@ -294,16 +289,10 @@ Overlapping dependencies
         Pod-Perldoc
         Pod-Simple
         Pod-Usage
-        Ref-Util
-        Role-Tiny
         Scalar-List-Utils
         Socket
-        Specio
         Storable
         String-ShellQuote
-        Sub-Exporter-Progressive
-        Sub-Identify
-        Sub-Quote
         TermReadKey
         Text-ParseWords
         Text-Tabs+Wrap
@@ -316,8 +305,6 @@ Overlapping dependencies
         constant
         if
         libnet
-        namespace-autoclean
-        namespace-clean
         parent
         podlators
         version

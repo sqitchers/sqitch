@@ -1,5 +1,5 @@
 Name:           sqitch
-Version:        1.4.2-dev
+Version:        1.5.0
 Release:        1%{?dist}
 Summary:        Sensible database change management
 License:        MIT
@@ -238,7 +238,7 @@ package bundles the Sqitch Oracle support.
 Summary:        Sensible database change management for MySQL
 Group:          Development/Libraries
 Requires:       sqitch >= %{version}
-Requires:       mysql >= 5.1.0
+Requires:       mariadb >= 5.1.0
 Requires:       perl(DBI) >= 1.631
 Requires:       perl(DBD::MariaDB) >= 1.0
 Requires:       perl(MySQL::Config)
@@ -309,6 +309,11 @@ also be installed.
 # No additional files required.
 
 %changelog
+* Tue Jan 7 2025 David E. Wheeler <david@justatheory.com> 1.5.0-1
+- Upgrade to v1.5.0.
+- Replace DBD::mysql with DBD::MariaDB.
+- Replace mysql with mariadb.
+
 * Sun Feb 4 2024 David E. Wheeler <david@justatheory.com> 1.4.1-1
 - Upgrade to v1.4.1.
 - Upgrade Test::Warn to 0.31

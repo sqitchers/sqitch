@@ -6,9 +6,9 @@ use the `$VERSION` and `$OLD_VERSION` environment variables for consistency. The
 assumption is that they're set to the old and new versions, respectively, e.g.,
 
 ``` sh
-export OLD_VERSION=1.3.1
-export VERSION=1.4.0
-export NEXT_VERSION=1.4.2
+export OLD_VERSION=1.4.1
+export VERSION=1.5.0
+export NEXT_VERSION=1.5.1
 ```
 
 Preparation
@@ -42,7 +42,7 @@ First, update the sources so that everything is up-to-date.
 *   Update copyright dates if a year has turned over since the last release:
 
     ``` sh
-    grep -ril copyright . | xargs perl -i -pe "s/-2024/-$(date +%Y)/g"
+    grep -ril copyright . | xargs perl -i -pe "s/-2025/-$(date +%Y)/g"
     ```
 
 *   Make a build and run `xt/dependency_report`:
@@ -79,8 +79,8 @@ Release
 -------
 
 The complete set of changes should now be in the `develop` branch and
-ready-to-go, fully tested and with no expectation for further changes. It's time
-to get it out there!
+ready-to-go, fully tested and with no expectation for further changes. It's
+time to get it out there!
 
 *   Merge `develop` into the `main` branch:
 
