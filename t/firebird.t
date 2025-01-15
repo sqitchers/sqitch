@@ -31,7 +31,7 @@ my $uri;
 my $tmpdir;
 my $have_fb_driver = 1; # assume DBD::Firebird is installed and so is Firebird
 
-# Is DBD::Firebird realy installed?
+# Is DBD::Firebird really installed?
 try { require DBD::Firebird; } catch { $have_fb_driver = 0; };
 
 BEGIN {
@@ -472,11 +472,13 @@ DBIEngineTest->run(
         # DBD::Firebird.
         my $cmd = $self->client;
         my $cmd_echo = qx(echo "quit;" | "$cmd" -z -quiet 2>&1 );
-        return 0 unless $cmd_echo =~ m{Firebird}ims;
+        App::Sqitch::X::hurl('isql not for Firebird')
+             unless $cmd_echo =~ m{Firebird}ims;
         chomp $cmd_echo;
         say "# Detected $cmd_echo";
         # Skip if no DBD::Firebird.
-        return 0 unless $have_fb_driver;
+        App::Sqitch::X::hurl('DBD::Firebird did not load')
+            unless $have_fb_driver;
         say "# Connected to Firebird $fb_version" if $fb_version;
         return 1;
     },
