@@ -8,7 +8,7 @@ BEGIN {
     # Suppress warnings from Locale::Messages.
     # https://github.com/gflohr/libintl-perl/issues/14
     use Locale::Messages;
-    if ($Locale::Messages::package eq 'gettext_pp') {
+    if ($Locale::Messages::package eq 'gettext_pp' && Locale::Messages->VERSION < 1.35) {
         no warnings qw(redefine prototype);
         no strict 'refs';
         my $orig = \&Locale::gettext_pp::__locale_category;

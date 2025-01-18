@@ -88,7 +88,7 @@ sub run {
         );
         if (my $code = $p{skip_unless}) {
             try {
-                $code->( $engine ) || die 'NO';
+                $code->( $engine ) || App::Sqitch::X::hurl('NO');
             } catch {
                 plan skip_all => sprintf(
                     'Unable to live-test %s engine: %s',

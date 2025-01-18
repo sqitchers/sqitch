@@ -414,7 +414,7 @@ END {
 $uri = URI->new(
     $ENV{SQITCH_TEST_EXASOL_URI} ||
     $ENV{EXA_URI} ||
-    'db:dbadmin:password@localhost/dbadmin'
+    'db:exasol://dbadmin:password@localhost/dbadmin'
 );
 my $err;
 for my $i (1..30) {
