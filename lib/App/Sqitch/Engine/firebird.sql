@@ -26,7 +26,7 @@ COMMENT ON COLUMN releases.installer_email IS 'Email address of the user who ins
 
 CREATE TABLE projects (
     project         VARCHAR(255)  NOT NULL PRIMARY KEY,
-    uri             VARCHAR(255)  UNIQUE,
+    uri             VARCHAR(255) CHARACTER SET ASCII UNIQUE,
     created_at      TIMESTAMP     DEFAULT CURRENT_TIMESTAMP NOT NULL,
     creator_name    VARCHAR(255)  NOT NULL,
     creator_email   VARCHAR(255)  NOT NULL
@@ -42,8 +42,8 @@ COMMENT ON COLUMN projects.creator_email  IS 'Email address of the user who adde
 -- Table: changes
 
 CREATE TABLE changes (
-    change_id       VARCHAR(40)   NOT NULL PRIMARY KEY,
-    script_hash     VARCHAR(40),
+    change_id       VARCHAR(40) CHARACTER SET ASCII   NOT NULL PRIMARY KEY,
+    script_hash     VARCHAR(40) CHARACTER SET ASCII,
     change          VARCHAR(255)  NOT NULL,
     project         VARCHAR(255)  NOT NULL REFERENCES projects(project)
                                        ON UPDATE CASCADE,
@@ -73,11 +73,11 @@ COMMENT ON COLUMN changes.planner_email   IS 'Email address of the user who plan
 -- Table: tags
 
 CREATE TABLE tags (
-    tag_id          CHAR(40)      NOT NULL PRIMARY KEY,
+    tag_id          CHAR(40) CHARACTER SET ASCII NOT NULL PRIMARY KEY,
     tag             VARCHAR(250)  NOT NULL,
     project         VARCHAR(255)  NOT NULL REFERENCES projects(project)
                                         ON UPDATE CASCADE,
-    change_id       CHAR(40)      NOT NULL REFERENCES changes(change_id)
+    change_id       CHAR(40) CHARACTER SET ASCII NOT NULL REFERENCES changes(change_id)
                                         ON UPDATE CASCADE,
     note            BLOB SUB_TYPE TEXT DEFAULT '' NOT NULL,
     committed_at    TIMESTAMP     DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -105,11 +105,11 @@ COMMENT ON COLUMN tags.planner_email   IS 'Email address of the user who planned
 -- Table: dependencies
 
 CREATE TABLE dependencies (
-    change_id       CHAR(40)      NOT NULL REFERENCES changes(change_id)
+    change_id       CHAR(40)   CHARACTER SET ASCII NOT NULL REFERENCES changes(change_id)
                                         ON UPDATE CASCADE ON DELETE CASCADE,
-    type            VARCHAR(8)    NOT NULL,
-    dependency      VARCHAR(512)  NOT NULL,
-    dependency_id   CHAR(40)      REFERENCES changes(change_id)
+    type            VARCHAR(8) CHARACTER SET ASCII NOT NULL,
+    dependency      VARCHAR(512)                   NOT NULL,
+    dependency_id   CHAR(40)   CHARACTER SET ASCII REFERENCES changes(change_id)
                                         ON UPDATE CASCADE CONSTRAINT dependencies_check CHECK (
            (type = 'require'  AND dependency_id IS NOT NULL)
         OR (type = 'conflict' AND dependency_id IS NULL)
@@ -126,11 +126,11 @@ COMMENT ON COLUMN dependencies.dependency_id IS 'Change ID the dependency resolv
 -- Table: events
 
 CREATE TABLE events (
-    event           VARCHAR(6)    NOT NULL
+    event           VARCHAR(6) CHARACTER SET ASCII NOT NULL
     CONSTRAINT events_event_check CHECK (
         event IN ('deploy', 'revert', 'fail', 'merge')
     ),
-    change_id       CHAR(40)      NOT NULL,
+    change_id       CHAR(40) CHARACTER SET ASCII NOT NULL,
     change          VARCHAR(512)  NOT NULL,
     project         VARCHAR(255)  NOT NULL REFERENCES projects(project)
                                         ON UPDATE CASCADE,

@@ -478,6 +478,9 @@ sub _prepare_registry_file {
         # Need to strip out datetime precision.
         $sql =~ s{DATETIME\(\d+\)}{DATETIME}g;
 
+        # Strip out CHARACTER SET stuff.
+        $sql =~ s/\bCHARACTER\s+SET\s+\S+//g;
+
         # Strip out 5.5 stuff on earlier versions.
         $sql =~ s/-- ## BEGIN 5[.]5.+?-- ## END 5[.]5//ms
             if $self->dbh->{mariadb_serverversion} < 50500;
