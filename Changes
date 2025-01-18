@@ -1,6 +1,9 @@
 Revision history for Perl extension App::Sqitch
 
-1.5.1  Note yet released
+1.5.1  Not yet released
+     - Fixed a bug introduced in v1.5.0 where the MySQL engine connected to
+       the target database instead of the registry database. Thanks to
+       @tiberiusferreira for the report (#862)!
 
 1.5.0  2025-01-08T03:22:40
      - Fix improperly nested Pod headers that were incrementing two levels

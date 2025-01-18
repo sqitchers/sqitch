@@ -62,7 +62,7 @@ my $sqitch_uri = $uri->clone;
 $sqitch_uri->dbname('sqitch');
 is $mysql->registry_uri, $sqitch_uri, 'registry_uri should be correct';
 is $mysql->uri, $uri, qq{uri should be "$uri"};
-is $mysql->_dsn, 'dbi:MariaDB:database=mydb', 'DSN should use MariaDB';
+is $mysql->_dsn, 'dbi:MariaDB:database=sqitch', 'DSN should use MariaDB';
 is $mysql->registry_destination, 'db:mysql:sqitch',
     'registry_destination should be the same as registry_uri';
 is $mysql->_lock_name, 'sqitch working on ' . $uri->dbname,
