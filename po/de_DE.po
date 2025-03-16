@@ -179,7 +179,7 @@ msgstr "Fehler beim Schließen von {file}: {error}"
 #: lib/App/Sqitch/Command/add.pm:415
 #, perl-brace-format
 msgid "File {file} has a double extension of {ext}"
-msgstr ""
+msgstr "Datei {file} hat eine doppelte Erweiterung {ext}"
 
 #: lib/App/Sqitch/Command/bundle.pm:99
 msgid ""
