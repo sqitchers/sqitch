@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-1.5.1  Not yet released
+1.5.1  2025-03-16T26:55:17Z
      - Fixed a bug introduced in v1.5.0 where the MySQL engine connected to
        the target database instead of the registry database. Thanks to
        @tiberiusferreira for the report (#862)!

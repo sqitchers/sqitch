@@ -1,5 +1,5 @@
 Name:           sqitch
-Version:        1.5.1-dev
+Version:        1.5.1
 Release:        1%{?dist}
 Summary:        Sensible database change management
 License:        MIT
@@ -309,6 +309,9 @@ also be installed.
 # No additional files required.
 
 %changelog
+* Sun Mar 16 2025 David E. Wheeler <david@justatheory.com> 1.5.1-1
+- Upgrade to v1.5.1.
+
 * Tue Jan 7 2025 David E. Wheeler <david@justatheory.com> 1.5.0-1
 - Upgrade to v1.5.0.
 - Replace DBD::mysql with DBD::MariaDB.
