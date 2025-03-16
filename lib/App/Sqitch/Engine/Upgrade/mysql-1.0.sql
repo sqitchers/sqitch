@@ -13,7 +13,7 @@ CREATE TABLE releases (
 ;
 
 -- Add the script_hash column to the changes table. Copy change_id for now.
-ALTER TABLE changes ADD COLUMN script_hash VARCHAR(40) NULL UNIQUE AFTER change_id;
+ALTER TABLE changes ADD COLUMN script_hash VARCHAR(40) CHARACTER SET ascii NULL UNIQUE AFTER change_id;
 UPDATE changes SET script_hash = change_id;
 
 -- Allow "merge" events.
