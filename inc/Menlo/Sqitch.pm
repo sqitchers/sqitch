@@ -64,7 +64,7 @@ sub remove_build_dependencies {
 
 1;
 
-# List of distirbutions that might be installed but are not actually needed to
+# List of distributions that might be installed but are not actually needed to
 # run Sqitch. Used to track unneeded installs so they can be removed by
 # remove_build_dependencies().
 #
