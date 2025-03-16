@@ -175,9 +175,9 @@ Update the Sqitch Homebrew tap with the new version.
     shasum -a 256 App-Sqitch-v$VERSION.tar.gz
     ```
 
-*   Clone the [homebrew-sqitch] repository and edit the `Formula/sqitch.rb` file
-    setting the `version` line to the new version and the `sha256` to the value
-    from the previous command.
+*   Clone the [homebrew-sqitch] repository and edit the `Formula/sqitch.rb`
+    file setting the `url` line to the new version and the `sha256` to the
+    value from the previous command.
 
 *   Commit, tag, and push.
 
