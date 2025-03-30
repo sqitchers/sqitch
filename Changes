@@ -4,6 +4,11 @@ Revision history for Perl extension App::Sqitch
      - Fixed bug where the location of reworked script files did not respect
        the `deploy_dir`, `revert_dir`, or `verify_dir` options. Thanks to Neil
        Freeman for the report (#875)!
+     - Updated the MySQL engine's installation of the `checkit()` function so
+       that it no longer depends on permission-checking, since the current
+       user may not have such permission, and instead attempts to create the
+       function and ignores a failure due to a lack of permission. Thanks to
+       Alastair Douglas for the report and solution (#874)!
 
 1.5.1  2025-03-16T26:55:17Z
      - Fixed a bug introduced in v1.5.0 where the MySQL engine connected to
