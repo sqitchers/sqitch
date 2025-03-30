@@ -179,7 +179,7 @@ msgstr "Fehler beim Schließen von {file}: {error}"
 #: lib/App/Sqitch/Command/add.pm:415
 #, perl-brace-format
 msgid "File {file} has a double extension of {ext}"
-msgstr ""
+msgstr "Datei {file} hat eine doppelte Erweiterung {ext}"
 
 #: lib/App/Sqitch/Command/bundle.pm:99
 msgid ""
@@ -464,7 +464,7 @@ msgstr ""
 
 #: lib/App/Sqitch/Command/revert.pm:150
 msgid "Must specify a target revision in strict mode"
-msgstr ""
+msgstr "Du musst eine Zielrevision im strikten Modus spezifizieren."
 
 #: lib/App/Sqitch/Command/revert.pm:158
 #, fuzzy
@@ -750,7 +750,7 @@ msgstr "Wende Änderungen nach {destination} an"
 
 #: lib/App/Sqitch/Engine.pm:275
 msgid "Will deploy the following changes:"
-msgstr ""
+msgstr "Du wirst die folgenden Änderungen anwenden:"
 
 #: lib/App/Sqitch/Engine.pm:288
 #, perl-brace-format
@@ -759,7 +759,7 @@ msgstr "Unbekannter Anwendungsmodus: \"{mode}\""
 
 #: lib/App/Sqitch/Engine.pm:316
 msgid "Missing required parameter $prompt_default"
-msgstr ""
+msgstr "Es fehlt der benötigte Parameter $prompt_default"
 
 #: lib/App/Sqitch/Engine.pm:344
 #, perl-brace-format
@@ -778,11 +778,11 @@ msgstr "Kehre Änderungen an {destination} um nach {change}"
 
 #: lib/App/Sqitch/Engine.pm:375 lib/App/Sqitch/Engine.pm:405
 msgid "Will revert the following changes:"
-msgstr ""
+msgstr "Dies wird folgende Änderungen rückgängig machen:"
 
 #: lib/App/Sqitch/Engine.pm:378 lib/App/Sqitch/Engine.pm:408
 msgid "Would revert the following changes:"
-msgstr ""
+msgstr "Wird folgende Änderungen rückgängig machen:"
 
 #: lib/App/Sqitch/Engine.pm:382 lib/App/Sqitch/Engine.pm:412
 msgid "Nothing reverted"
@@ -975,14 +975,14 @@ msgstr "Verifizierungsskript {file} existiert nicht"
 msgid ""
 "Blocked by another instance of Sqitch working on {dest}; waiting {secs} "
 "seconds..."
-msgstr ""
+msgstr "Geblockt von einer anderen Sqitch Instanz auf {dest}; Warte {secs} Sekunden..."
 
 #: lib/App/Sqitch/Engine.pm:1135
 #, perl-brace-format
 msgid ""
 "Timed out waiting {secs} seconds for another instance of Sqitch to finish "
 "work on {dest}"
-msgstr ""
+msgstr "Zeit nach {secs} Sekunden abgelaufen um auf eine andere Sqitch Instanz auf {dest} zu warten."
 
 #: lib/App/Sqitch/Engine.pm:1194
 #, perl-brace-format
@@ -1141,7 +1141,7 @@ msgstr "Name der Datenbank fehlt in URI \"{uri}\""
 
 #: lib/App/Sqitch/Engine/mysql.pm:489
 msgid "Insufficient permissions to create the checkit() function; skipping."
-msgstr ""
+msgstr "Unzureichende Berechtigung um checkit() Funktion zu erstellen; Überspringe."
 
 #: lib/App/Sqitch/Engine/pg.pm:202 lib/App/Sqitch/Engine/snowflake.pm:297
 #: lib/App/Sqitch/Engine/vertica.pm:137
@@ -1158,7 +1158,8 @@ msgstr "Sqitch ist bereits initialisiert"
 msgid ""
 "Because the \"changes\" table does not exist, Sqitch will now initialize the "
 "database to create its registry tables."
-msgstr ""
+msgstr "Weil die \"changes\" Tabelle nicht existiert, wird Sqitch jetzt die Datenbank "
+"initialisieren um die Registry Tabellen zu erstellen."
 
 #: lib/App/Sqitch/Engine/snowflake.pm:121
 msgid "Cannot determine Snowflake account name"
@@ -1345,7 +1346,7 @@ msgstr ""
 #: lib/App/Sqitch/Plan.pm:360
 #, perl-brace-format
 msgid "Tag \"{tag}\" contains illegal character {sep}"
-msgstr ""
+msgstr "Tag \"{tag}\" enthält illegale Zeichen {sep}"
 
 #: lib/App/Sqitch/Plan.pm:369
 #, perl-brace-format
@@ -1584,7 +1585,8 @@ msgstr ""
 msgid ""
 "\"{command}\" cannot be used in strict mode.\\nUse explicity revert and "
 "deploy commands instead."
-msgstr ""
+msgstr "\"{command}\” kann im strikten Modus nicht verwendet werden.\\n "
+"Verwende Revert und Deploy Kommandos explizit."
 
 #: lib/App/Sqitch/Role/TargetConfigCommand.pm:96
 #, perl-brace-format

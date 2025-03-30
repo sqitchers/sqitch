@@ -8,6 +8,7 @@ Revision history for Perl extension App::Sqitch
        @tiberiusferreira for the report (#862)!
      - Fixed test failures with some Exasol and Firebird configurations.
        Thanks to Slaven Rezić for the report (#858)!
+     - Added some missing German translations, thanks to @0xflotus (#873).
 
 1.5.0  2025-01-08T03:22:40
      - Fix improperly nested Pod headers that were incrementing two levels
