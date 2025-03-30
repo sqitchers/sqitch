@@ -666,4 +666,69 @@ ALL: {
         'Should have set the registry on all targets.';
 }
 
+SCRIPT_DIRS: {
+    # Test for behavior of script dirs.
+    my $opts = {};
+    $config->replace(
+        'core.engine'     => 'pg',
+        'core.deploy_dir' => 'up',
+        'core.revert_dir' => 'down',
+        'core.verify_dir' => 'test',
+    );
+    my $sqitch = App::Sqitch->new(options => $opts, config => $config);
+    my $target = $CLASS->new(
+        sqitch => $sqitch,
+        name   => 'foo',
+        uri    => URI::db->new('db:pg:foo'),
+    );
+
+    is $target->top_dir, dir, 'Should have default top_dir';
+    is $target->deploy_dir, $target->top_dir->subdir('up'),
+        'Should have custom deploy_dir';
+    is $target->revert_dir, $target->top_dir->subdir('down'),
+        'Should have custom revert_dir';
+    is $target->verify_dir, $target->top_dir->subdir('test'),
+        'Should have custom verify_dir';
+    is $target->reworked_dir, $target->top_dir, 'Should have default reworked_dir';
+    is $target->reworked_deploy_dir, $target->reworked_dir->subdir('up'),
+        'Should have derived reworked_deploy_dir';
+    is $target->reworked_revert_dir, $target->reworked_dir->subdir('down'),
+        'Should have derived reworked_revert_dir';
+    is $target->reworked_verify_dir, $target->reworked_dir->subdir('test'),
+        'Should have derived reworked_verify_dir';
+}
+
+REWORK_DIRS: {
+    # Test for behavior of script dirs.
+    my $opts = {};
+    $config->replace(
+        'core.engine'       => 'pg',
+        'core.reworked_dir' => 'past',
+        'core.deploy_dir'   => 'up',
+        'core.revert_dir'   => 'down',
+        'core.verify_dir'   => 'test',
+    );
+    my $sqitch = App::Sqitch->new(options => $opts, config => $config);
+    my $target = $CLASS->new(
+        sqitch => $sqitch,
+        name   => 'foo',
+        uri    => URI::db->new('db:pg:foo'),
+    );
+
+    is $target->top_dir, dir, 'Should have default top_dir';
+    is $target->deploy_dir, $target->top_dir->subdir('up'),
+        'Should have custom deploy_dir';
+    is $target->revert_dir, $target->top_dir->subdir('down'),
+        'Should have custom revert_dir';
+    is $target->verify_dir, $target->top_dir->subdir('test'),
+        'Should have custom verify_dir';
+    is $target->reworked_dir, dir('past'), 'Should have custom reworked_dir';
+    is $target->reworked_deploy_dir, $target->reworked_dir->subdir('up'),
+        'Should have derived reworked_deploy_dir';
+    is $target->reworked_revert_dir, $target->reworked_dir->subdir('down'),
+        'Should have derived reworked_revert_dir';
+    is $target->reworked_verify_dir, $target->reworked_dir->subdir('test'),
+        'Should have derived reworked_verify_dir';
+}
+
 done_testing;
