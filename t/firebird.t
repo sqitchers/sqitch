@@ -391,6 +391,9 @@ FSPEC: {
     ), 'Client exception message should be correct';
 }
 
+# Make sure we have templates.
+DBIEngineTest->test_templates_for($fb->key);
+
 ##############################################################################
 # Can we do live tests?
 my ($data_dir, $fb_version, @cleanup) = ($tmpdir);

@@ -6,6 +6,7 @@ use utf8;
 use Try::Tiny;
 use Test::More;
 use Test::Exception;
+use Test::File qw(file_exists_ok);
 use Time::HiRes qw(sleep tv_interval gettimeofday);
 use Path::Class 0.33 qw(file dir);
 use Digest::SHA qw(sha1_hex);
@@ -35,6 +36,7 @@ sub run {
         chomp  => 1,
         iomode => '<:raw'
     );
+
     # Each change should retain its own hash.
     my $orig_deploy_hash;
     $mock_change->mock(_deploy_hash => sub {
@@ -1911,6 +1913,17 @@ sub get_dependencies {
          WHERE change_id = ?
          ORDER BY dependency
     }, undef, shift);
+}
+
+sub test_templates_for {
+    my $key = $_[1];
+    # Make sure we have templates.
+    for my $action (qw(deploy revert verify)) {
+        my $fn = file(__FILE__)->dir->parent->parent->file(
+            qw(etc templates), $action, "$key.tmpl",
+        );
+        file_exists_ok($fn, "etc/templates/$action/$key.tml should exist");
+    }
 }
 
 1;

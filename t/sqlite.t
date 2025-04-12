@@ -315,6 +315,9 @@ for my $v (qw(
 
 $mock_sqitch->unmock_all;
 
+# Make sure we have templates.
+DBIEngineTest->test_templates_for($sqlite->key);
+
 ##############################################################################
 # Test against extra newline in capture.
 $sqlite_version = '3.7.12 2012-04-03 19:43:07 86b8481be7e76cccc92d14ce762d21bfb69504af';

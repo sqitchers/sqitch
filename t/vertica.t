@@ -323,6 +323,9 @@ CID: {
         "_cid should propagate an error when it's not a table or column error";
 }
 
+# Make sure we have templates.
+DBIEngineTest->test_templates_for($vta->key);
+
 ##############################################################################
 # Can we do live tests?
 my $dbh;

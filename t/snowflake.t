@@ -556,6 +556,9 @@ UPGRADE: {
     $mock_snow->unmock('dbh');
 }
 
+# Make sure we have templates.
+DBIEngineTest->test_templates_for($snow->key);
+
 ##############################################################################
 # Can we do live tests?
 my $dbh;

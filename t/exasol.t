@@ -394,6 +394,9 @@ is_deeply [$exa->_regex_expr('corn', 'Obama')],
     ['corn REGEXP_LIKE ?', '.*Obama.*'],
     'Should append wildcards to both ends without anchors';
 
+# Make sure we have templates.
+DBIEngineTest->test_templates_for($exa->key);
+
 ##############################################################################
 # Can we do live tests?
 my $dbh;

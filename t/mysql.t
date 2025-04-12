@@ -622,6 +622,9 @@ CHECKIT: {
     $mock_sqitch->unmock_all;
 }
 
+# Make sure we have templates.
+DBIEngineTest->test_templates_for($mysql->key);
+
 ##############################################################################
 # Can we do live tests?
 my $dbh;
