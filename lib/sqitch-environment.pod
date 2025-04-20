@@ -316,11 +316,6 @@ parameter.
 The Snowflake server host to connect to. Superseded by the target URI host
 name. Deprecated by Snowflake.
 
-=item C<SNOWSQL_PORT>
-
-The Snowflake server port to connect to. Superseded by the target URI port.
-Deprecated by Snowflake.
-
 =item C<SNOWSQL_REGION>
 
 The Snowflake region. Superseded by the target URI host name. Deprecated by

@@ -11,6 +11,20 @@ Revision history for Perl extension App::Sqitch
        Alastair Douglas for the report and solution (#874)!
      - Added missing CockroachDB templates. Thanks to @Peterbyte for the
        report (#878)!
+     - Removed support for the `SNOWSQL_PORT` environment variable, which has
+       long been deprecated by Snowflake and likely never did anything.
+     - Fixed the quoting of the role and schema names on connecting to
+       Snowflake, which was silently failing and thus failing to properly use
+       the registry schema, which lead to a failure to find the registry.
+       Broken in v1.5.1.
+     - Added redaction of passwords from Snowflake URL query parameters in the
+       display URL. Any query parameter matching `pwd` will now be shown as
+       "REDACTED".
+     - Expanded the documentation of Snowflake key pair authentication in
+      `sqitch-authentication.pod` to recommend setting sensitive ODBC
+       parameters in an `odbc.ini` file rather than connection URL query
+       parameters.
+     - Switched to key pair authentication in the Snowflake CI workflows.
 
 1.5.1  2025-03-16T26:55:17Z
      - Fixed a bug introduced in v1.5.0 where the MySQL engine connected to

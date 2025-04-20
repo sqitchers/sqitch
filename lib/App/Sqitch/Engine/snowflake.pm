@@ -24,9 +24,12 @@ sub destination {
     # Just use the target name if it doesn't look like a URI.
     return $self->target->name if $self->target->name !~ /:/;
 
-    # Use the URI sans password.
+    # Use the URI sans passwords.
     my $uri = $self->target->uri->clone;
     $uri->password(undef) if $uri->password;
+    for my $key (grep { /pwd/ } $uri->query_params) {
+        $uri->query_param($key => 'REDACTED');
+    }
     return $uri->as_string;
 }
 
@@ -98,10 +101,6 @@ has uri => (
 
         # Set defaults in the URI.
         $uri->host($self->_host($uri));
-        # Use _port instead of port so it's empty if no port is in the URI.
-        # https://github.com/sqitchers/sqitch/issues/675
-        # XXX SNOWSQL_PORT deprecated; remove once Snowflake removes it.
-        $uri->port($ENV{SNOWSQL_PORT}) if !$uri->_port && $ENV{SNOWSQL_PORT};
         $uri->dbname(
             $ENV{SNOWSQL_DATABASE}
             || $self->_snowcfg->{dbname}
@@ -204,21 +203,23 @@ has dbh => (
                 connected => sub {
                     my $dbh = shift;
                     my $role = $self->role;
+                    # Use LITERAL(), but not for WAREHOUSE, which might be
+                    # database-qualified (db.wh). Details on IDENTIFIER():
+                    # https://docs.snowflake.com/en/sql-reference/identifier-literal
                     $dbh->do($_) or return for (
-                        ($role ? ("USE ROLE $role") : ()),
+                        ($role ? ('USE ROLE IDENTIFIER(' . $dbh->quote($role) . ')') : ()),
                         "ALTER WAREHOUSE $wh RESUME IF SUSPENDED",
                         "USE WAREHOUSE $wh",
                         'ALTER SESSION SET TIMESTAMP_TYPE_MAPPING=TIMESTAMP_LTZ',
                         "ALTER SESSION SET TIMESTAMP_OUTPUT_FORMAT='YYYY-MM-DD HH24:MI:SS'",
                         "ALTER SESSION SET TIMEZONE='UTC'",
                     );
-                    $dbh->do('USE SCHEMA ' . $dbh->quote_identifier($self->registry))
+                    $dbh->do('USE SCHEMA IDENTIFIER(' . $dbh->quote($self->registry) . ')')
                         or $self->_handle_no_registry($dbh);
                     return;
                 },
                 disconnect => sub {
                     my $dbh = shift;
-                    my $wh = $self->warehouse;
                     $dbh->do("ALTER WAREHOUSE $wh SUSPEND");
                     return;
                 },
