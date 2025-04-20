@@ -92,14 +92,13 @@ sub run {
             try {
                 $code->( $engine ) || App::Sqitch::X::hurl('NO');
             } catch {
+                diag $_->message;
+                diag $_->previous_exception if $_->previous_exception;
                 plan skip_all => sprintf(
-                    'Unable to live-test %s engine: %s',
+                    'Unable to live-test %s engine',
                     $class->name,
-                    $_->message,
                 ) unless $ENV{'LIVE_' . uc $engine->key . '_REQUIRED'};
                 fail 'Connect to ' . $class->name;
-                diag $_->message;
-                diag $_->previous_exception;
             } or return;
         }
         if (my $q = $p{version_query}) {

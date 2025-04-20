@@ -435,7 +435,11 @@ my $err = try {
     push @cleanup => map { catfile $data_dir, $_ } $reg1, $reg2;
     return undef;
 } catch {
-    $_
+    return $_ if blessed $_ && $_->isa('App::Sqitch::X');
+    return App::Sqitch::X->new(
+        message            => 'Failed to connect to Firebird',
+        previous_exception => $_,
+    ),
 };
 
 END {

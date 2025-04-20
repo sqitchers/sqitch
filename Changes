@@ -25,6 +25,8 @@ Revision history for Perl extension App::Sqitch
        parameters in an `odbc.ini` file rather than connection URL query
        parameters.
      - Switched to key pair authentication in the Snowflake CI workflows.
+     - Fixed another test failure with some Firebird configurations and
+       improved diagnostic output when an engine cannot be integration-tested.
 
 1.5.1  2025-03-16T26:55:17Z
      - Fixed a bug introduced in v1.5.0 where the MySQL engine connected to
