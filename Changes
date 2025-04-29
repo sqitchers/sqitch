@@ -1,12 +1,14 @@
 Revision history for Perl extension App::Sqitch
 
-1.5.2  Not yet released
+1.5.2  2025-04-29T15:13:35Z
+     - Added missing German translations, thanks to @0xflotus for the PR
+       (#873)!
      - Fixed bug where the location of reworked script files did not respect
        the `deploy_dir`, `revert_dir`, or `verify_dir` options. Thanks to Neil
        Freeman for the report (#875)!
      - Updated the MySQL engine's installation of the `checkit()` function so
        that it no longer depends on permission-checking, since the current
-       user may not have such permission, and instead attempts to create the
+       user may not have such permission. It instead attempts to create the
        function and ignores a failure due to a lack of permission. Thanks to
        Alastair Douglas for the report and solution (#874)!
      - Added missing CockroachDB templates. Thanks to @Peterbyte for the
@@ -14,11 +16,11 @@ Revision history for Perl extension App::Sqitch
      - Removed support for the `SNOWSQL_PORT` environment variable, which has
        long been deprecated by Snowflake and likely never did anything.
      - Fixed the quoting of the role and schema names on connecting to
-       Snowflake, which was silently failing and thus failing to properly use
-       the registry schema, which lead to a failure to find the registry.
-       Broken in v1.5.1.
+       Snowflake, which was silently failing and thus not properly using the
+       registry schema, which lead to a failure to find the registry. Broken
+       in v1.5.1.
      - Added redaction of passwords from Snowflake URL query parameters in the
-       display URL. Any query parameter matching `pwd` will now be shown as
+       display URL. Any query parameter matching `pwd` will now appear as
        "REDACTED".
      - Expanded the documentation of Snowflake key pair authentication in
       `sqitch-authentication.pod` to recommend setting sensitive ODBC

@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 794;
+use Test::More tests => 802;
 # use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -35,7 +35,7 @@ BEGIN {
     delete $ENV{USER};
 }
 
-can_ok $CLASS, qw(load new name run_deploy run_revert run_verify uri);
+can_ok $CLASS, qw(load new name run_deploy run_revert run_verify run_upgrade uri);
 
 my ($is_deployed_tag, $is_deployed_change) = (0, 0);
 my @deployed_changes;
@@ -162,7 +162,7 @@ throws_ok { $CLASS->load({ sqitch => $sqitch, target => $unknown_target }) }
 is $@->message, __x('Unknown engine: {engine}', engine =>  'nonexistent'),
     'Should get load error message';
 like $@->previous_exception, qr/\QCan't locate/,
-    'Should have relevant previoius exception';
+    'Should have relevant previous exception';
 
 NOENGINE: {
     # Test handling of no target.
@@ -183,7 +183,22 @@ throws_ok { $CLASS->load({ sqitch => $sqitch, target => $bad_target }) }
 is $@->message, __x('Unknown engine: {engine}', engine =>  'bad'),
     'Should get another load error message';
 like $@->previous_exception, qr/^LOL BADZ/,
-    'Should have relevant previoius exception from the bad module';
+    'Should have relevant previous exception from the bad module';
+
+##############################################################################
+# Test run methods.
+ok $engine->run_deploy('deploy');
+is_deeply $engine->seen, [[qw(run_file deploy)]],
+    'run_deploy have called run_file';
+ok $engine->run_revert('revert');
+is_deeply $engine->seen, [[qw(run_file revert)]],
+    'run_revert have called run_file';
+ok $engine->run_verify('verify');
+is_deeply $engine->seen, [[qw(run_file verify)]],
+    'run_verify have called run_file';
+ok $engine->run_upgrade('upgrade');
+is_deeply $engine->seen, [[qw(run_file upgrade)]],
+    'run_upgrade have called run_file';
 
 ##############################################################################
 # Test name.
