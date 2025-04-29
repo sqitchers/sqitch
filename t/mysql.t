@@ -444,7 +444,7 @@ is_deeply [$mysql->_regex_expr('corn', 'Obama$')],
     'Should use REGEXP for regex expr';
 
 ##############################################################################
-# Test unexpeted datbase error in initialized() and _cid().
+# Test unexpected database error in initialized() and _cid().
 MOCKDBH: {
     my $mock = Test::MockModule->new($CLASS);
     $mock->mock(dbh => sub { die 'OW' });
@@ -518,7 +518,7 @@ UPGRADE: {
     my $version = 50500;
     $mock->mock(_fractional_seconds => sub { $fracsec });
     $mock->mock(dbh => sub { { mariadb_serverversion => $version } });
-    $mock->mock(_can_create_immutable_function => 1);
+    $mock->mock(_create_check_function => 1);
 
     # Mock run.
     my @run;
@@ -576,6 +576,54 @@ UPGRADE: {
 
     $mock_sqitch->unmock_all;
 }
+
+##############################################################################
+# Test _create_check_function
+CHECKIT: {
+    {
+        package Test::Mock::Driver;
+        sub do {
+            my $self = shift;
+            $self->{query} = shift;
+            die $self->{err} if $self->{err};
+        }
+    }
+    my $dbh = bless {mariadb_serverversion => 50400}, 'Test::Mock::Driver';
+
+    my $mock = Test::MockModule->new($CLASS);
+    my $warning;
+    $mock_sqitch->mock(warn => sub { shift; $warning = [@_] });
+    
+    $mock->mock(dbh => $dbh);
+    $mysql->_create_check_function;
+    is $dbh->{query}, undef, 'Should have no query';
+    is $warning, undef, 'Should have no warning';
+    
+    $dbh->{mariadb_serverversion} = 50500;
+    $mysql->_create_check_function;
+    like delete $dbh->{query}, qr/CREATE FUNCTION checkit/,
+        'Should have executed query';
+    is $warning, undef, 'Should have no warning';
+
+    $dbh->{err} = 'oops';
+    throws_ok { $mysql->_create_check_function } qr/oops/,
+        '_create_check_function() should rethrow unexpected DB error';
+    is $warning, undef, 'Should have no warning';
+
+    local *DBI::err;
+    $DBI::err = 1419;
+    lives_ok {$mysql->_create_check_function } 'Error 1419 should not be thrown';
+    like delete $dbh->{query}, qr/CREATE FUNCTION checkit/,
+        'Should have executed query';
+    is_deeply $warning, [__
+        'Insufficient permissions to create the checkit() function; skipping.',
+    ], 'Should have emitted a warning about checkit';
+    $warning = undef;
+    $mock_sqitch->unmock_all;
+}
+
+# Make sure we have templates.
+DBIEngineTest->test_templates_for($mysql->key);
 
 ##############################################################################
 # Can we do live tests?

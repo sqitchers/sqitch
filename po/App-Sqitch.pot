@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: App-Sqitch v1.5.1\n"
+"Project-Id-Version: App-Sqitch v1.5.2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-01-18 18:18-0500\n"
+"POT-Creation-Date: 2025-04-27 19:42-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -147,7 +147,7 @@ msgid "Skipped {file}: already exists"
 msgstr ""
 
 #: lib/App/Sqitch/Command/add.pm:386 lib/App/Sqitch/Command/add.pm:427
-#: lib/App/Sqitch/Engine/snowflake.pm:330 lib/App/Sqitch/Plan.pm:136
+#: lib/App/Sqitch/Engine/snowflake.pm:331 lib/App/Sqitch/Plan.pm:136
 #: lib/App/Sqitch/Plan.pm:602 lib/App/Sqitch/Plan.pm:982
 #: lib/App/Sqitch/Plan/Line.pm:107
 #: lib/App/Sqitch/Role/TargetConfigCommand.pm:321
@@ -658,7 +658,7 @@ msgid "Unknown date format \"{format}\""
 msgstr ""
 
 #: lib/App/Sqitch/Engine.pm:168 lib/App/Sqitch/Engine.pm:183
-#: lib/App/Sqitch/Role/TargetConfigCommand.pm:162 lib/App/Sqitch/Target.pm:251
+#: lib/App/Sqitch/Role/TargetConfigCommand.pm:162 lib/App/Sqitch/Target.pm:254
 msgid "No engine specified; specify via target or core.engine"
 msgstr ""
 
@@ -1075,11 +1075,11 @@ msgstr ""
 msgid "Database name missing in URI \"{uri}\""
 msgstr ""
 
-#: lib/App/Sqitch/Engine/mysql.pm:489
+#: lib/App/Sqitch/Engine/mysql.pm:518
 msgid "Insufficient permissions to create the checkit() function; skipping."
 msgstr ""
 
-#: lib/App/Sqitch/Engine/pg.pm:202 lib/App/Sqitch/Engine/snowflake.pm:297
+#: lib/App/Sqitch/Engine/pg.pm:202 lib/App/Sqitch/Engine/snowflake.pm:298
 #: lib/App/Sqitch/Engine/vertica.pm:137
 #, perl-brace-format
 msgid "Sqitch schema \"{schema}\" already exists"
@@ -1095,7 +1095,7 @@ msgid ""
 "database to create its registry tables."
 msgstr ""
 
-#: lib/App/Sqitch/Engine/snowflake.pm:121
+#: lib/App/Sqitch/Engine/snowflake.pm:120
 msgid "Cannot determine Snowflake account name"
 msgstr ""
 
@@ -1511,23 +1511,23 @@ msgid ""
 "Cannot initialize because project \"{project}\" already initialized in {file}"
 msgstr ""
 
-#: lib/App/Sqitch/Target.pm:254
+#: lib/App/Sqitch/Target.pm:257
 msgid ""
 "No project configuration found. Run the \"init\" command to initialize a "
 "project"
 msgstr ""
 
-#: lib/App/Sqitch/Target.pm:276
+#: lib/App/Sqitch/Target.pm:279
 #, perl-brace-format
 msgid "Cannot find target \"{target}\""
 msgstr ""
 
-#: lib/App/Sqitch/Target.pm:282
+#: lib/App/Sqitch/Target.pm:285
 #, perl-brace-format
 msgid "No URI associated with target \"{target}\""
 msgstr ""
 
-#: lib/App/Sqitch/Target.pm:291
+#: lib/App/Sqitch/Target.pm:294
 #, perl-brace-format
 msgid "No engine specified by URI {uri}; URI must start with \"db:$engine:\""
 msgstr ""

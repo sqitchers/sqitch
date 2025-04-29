@@ -109,6 +109,9 @@ RUNREG: {
         'The registry should have been added to the search path';
 }
 
+# Make sure we have templates.
+DBIEngineTest->test_templates_for($cockroach->key);
+
 ##############################################################################
 # Can we do live tests?
 $config->replace('core.engine' => 'cockroach');

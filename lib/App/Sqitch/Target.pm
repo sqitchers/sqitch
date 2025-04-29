@@ -195,6 +195,9 @@ for my $script (qw(deploy revert verify)) {
             if ( my $dir = $self->_fetch("reworked_$script\_dir") ) {
                 return dir $dir;
             }
+            if ( my $dir = $self->_fetch("$script\_dir") ) {
+                return $self->reworked_dir->subdir($dir)->cleanup;
+            }
             $self->reworked_dir->subdir($script)->cleanup;
         },
     );

@@ -284,6 +284,7 @@ sub _initialize {
     $self->run_upgrade( file(__FILE__)->dir->file('mysql.sql') );
     $self->_set_initialized(1);
     $self->dbh->do('USE ' . $self->dbh->quote_identifier($self->registry));
+    $self->_create_check_function;
     $self->_register_release;
 }
 
@@ -467,9 +468,8 @@ sub run_upgrade {
 # configurations.
 sub _prepare_registry_file {
     my ($self, $file) = @_;
-    my $can_create_checkit = $self->_can_create_immutable_function;
     my $has_frac = $self->_fractional_seconds;
-    return $file if $has_frac && $can_create_checkit;
+    return $file if $has_frac;
 
     # Read in the file to modify it.
     my $sql = $file->slurp;
@@ -483,14 +483,6 @@ sub _prepare_registry_file {
             if $self->dbh->{mariadb_serverversion} < 50500;
     }
 
-    if (!$can_create_checkit) {
-        # Strip out checkit() function if logging binary and not super user.
-        $self->sqitch->warn(__(
-            'Insufficient permissions to create the checkit() function; skipping.',
-        ));
-        $sql =~ s/-- ## BEGIN checkit.+?-- ## END checkit//ms;
-    }
-
     # Write out a temp file and return it.
     require File::Temp;
     my $fh = File::Temp->new;
@@ -499,19 +491,33 @@ sub _prepare_registry_file {
     return $fh;
 }
 
-# Based on https://dev.mysql.com/doc/refman/8.4/en/stored-programs-logging.html,
-# determine whether we have binary logging disabled, or trust function
-# creators, or have the SUPER privilege.
-sub _can_create_immutable_function {
-    # Use md5() to prevent "Illegal mix of collations" errors.
-    shift->dbh->selectcol_arrayref(q{
-        SELECT @@log_bin = 0
-            OR @@log_bin_trust_function_creators = 1
-            OR (
-                SELECT md5(super_priv) = md5('Y') FROM mysql.user
-                 WHERE CONCAT(user, '@', host) = current_user
-            )
-    })->[0]
+sub _create_check_function {
+    # The checkit() function works sort of like a CHECK: if the first argument
+    # is 0 or NULL, it throws the second argument as an exception.
+    # Conveniently, verify scripts can also use it to ensure an error is
+    # thrown when a change cannot be verified. Requires MySQL 5.5.0 and
+    # permission to create an immutable function, so ignore failures in those
+    # situations.
+    my $self = shift;
+    return if $self->dbh->{mariadb_serverversion} < 50500;
+    try {
+        $self->dbh->do(q{
+            CREATE FUNCTION checkit(doit INTEGER, message VARCHAR(256)) RETURNS INTEGER DETERMINISTIC
+            BEGIN
+                IF doit IS NULL OR doit = 0 THEN
+                    SIGNAL SQLSTATE 'ERR0R' SET MESSAGE_TEXT = message;
+                END IF;
+                RETURN doit;
+            END;
+        });
+    } catch {
+        # 1419: You do not have super user privilege and binary logging is
+        # enabled.
+        die $_ if !$DBI::err || $DBI::err != 1419;
+        $self->sqitch->warn(__(
+            'Insufficient permissions to create the checkit() function; skipping.',
+        ));
+    }
 }
 
 sub run_handle {

@@ -32,7 +32,7 @@ use TestConfig;
 
 my $CLASS;
 
-delete $ENV{"SNOWSQL_$_"} for qw(USER PASSWORD DATABASE HOST PORT);
+delete $ENV{"SNOWSQL_$_"} for qw(USER PASSWORD DATABASE HOST);
 
 BEGIN {
     $CLASS = 'App::Sqitch::Engine::snowflake';
@@ -87,6 +87,30 @@ is $snow->destination, $exp_uri, 'Destination should be URI string';
 is $snow->registry_destination, $snow->destination,
     'Registry destination should be the same as destination';
 
+# Test destination URI redaction.
+PASSWORDS: {
+    my $sensitive_uri = "db:snowflake://julie:s3cr3t@/?pwd=xyz;key_pwd=abc;pod=x";
+    my $target = App::Sqitch::Target->new(
+        sqitch => $sqitch,
+        uri    => URI::db->new($sensitive_uri),
+    );
+    isa_ok my $sensitive_snow = $CLASS->new(
+        sqitch => $sqitch,
+        target => $target,
+    ), $CLASS;
+
+    # Test URI.
+    my $exp = URI::db->new($sensitive_uri);
+    $exp->host("$ENV{SNOWSQL_ACCOUNT}.snowflakecomputing.com");
+    $exp->dbname('julie');
+    is $sensitive_snow->uri, $exp, 'Should have sensitive info in URI';
+
+    # Test redacted destination URI.
+    $exp->query('pwd=REDACTED;key_pwd=REDACTED;pod=x');
+    $exp->password(undef);
+    is $sensitive_snow->destination, $exp, 'Should have sensitive info in URI';
+}
+
 # Test environment variables.
 SNOWENV: {
     local $ENV{SNOWSQL_USER} = 'kamala';
@@ -95,12 +119,11 @@ SNOWENV: {
     local $ENV{SNOWSQL_WAREHOUSE} = 'madrigal';
     local $ENV{SNOWSQL_ACCOUNT} = 'egregious';
     local $ENV{SNOWSQL_HOST} = 'test.us-east-2.aws.snowflakecomputing.com';
-    local $ENV{SNOWSQL_PORT} = 4242;
     local $ENV{SNOWSQL_DATABASE} = 'tryme';
 
     my $target = App::Sqitch::Target->new(sqitch => $sqitch, uri => URI->new($uri));
     my $snow = $CLASS->new( sqitch => $sqitch, target => $target );
-    is $snow->uri, 'db:snowflake://test.us-east-2.aws.snowflakecomputing.com:4242/tryme',
+    is $snow->uri, 'db:snowflake://test.us-east-2.aws.snowflakecomputing.com/tryme',
         'Should build URI from environment';
     is $snow->username, 'kamala', 'Should read username from environment';
     is $snow->password, 'gimme', 'Should read password from environment';
@@ -112,7 +135,7 @@ SNOWENV: {
     delete $ENV{SNOWSQL_HOST};
     $snow = $CLASS->new( sqitch => $sqitch, target => $target );
     is $snow->uri,
-        'db:snowflake://egregious.Australia.snowflakecomputing.com:4242/tryme',
+        'db:snowflake://egregious.Australia.snowflakecomputing.com/tryme',
         'Should build URI host from account and region environment vars';
     is $snow->account, 'egregious.Australia',
         'Should read account and region from environment';
@@ -555,6 +578,9 @@ UPGRADE: {
     $mock_snow->unmock('run_file');
     $mock_snow->unmock('dbh');
 }
+
+# Make sure we have templates.
+DBIEngineTest->test_templates_for($snow->key);
 
 ##############################################################################
 # Can we do live tests?

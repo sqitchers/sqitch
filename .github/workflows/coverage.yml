@@ -65,6 +65,8 @@ jobs:
       - name: Setup Clients
         env:
           SKIP_DEPENDS: true
+          SNOWFLAKE_KEY_PASSWORD: ${{ secrets.SNOWFLAKE_KEY_PASSWORD }}
+          SNOWFLAKE_KEY_FILE: ${{ secrets.SNOWFLAKE_KEY_FILE }}
         run: |
           .github/ubuntu/all-apt-prereqs.sh
           .github/ubuntu/exasol.sh
@@ -92,7 +94,8 @@ jobs:
           LIVE_PG_REQUIRED: true
           SQITCH_TEST_PG_URI: db:pg://postgres@/postgres
           LIVE_SNOWFLAKE_REQUIRED: true
-          SQITCH_TEST_SNOWFLAKE_URI: db:snowflake://${{ secrets.SNOWFLAKE_USERNAME }}:${{ secrets.SNOWFLAKE_PASSWORD }}@sra81677.us-east-1/sqitchtest?Driver=Snowflake;warehouse=compute_wh
+          SNOWSQL_PRIVATE_KEY_PASSPHRASE: ${{ secrets.SNOWFLAKE_KEY_PASSWORD }}
+          SQITCH_TEST_SNOWFLAKE_URI: db:snowflake://${{ secrets.SNOWFLAKE_USERNAME }}@sra81677.us-east-1/sqitchtest?DSN=sqitch;warehouse=compute_wh
           LIVE_SQLITE_REQUIRED: true
           LIVE_VERTICA_REQUIRED: true
           SQITCH_TEST_VSQL_URI: db:vertica://dbadmin@localhost:${{ job.services.vertica.ports[5433] }}/VMart?Driver=Vertica

@@ -623,6 +623,9 @@ is $change_id_in->(1042), join(
     'change_id IN (' . join(', ' => ('?') x 42) . ')'
 ), 'Should get 4 x 250 and 42 groups for 1042 IDs';
 
+# Make sure we have templates.
+DBIEngineTest->test_templates_for($ora->key);
+
 ##############################################################################
 # Can we do live tests?
 if (App::Sqitch::ISWIN && eval { require Win32::API }) {

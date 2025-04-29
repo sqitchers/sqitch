@@ -159,16 +159,28 @@ query string, e.g.,
 
 Snowflake does not support password-less authentication, but does support
 key-pair authentication. Follow
-L<the instructions|https://docs.snowflake.com/en/user-guide/snowsql-start.html#using-key-pair-authentication>
-to create a key pair, then set the following variables in the F<~/.snowsql/config>
-file:
+L<the instructions|https://docs.snowflake.com/en/user-guide/key-pair-auth>
+to create a key pair, then set the C<private_key_path> in the F<~/.snowsql/config>
+to point to the private key file:
 
-  authenticator = SNOWFLAKE_JWT
-  private_key_path = "path/to/privatekey.p8"
+  private_key_path = "<path>/rsa_key.p8"
 
 To connect, set the C<$SNOWSQL_PRIVATE_KEY_PASSPHRASE> environment variable to
-the passphrase for the private key, and add these parameters to the query part
-of your connection URI:
+the passphrase for the private key, and add these parameters under the
+configuration for your DSN in F</etc/odbc.ini> or F<~/.odbc.ini>:
+
+  [sqitch]
+  AUTHENTICATOR     = SNOWFLAKE_JWT
+  UID               = <username>
+  PRIV_KEY_FILE     = <path>/rsa_key.p8
+  PRIV_KEY_FILE_PWD = <password>
+
+Then connect using the named DSN via the C<DSN> query parameter:
+
+  db:snowflake://movera@example.snowflakecomputing.com/flipr?warehouse=compute_wh;DSN=sqitch
+
+Or add the ODBC parameters directly to the query part of your connection URI
+(although it's safer to put C<priv_key_file_pwd> in F<odbc.ini>):
 
 =over
 
@@ -185,6 +197,10 @@ of your connection URI:
 For example:
 
   db:snowflake://movera@example.snowflakecomputing.com/flipr?Driver=Snowflake;warehouse=sqitch;authenticator=SNOWFLAKE_JWT;uid=movera;priv_key_file=path/to/privatekey.p8;priv_key_file_pwd=s0up3rs3cre7
+
+Sadly, both the C<SNOWSQL_PRIVATE_KEY_PASSPHRASE> environment variable and
+the C<priv_key_file_pwd> ODBC parameter must be set, as Sqitch uses ODBC to
+maintain its registry and SnowSQL to execute change scripts.
 
 =back
 

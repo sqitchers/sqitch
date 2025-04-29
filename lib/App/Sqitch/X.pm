@@ -23,7 +23,6 @@ has exitval => (
     default => 2,
 );
 
-
 with qw(
     Throwable
     StackTrace::Auto

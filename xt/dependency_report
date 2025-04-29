@@ -28,7 +28,10 @@ $api_uri = s/^https:/http:/ if $@;
 sub new {
     my $class = shift;
     return bless {
-        dist_for => {},
+        dist_for => {
+            # No API for Config.pm, so record it as part of Perl core here.
+            Config => { distribution => 'perl' },
+        },
         http     => HTTP::Tiny->new(agent => __PACKAGE__ . "/$VERSION"),
         tree     => 1,
         report   => 1,

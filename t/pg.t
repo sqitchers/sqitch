@@ -471,6 +471,9 @@ RUNREG: {
         'Should have removed the :"registry" variable';
 }
 
+# Make sure we have templates.
+DBIEngineTest->test_templates_for($pg->key);
+
 ##############################################################################
 # Can we do live tests?
 $config->replace('core.engine' => 'pg');

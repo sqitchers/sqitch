@@ -6,9 +6,9 @@ use the `$VERSION` and `$OLD_VERSION` environment variables for consistency. The
 assumption is that they're set to the old and new versions, respectively, e.g.,
 
 ``` sh
-export OLD_VERSION=1.5.0
-export VERSION=1.5.1
-export NEXT_VERSION=1.5.2
+export OLD_VERSION=1.5.1
+export VERSION=1.5.2
+export NEXT_VERSION=1.5.3
 ```
 
 Preparation
@@ -175,9 +175,9 @@ Update the Sqitch Homebrew tap with the new version.
     shasum -a 256 App-Sqitch-v$VERSION.tar.gz
     ```
 
-*   Clone the [homebrew-sqitch] repository and edit the `Formula/sqitch.rb` file
-    setting the `version` line to the new version and the `sha256` to the value
-    from the previous command.
+*   Clone the [homebrew-sqitch] repository and edit the `Formula/sqitch.rb`
+    file setting the `url` line to the new version and the `sha256` to the
+    value from the previous command.
 
 *   Commit, tag, and push.
 

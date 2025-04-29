@@ -13,6 +13,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Setup Clients
+        env:
+          SNOWFLAKE_KEY_PASSWORD: ${{ secrets.SNOWFLAKE_KEY_PASSWORD }}
+          SNOWFLAKE_KEY_FILE: ${{ secrets.SNOWFLAKE_KEY_FILE }}
         run: .github/ubuntu/snowflake.sh
       - name: Setup Perl
         id: perl
@@ -29,5 +32,6 @@ jobs:
         env:
           PERL5LIB: "${{ github.workspace }}/local/lib/perl5"
           LIVE_SNOWFLAKE_REQUIRED: true
-          SQITCH_TEST_SNOWFLAKE_URI: db:snowflake://${{ secrets.SNOWFLAKE_USERNAME }}:${{ secrets.SNOWFLAKE_PASSWORD }}@sra81677.us-east-1/sqitchtest?Driver=Snowflake;warehouse=compute_wh
+          SNOWSQL_PRIVATE_KEY_PASSPHRASE: ${{ secrets.SNOWFLAKE_KEY_PASSWORD }}
+          SQITCH_TEST_SNOWFLAKE_URI: db:snowflake://${{ secrets.SNOWFLAKE_USERNAME }}@sra81677.us-east-1/sqitchtest?DSN=sqitch;warehouse=compute_wh
         run: prove -lvr t/snowflake.t

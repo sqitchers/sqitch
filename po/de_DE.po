@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Sqitch 0.932\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-01-04 14:21-0500\n"
+"POT-Creation-Date: 2025-04-27 19:42-0400\n"
 "PO-Revision-Date: 2012-08-31 17:15-0700\n"
 "Last-Translator: Thomas Iguchi <ti@nobu-games.com>\n"
 "Language-Team: Sqitch Hackers <sqitch-hackers@googlegroups.com>\n"
@@ -157,7 +157,7 @@ msgid "Skipped {file}: already exists"
 msgstr "Überspringe {file}: existiert bereits"
 
 #: lib/App/Sqitch/Command/add.pm:386 lib/App/Sqitch/Command/add.pm:427
-#: lib/App/Sqitch/Engine/snowflake.pm:330 lib/App/Sqitch/Plan.pm:136
+#: lib/App/Sqitch/Engine/snowflake.pm:331 lib/App/Sqitch/Plan.pm:136
 #: lib/App/Sqitch/Plan.pm:602 lib/App/Sqitch/Plan.pm:982
 #: lib/App/Sqitch/Plan/Line.pm:107
 #: lib/App/Sqitch/Role/TargetConfigCommand.pm:321
@@ -179,7 +179,7 @@ msgstr "Fehler beim Schließen von {file}: {error}"
 #: lib/App/Sqitch/Command/add.pm:415
 #, perl-brace-format
 msgid "File {file} has a double extension of {ext}"
-msgstr ""
+msgstr "Datei {file} hat eine doppelte Erweiterung {ext}"
 
 #: lib/App/Sqitch/Command/bundle.pm:99
 msgid ""
@@ -464,7 +464,7 @@ msgstr ""
 
 #: lib/App/Sqitch/Command/revert.pm:150
 msgid "Must specify a target revision in strict mode"
-msgstr ""
+msgstr "Du musst eine Zielrevision im strikten Modus spezifizieren."
 
 #: lib/App/Sqitch/Command/revert.pm:158
 #, fuzzy
@@ -697,7 +697,7 @@ msgid "Unknown date format \"{format}\""
 msgstr "Unbekanntes Datumsformat \"{format}\""
 
 #: lib/App/Sqitch/Engine.pm:168 lib/App/Sqitch/Engine.pm:183
-#: lib/App/Sqitch/Role/TargetConfigCommand.pm:162 lib/App/Sqitch/Target.pm:251
+#: lib/App/Sqitch/Role/TargetConfigCommand.pm:162 lib/App/Sqitch/Target.pm:254
 msgid "No engine specified; specify via target or core.engine"
 msgstr ""
 "Keine Engine angegeben. Bitte gib eine via \"target\" oder \"core.engine\" an"
@@ -750,7 +750,7 @@ msgstr "Wende Änderungen nach {destination} an"
 
 #: lib/App/Sqitch/Engine.pm:275
 msgid "Will deploy the following changes:"
-msgstr ""
+msgstr "Du wirst die folgenden Änderungen anwenden:"
 
 #: lib/App/Sqitch/Engine.pm:288
 #, perl-brace-format
@@ -759,7 +759,7 @@ msgstr "Unbekannter Anwendungsmodus: \"{mode}\""
 
 #: lib/App/Sqitch/Engine.pm:316
 msgid "Missing required parameter $prompt_default"
-msgstr ""
+msgstr "Es fehlt der benötigte Parameter $prompt_default"
 
 #: lib/App/Sqitch/Engine.pm:344
 #, perl-brace-format
@@ -778,11 +778,11 @@ msgstr "Kehre Änderungen an {destination} um nach {change}"
 
 #: lib/App/Sqitch/Engine.pm:375 lib/App/Sqitch/Engine.pm:405
 msgid "Will revert the following changes:"
-msgstr ""
+msgstr "Dies wird folgende Änderungen rückgängig machen:"
 
 #: lib/App/Sqitch/Engine.pm:378 lib/App/Sqitch/Engine.pm:408
 msgid "Would revert the following changes:"
-msgstr ""
+msgstr "Wird folgende Änderungen rückgängig machen:"
 
 #: lib/App/Sqitch/Engine.pm:382 lib/App/Sqitch/Engine.pm:412
 msgid "Nothing reverted"
@@ -976,6 +976,8 @@ msgid ""
 "Blocked by another instance of Sqitch working on {dest}; waiting {secs} "
 "seconds..."
 msgstr ""
+"Geblockt von einer anderen Sqitch Instanz auf {dest}; Warte {secs} "
+"Sekunden..."
 
 #: lib/App/Sqitch/Engine.pm:1135
 #, perl-brace-format
@@ -983,6 +985,8 @@ msgid ""
 "Timed out waiting {secs} seconds for another instance of Sqitch to finish "
 "work on {dest}"
 msgstr ""
+"Zeit nach {secs} Sekunden abgelaufen um auf eine andere Sqitch Instanz auf "
+"{dest} zu warten."
 
 #: lib/App/Sqitch/Engine.pm:1194
 #, perl-brace-format
@@ -1139,11 +1143,12 @@ msgstr ""
 msgid "Database name missing in URI \"{uri}\""
 msgstr "Name der Datenbank fehlt in URI \"{uri}\""
 
-#: lib/App/Sqitch/Engine/mysql.pm:489
+#: lib/App/Sqitch/Engine/mysql.pm:518
 msgid "Insufficient permissions to create the checkit() function; skipping."
 msgstr ""
+"Unzureichende Berechtigung um checkit() Funktion zu erstellen; Überspringe."
 
-#: lib/App/Sqitch/Engine/pg.pm:202 lib/App/Sqitch/Engine/snowflake.pm:297
+#: lib/App/Sqitch/Engine/pg.pm:202 lib/App/Sqitch/Engine/snowflake.pm:298
 #: lib/App/Sqitch/Engine/vertica.pm:137
 #, perl-brace-format
 msgid "Sqitch schema \"{schema}\" already exists"
@@ -1159,8 +1164,10 @@ msgid ""
 "Because the \"changes\" table does not exist, Sqitch will now initialize the "
 "database to create its registry tables."
 msgstr ""
+"Weil die \"changes\" Tabelle nicht existiert, wird Sqitch jetzt die "
+"Datenbank initialisieren um die Registry Tabellen zu erstellen."
 
-#: lib/App/Sqitch/Engine/snowflake.pm:121
+#: lib/App/Sqitch/Engine/snowflake.pm:120
 msgid "Cannot determine Snowflake account name"
 msgstr "Kann Namen für Snowflake-Benutzerkonto nicht herausfinden"
 
@@ -1345,7 +1352,7 @@ msgstr ""
 #: lib/App/Sqitch/Plan.pm:360
 #, perl-brace-format
 msgid "Tag \"{tag}\" contains illegal character {sep}"
-msgstr ""
+msgstr "Tag \"{tag}\" enthält illegale Zeichen {sep}"
 
 #: lib/App/Sqitch/Plan.pm:369
 #, perl-brace-format
@@ -1585,6 +1592,8 @@ msgid ""
 "\"{command}\" cannot be used in strict mode.\\nUse explicity revert and "
 "deploy commands instead."
 msgstr ""
+"\"{command}\" kann im strikten Modus nicht verwendet werden.\\n Verwende "
+"Revert und Deploy Kommandos explizit."
 
 #: lib/App/Sqitch/Role/TargetConfigCommand.pm:96
 #, perl-brace-format
@@ -1631,7 +1640,7 @@ msgstr ""
 "Kann nicht initialisieren da Projekt \"{project}\" bereits in {file} "
 "initialisiert wurde"
 
-#: lib/App/Sqitch/Target.pm:254
+#: lib/App/Sqitch/Target.pm:257
 msgid ""
 "No project configuration found. Run the \"init\" command to initialize a "
 "project"
@@ -1639,17 +1648,17 @@ msgstr ""
 "Fehlende Projektkonfiguration. Bitte führe den \"init\"-Befehl aus, um das "
 "Projekt zu initialisieren"
 
-#: lib/App/Sqitch/Target.pm:276
+#: lib/App/Sqitch/Target.pm:279
 #, perl-brace-format
 msgid "Cannot find target \"{target}\""
 msgstr "Kann Ziel \"{target}\" nicht finden"
 
-#: lib/App/Sqitch/Target.pm:282
+#: lib/App/Sqitch/Target.pm:285
 #, perl-brace-format
 msgid "No URI associated with target \"{target}\""
 msgstr "Keine URI mit Ziel \"{target}\" verknüpft"
 
-#: lib/App/Sqitch/Target.pm:291
+#: lib/App/Sqitch/Target.pm:294
 #, perl-brace-format
 msgid "No engine specified by URI {uri}; URI must start with \"db:$engine:\""
 msgstr ""
