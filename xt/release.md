@@ -171,7 +171,7 @@ Update the Sqitch Homebrew tap with the new version.
     for it
 
     ```
-    curl -O https://www.cpan.org/authors/id/D/DW/DWHEELER/App-Sqitch-v$VERSION.tar.gz
+    curl -O https://cpan.metacpan.org/authors/id/D/DW/DWHEELER/App-Sqitch-v$VERSION.tar.gz
     shasum -a 256 App-Sqitch-v$VERSION.tar.gz
     ```
 

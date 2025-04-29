@@ -1,5 +1,7 @@
 Revision history for Perl extension App::Sqitch
 
+1.5.2  Not yet Released
+
 1.5.2  2025-04-29T15:13:35Z
      - Added missing German translations, thanks to @0xflotus for the PR
        (#873)!
