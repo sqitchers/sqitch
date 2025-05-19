@@ -300,26 +300,26 @@ Boolean indicating whether or not to verify each change after deploying it.
 
 Deploy mode. The supported values are the same as for the C<--mode> option.
 
-=item C<[rebase.no_prompt]>
+=item C<rebase.no_prompt>
 
-=item C<[revert.no_prompt]>
+=item C<revert.no_prompt>
 
 A boolean value indicating whether or not to disable the prompt before
 executing the revert. The C<rebase.no_prompt> variable takes precedence over
 C<revert.no_prompt>, and both may of course be overridden by C<-y>.
 
-=item C<[rebase.prompt_accept]>
+=item C<rebase.prompt_accept>
 
-=item C<[revert.prompt_accept]>
+=item C<revert.prompt_accept>
 
 A boolean value indicating whether default reply to the prompt before
 executing the revert should be "yes" or "no". The C<rebase.prompt_accept>
 variable takes precedence over C<revert.prompt_accept>, and both default to
 true, meaning to accept the revert by default.
 
-=item C<[rebase.strict]>
+=item C<rebase.strict>
 
-=item C<[revert.strict]>
+=item C<revert.strict>
 
 A boolean value that, when true, disables the C<revert> command. The
 C<revert.strict> variable takes precedence over C<revert.strict>.
