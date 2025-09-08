@@ -1,7 +1,7 @@
 
 CREATE TABLE releases (
     version         REAL COMMENT 'Version of the Sqitch registry.' PRIMARY KEY,
-    installed_at    DATETIME64(6, 'UTC') NOT NULL DEFAULT  now64(6, 'UTC')
+    installed_at    DATETIME64(6, 'UTC') NOT NULL DEFAULT now64(6, 'UTC')
                     COMMENT 'Date the registry release was installed.',
     installer_name  TEXT                 NOT NULL
                     COMMENT 'Name of the user who installed the registry release.',
@@ -14,7 +14,7 @@ CREATE TABLE projects (
     project         TEXT        COMMENT 'Unique Name of a project.' PRIMARY KEY,
     uri             TEXT                 NULL
                     COMMENT 'Optional project URI',
-    created_at      DATETIME64(6, 'UTC') NOT NULL DEFAULT  now64(6, 'UTC')
+    created_at      DATETIME64(6, 'UTC') NOT NULL DEFAULT now64(6, 'UTC')
                     COMMENT 'Date the project was added to the database.',
     creator_name    TEXT                 NOT NULL
                     COMMENT 'Name of the user who added the project.',
@@ -33,7 +33,7 @@ CREATE TABLE changes (
                     COMMENT 'Name of the Sqitch project to which the change belongs.',
     note            TEXT        NOT NULL DEFAULT ''
                     COMMENT 'Description of the change.',
-    committed_at    DATETIME64(6, 'UTC') NOT NULL DEFAULT  now64(6, 'UTC')
+    committed_at    DATETIME64(6, 'UTC') NOT NULL DEFAULT now64(6, 'UTC')
                     COMMENT 'Date the change was deployed.',
     committer_name  TEXT        NOT NULL
                     COMMENT 'Name of the user who deployed the change.',
@@ -58,7 +58,7 @@ CREATE TABLE tags (
                     COMMENT 'ID of last change deployed before the tag was applied.',
     note            TEXT        NOT NULL DEFAULT ''
                     COMMENT 'Description of the tag.',
-    committed_at    DATETIME64(6, 'UTC') NOT NULL DEFAULT  now64(6, 'UTC')
+    committed_at    DATETIME64(6, 'UTC') NOT NULL DEFAULT now64(6, 'UTC')
                     COMMENT 'Date the tag was applied to the database.',
     committer_name  TEXT        NOT NULL
                     COMMENT 'Name of the user who applied the tag.',
@@ -110,7 +110,7 @@ CREATE TABLE events (
                     COMMENT 'Array of the names of conflicting changes.',
     tags            Array(TEXT)          NOT NULL DEFAULT '[]'
                     COMMENT 'Tags associated with the change.',
-    committed_at    DATETIME64(6, 'UTC') NOT NULL DEFAULT  now64(6, 'UTC')
+    committed_at    DATETIME64(6, 'UTC') NOT NULL DEFAULT now64(6, 'UTC')
                     COMMENT 'Date the event was committed.',
     committer_name  TEXT                 NOT NULL
                     COMMENT 'Name of the user who committed the event.',

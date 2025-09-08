@@ -1,0 +1,339 @@
+package App::Sqitch::Engine::clickhouse;
+
+use 5.010;
+use strict;
+use warnings;
+use utf8;
+use Try::Tiny;
+use App::Sqitch::X qw(hurl);
+use Locale::TextDomain qw(App-Sqitch);
+use App::Sqitch::Plan::Change;
+use Path::Class;
+use Moo;
+use App::Sqitch::Types qw(DBH URIDB ArrayRef Str HashRef);
+use namespace::autoclean;
+use List::MoreUtils qw(firstidx);
+
+extends 'App::Sqitch::Engine';
+
+# VERSION
+
+has registry_uri => (
+    is       => 'ro',
+    isa      => URIDB,
+    lazy     => 1,
+    default  => sub {
+        my $self = shift;
+        my $uri = $self->uri->clone;
+        $uri->dbname($self->registry);
+        return $uri;
+    },
+);
+
+sub registry_destination {
+    my $uri = shift->registry_uri;
+    if ($uri->password) {
+        $uri = $uri->clone;
+        $uri->password(undef);
+    }
+    return $uri->as_string;
+}
+
+has _clickcnf => (
+    is => 'rw',
+    isa     => HashRef,
+    default => sub {
+        # XXX Need to create a module to parse the ClickHouse CLI format.
+        # https://clickhouse.com/docs/interfaces/cli#configuration_files
+        return {}
+    },
+);
+
+sub _def_user { $ENV{CLICKHOUSE_USER} || $_[0]->_clickcnf->{user} || $_[0]->sqitch->sysuser }
+sub _def_pass { $ENV{CLICKHOUSE_PASSWORD} || shift->_clickcnf->{password} }
+
+has dbh => (
+    is      => 'rw',
+    isa     => DBH,
+    lazy    => 1,
+    default => sub {
+        my $self = shift;
+        $self->use_driver;
+        return DBI->connect($self->_dsn, $self->username, $self->password, {
+            PrintError  => 0,
+            RaiseError  => 0,
+            AutoCommit  => 1,
+            HandleError => $self->error_handler,
+        });
+    }
+);
+
+has _ts_default => (
+    is      => 'ro',
+    isa     => Str,
+    lazy    => 1,
+    default => sub { q{now64(6, 'UTC')} },
+);
+
+# Need to wait until dbh and _ts_default are defined.
+with 'App::Sqitch::Role::DBIEngine';
+
+has _cli => (
+    is         => 'ro',
+    isa        => ArrayRef,
+    lazy       => 1,
+    default    => sub {
+        my $self = shift;
+        my $uri  = $self->uri;
+
+        $self->sqitch->warn(__x
+            'Database name missing in URI "{uri}"',
+            uri => $uri
+        ) unless $uri->dbname;
+
+        my @ret = ($self->client);
+        push @ret => 'client' if $ret[0] !~ /-client$/;
+        # Use _port instead of port so it's empty if no port is in the URI.
+        # https://github.com/sqitchers/sqitch/issues/675
+        for my $spec (
+            [ user     => $self->username ],
+            [ password => $self->password ],
+            [ database => $uri->dbname    ],
+            [ host     => $uri->host      ],
+            [ port     => $uri->_port     ],
+        ) {
+            push @ret, "--$spec->[0]" => $spec->[1] if $spec->[1];
+        }
+
+        # Options to keep things quiet.
+        push @ret => (
+            '--progress' => 'off',
+            '--progress-table' => 'off',
+            '--disable_suggestion',
+        );
+
+        # Add relevant query args.
+        if (my @p = $uri->query_params) {
+            while (@p) {
+                my ($k, $v) = (shift @p, shift @p);
+                push @ret => '--secure' if lc $k eq 'sslmode' && $v eq 'require';
+            }
+        }
+        return \@ret;
+    },
+);
+
+sub cli { @{ shift->_cli } }
+
+sub key    { 'clickhouse' }
+sub name   { 'ClickHouse' }
+sub driver { 'DBD::ODBC 1.59' }
+# XXX Search path for clickhouse-client or just clickhouse?
+sub default_client { 'clickhouse-client' }
+
+sub _char2ts { $_[1]->set_time_zone('UTC')->iso8601 }
+
+sub _ts2char_format {
+    q{formatDateTime(%s, 'year:%%Y:month:%%m:day:%%d:hour:%%H:minute:%%i:second:%%S:time_zone:UTC')};
+}
+
+sub _version_query { 'SELECT CAST(ROUND(MAX(version), 1) AS CHAR) FROM releases' }
+
+sub _initialized {
+    my $self = shift;
+    return $self->dbh->selectcol_arrayref(q{
+        SELECT true
+          FROM information_schema.tables
+         WHERE TABLE_CATALOG = current_database()
+           AND TABLE_SCHEMA  = UPPER(?)
+           AND TABLE_NAME    = UPPER(?)
+     }, undef, $self->registry, 'changes')->[0];
+}
+
+sub _initialize {
+    my $self   = shift;
+    hurl engine => __x(
+        'Sqitch database {database} already initialized',
+        database => $self->registry,
+    ) if $self->initialized;
+
+    # Create the Sqitch database if it does not exist.
+    (my $db = $self->registry) =~ s/"/""/g;
+    $self->_run(
+        '--execute'  => sprintf(
+            q{CREATE DATABASE IF NOT EXISTS "%s" COMMENT 'Sqitch database deployment metadata v%s'},
+            $self->registry, $self->registry_release,
+        ),
+    );
+
+    # Deploy the registry to the Sqitch database.
+    $self->run_upgrade( file(__FILE__)->dir->file('clickhouse.sql') );
+    $self->_set_initialized(1);
+    $self->dbh->do('USE ' . $self->dbh->quote_identifier($self->registry));
+    $self->_register_release;
+}
+
+sub _no_table_error  {
+    return $DBI::state && $DBI::state eq '42S02'; # ERRCODE_UNDEFINED_TABLE
+}
+
+sub _no_column_error  {
+    return $DBI::state && $DBI::state eq '42703'; # ERRCODE_UNDEFINED_COLUMN
+}
+
+sub _unique_error  {
+    # ClickHouse doe not support unique constraints.
+    return 0;
+}
+
+sub _regex_op { 'REGEXP' }
+
+sub _listagg_format { q{groupArraySorted(10000)(%1$s)} }
+
+sub _run {
+    my $self = shift;
+    my $sqitch = $self->sqitch;
+    my $pass   = $self->password or return $sqitch->run( $self->cli, @_ );
+    local $ENV{CLICKHOUSE_PASSWORD} = $pass;
+    return $sqitch->run( $self->cli, @_ );
+}
+
+sub _capture {
+    my $self   = shift;
+    my $sqitch = $self->sqitch;
+    my $pass   = $self->password or return $sqitch->capture( $self->cli, @_ );
+    local $ENV{CLICKHOUSE_PASSWORD} = $pass;
+    return $sqitch->capture( $self->cli, @_ );
+}
+
+sub _spool {
+    my $self   = shift;
+    my @fh     = (shift);
+    my $sqitch = $self->sqitch;
+    my $pass   = $self->password or return $sqitch->spool( \@fh, $self->cli, @_ );
+    local $ENV{CLICKHOUSE_PASSWORD} = $pass;
+    return $sqitch->spool( \@fh, $self->cli, @_ );
+}
+
+sub run_file {
+    my ($self, $file) = @_;
+    $self->_run('--query-file' => $file);
+}
+
+sub run_verify {
+    my ($self, $file) = @_;
+    # Suppress STDOUT unless we want extra verbosity.
+    my $meth = $self->can($self->sqitch->verbosity > 1 ? '_run' : '_capture');
+    $self->$meth('--query-file' => $file);
+}
+
+sub run_upgrade {
+    my ($self, $file) = @_;
+    my @cmd = $self->cli;
+
+    if ((my $idx = firstidx { $_ eq '--database' } @cmd) > 0) {
+        # Replace the database name with the registry database.
+        $cmd[$idx + 1] = $self->registry;
+    } else {
+        # Append the registry database name.
+        push @cmd => '--database', $self->registry;
+    }
+
+    return $self->sqitch->run(@cmd, '--query-file' => $file);
+}
+
+sub run_handle {
+    my ($self, $fh) = @_;
+    $self->_spool($fh);
+}
+
+1;
+
+__END__
+
+=head1 Name
+
+App::Sqitch::Engine::clickhouse - Sqitch ClickHouse Engine
+
+=head1 Synopsis
+
+  my $clickhouse = App::Sqitch::Engine->load( engine => 'clickhouse' );
+
+=head1 Description
+
+App::Sqitch::Engine::clickhouse provides the ClickHouse storage engine for Sqitch. It
+supports ClickHouse 5.1.0 and higher (best on 5.6.4 and higher), as well as MariaDB
+5.3.0 and higher.
+
+=head1 Interface
+
+=head2 Instance Methods
+
+=head3 C<clickhouse>
+
+Returns a list containing the C<clickhouse> client and options to be passed to it.
+Used internally when executing scripts. Query parameters in the URI that map
+to C<clickhouse> client options will be passed to the client, as follows:
+
+=over
+
+=item * C<clickhouse_compression=1>: C<--compress>
+
+=item * C<clickhouse_ssl=1>: C<--ssl>
+
+=item * C<clickhouse_connect_timeout>: C<--connect_timeout>
+
+=item * C<clickhouse_init_command>: C<--init-command>
+
+=item * C<clickhouse_socket>: C<--socket>
+
+=item * C<clickhouse_ssl_client_key>: C<--ssl-key>
+
+=item * C<clickhouse_ssl_client_cert>: C<--ssl-cert>
+
+=item * C<clickhouse_ssl_ca_file>: C<--ssl-ca>
+
+=item * C<clickhouse_ssl_ca_path>: C<--ssl-capath>
+
+=item * C<clickhouse_ssl_cipher>: C<--ssl-cipher>
+
+=back
+
+=head3 C<username>
+
+=head3 C<password>
+
+Overrides the methods provided by the target so that, if the target has
+no username or password, Sqitch looks them up in the
+L<F</etc/my.cnf> and F<~/.my.cnf> files|https://dev.clickhouse.com/doc/refman/5.7/en/password-security-user.html>.
+These files must limit access only to the current user (C<0600>). Sqitch will
+look for a username and password under the C<[client]> and C<[clickhouse]>
+sections, in that order.
+
+=head1 Author
+
+David E. Wheeler <david@justatheory.com>
+
+=head1 License
+
+Copyright (c) 2012-2025 David E. Wheeler, 2012-2021 iovation Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+=cut
