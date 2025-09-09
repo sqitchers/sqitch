@@ -59,14 +59,14 @@ my $sqitch_uri = $uri->clone;
 $sqitch_uri->dbname('sqitch');
 is $ch->registry_uri, $sqitch_uri, 'registry_uri should be correct';
 is $ch->uri, $uri, qq{uri should be "$uri"};
-is $ch->_dsn, 'dbi:ODBC:DSN=default', 'DSN should use DBD::ODBC';
+is $ch->_dsn, 'dbi:ODBC:DSN=sqitch', 'DSN should use DBD::ODBC with registry database';
 is $ch->registry_destination, 'db:clickhouse:sqitch',
     'registry_destination should be the same as registry_uri';
 
 my @std_opts = (
     '--progress' => 'off',
-    '--progress-table' => 'off',
     '--disable_suggestion',
+    '--progress-table' => 'off',
 );
 
 my $mock_sqitch = Test::MockModule->new('App::Sqitch');
@@ -79,8 +79,6 @@ is_deeply $warning, [__x
     'Database name missing in URI "{uri}"',
      uri => $ch->uri
 ], 'Should have emitted a warning for no database name';
-
-
 
 $mock_sqitch->unmock_all;
 
@@ -98,12 +96,15 @@ isa_ok $ch = $CLASS->new(
 ENV: {
     local $ENV{CLICKHOUSE_USER} = 'kamala';
     local $ENV{CLICKHOUSE_PASSWORD} = '__KAMALA';
+    local $ENV{CLICKHOUSE_HOST} = 'sqitch.sql';
     ok my $ch = $CLASS->new(sqitch => $sqitch, target => $target),
         'Create engine with env vars set set';
     is $ch->password, $ENV{CLICKHOUSE_PASSWORD},
         'Password should be set from environment';
     is $ch->username, $ENV{CLICKHOUSE_USER},
         'Username should be set from environment';
+     is $ch->uri->host, $ENV{CLICKHOUSE_HOST},
+        'URI should reflect CLICKHOUSE_HOST';
 }
 
 ##############################################################################
@@ -238,7 +239,7 @@ is_deeply \@capture, [$ch->cli, qw(foo bar baz)],
 ##############################################################################
 # Test file and handle running.
 ok $ch->run_file('foo/bar.sql'), 'Run foo/bar.sql';
-is_deeply \@run, [$ch->cli, '--query-file', 'foo/bar.sql'],
+is_deeply \@run, [$ch->cli, '--queries-file', 'foo/bar.sql'],
     'File should be passed to run()';
 @run = ();
 
@@ -249,13 +250,13 @@ is_deeply \@spool, [['FH'], $ch->cli],
 
 # Verify should go to capture unless verbosity is > 1.
 ok $ch->run_verify('foo/bar.sql'), 'Verify foo/bar.sql';
-is_deeply \@capture, [$ch->cli, '--query-file', 'foo/bar.sql'],
+is_deeply \@capture, [$ch->cli, '--queries-file', 'foo/bar.sql'],
     'Verify file should be passed to capture()';
 @capture = ();
 
 $mock_sqitch->mock(verbosity => 2);
 ok $ch->run_verify('foo/bar.sql'), 'Verify foo/bar.sql again';
-is_deeply \@run, [$ch->cli, '--query-file', 'foo/bar.sql'],
+is_deeply \@run, [$ch->cli, '--queries-file', 'foo/bar.sql'],
     'Verify file should be passed to run() for high verbosity';
 @run = ();
 
@@ -296,7 +297,7 @@ DBI: {
     local *DBI::state;
     ok !$ch->_no_table_error, 'Should have no table error';
     ok !$ch->_no_column_error, 'Should have no column error';
-    $DBI::state = '42S02';
+    $DBI::state = 'HY000';
     ok $ch->_no_table_error, 'Should now have table error';
     ok !$ch->_no_column_error, 'Still should have no column error';
     $DBI::state = '42703';
@@ -304,7 +305,6 @@ DBI: {
     ok $ch->_no_column_error, 'Should now have no column error';
     ok !$ch->_unique_error, 'Unique constraints not supported by Snowflake';
 }
-
 
 is_deeply [$ch->_limit_offset(8, 4)],
     [['LIMIT ?', 'OFFSET ?'], [8, 4]],
@@ -365,7 +365,7 @@ UPGRADE: {
     # Test the upgrade.
     ok $ch->run_upgrade($fn), 'Run the upgrade';
     is $tmp_fh, undef, 'Should not have created a temp file';
-    is_deeply \@run, [@cmd, '--query-file', $fn],
+    is_deeply \@run, [@cmd, '--queries-file', $fn],
         'It should have run the unchanged file';
 
     $mock_sqitch->unmock_all;
@@ -389,6 +389,7 @@ END {
 
     return unless $dbh->{Active};
     $dbh->do("DROP DATABASE IF EXISTS $_") for ($db, $reg1, $reg2);
+    $dbh->disconnect;
 }
 
 $uri = URI->new(
@@ -422,7 +423,7 @@ DBIEngineTest->run(
         # Make sure we have clickhouse and can connect to the database.
         my $version = $self->sqitch->capture( $self->client, '--version' );
         say "# Detected CLI $version";
-        say '# Connected to ClickHouse ' . $self->_capture('--execute' => 'SELECT version()');
+        say '# Connected to ClickHouse ' . $self->_capture('--query' => 'SELECT version()');
         1;
     },
     engine_err_regex  => qr/^You have an error /,

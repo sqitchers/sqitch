@@ -18,6 +18,18 @@ extends 'App::Sqitch::Engine';
 
 # VERSION
 
+has uri => (
+    is       => 'ro',
+    isa      => URIDB,
+    lazy     => 1,
+    default  => sub {
+        my $self = shift;
+        my $uri = $self->SUPER::uri;
+        $uri->host($ENV{CLICKHOUSE_HOST}) if !$uri->host  && $ENV{CLICKHOUSE_HOST};
+        return $uri;
+    },
+);
+
 has registry_uri => (
     is       => 'ro',
     isa      => URIDB,
@@ -51,6 +63,9 @@ has _clickcnf => (
 
 sub _def_user { $ENV{CLICKHOUSE_USER} || $_[0]->_clickcnf->{user} || $_[0]->sqitch->sysuser }
 sub _def_pass { $ENV{CLICKHOUSE_PASSWORD} || shift->_clickcnf->{password} }
+sub _dsn { shift->registry_uri->dbi_dsn }
+
+use Test::More;
 
 has dbh => (
     is      => 'rw',
@@ -108,8 +123,8 @@ has _cli => (
         # Options to keep things quiet.
         push @ret => (
             '--progress' => 'off',
-            '--progress-table' => 'off',
             '--disable_suggestion',
+            '--progress-table' => 'off',
         );
 
         # Add relevant query args.
@@ -141,13 +156,18 @@ sub _version_query { 'SELECT CAST(ROUND(MAX(version), 1) AS CHAR) FROM releases'
 
 sub _initialized {
     my $self = shift;
-    return $self->dbh->selectcol_arrayref(q{
-        SELECT true
-          FROM information_schema.tables
-         WHERE TABLE_CATALOG = current_database()
-           AND TABLE_SCHEMA  = UPPER(?)
-           AND TABLE_NAME    = UPPER(?)
-     }, undef, $self->registry, 'changes')->[0];
+    return try {
+        $self->dbh->selectcol_arrayref(q{
+            SELECT true
+             FROM information_schema.tables
+            WHERE TABLE_CATALOG = current_database()
+              AND TABLE_SCHEMA  = ?
+              AND TABLE_NAME    = ?
+        }, undef, $self->registry, 'changes')->[0]
+    } catch {
+        return 0 if $DBI::state && $DBI::state eq 'HY000';
+        die $_;        
+    }
 }
 
 sub _initialize {
@@ -160,7 +180,7 @@ sub _initialize {
     # Create the Sqitch database if it does not exist.
     (my $db = $self->registry) =~ s/"/""/g;
     $self->_run(
-        '--execute'  => sprintf(
+        '--query' => sprintf(
             q{CREATE DATABASE IF NOT EXISTS "%s" COMMENT 'Sqitch database deployment metadata v%s'},
             $self->registry, $self->registry_release,
         ),
@@ -168,13 +188,12 @@ sub _initialize {
 
     # Deploy the registry to the Sqitch database.
     $self->run_upgrade( file(__FILE__)->dir->file('clickhouse.sql') );
-    $self->_set_initialized(1);
-    $self->dbh->do('USE ' . $self->dbh->quote_identifier($self->registry));
     $self->_register_release;
 }
 
 sub _no_table_error  {
-    return $DBI::state && $DBI::state eq '42S02'; # ERRCODE_UNDEFINED_TABLE
+    # /HTTP status code: 404$/
+    return $DBI::state && $DBI::state eq 'HY000'; # ERRCODE_UNDEFINED_TABLE
 }
 
 sub _no_column_error  {
@@ -217,14 +236,14 @@ sub _spool {
 
 sub run_file {
     my ($self, $file) = @_;
-    $self->_run('--query-file' => $file);
+    $self->_run('--queries-file' => $file);
 }
 
 sub run_verify {
     my ($self, $file) = @_;
     # Suppress STDOUT unless we want extra verbosity.
     my $meth = $self->can($self->sqitch->verbosity > 1 ? '_run' : '_capture');
-    $self->$meth('--query-file' => $file);
+    $self->$meth('--queries-file' => $file);
 }
 
 sub run_upgrade {
@@ -239,7 +258,7 @@ sub run_upgrade {
         push @cmd => '--database', $self->registry;
     }
 
-    return $self->sqitch->run(@cmd, '--query-file' => $file);
+    return $self->sqitch->run(@cmd, '--queries-file' => $file);
 }
 
 sub run_handle {
