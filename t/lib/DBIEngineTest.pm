@@ -597,7 +597,7 @@ sub run {
         ]], 'The tag should be the same';
 
         # Delete that tag.
-        $engine->dbh->do('DELETE FROM tags');
+        $engine->dbh->do('DELETE FROM tags WHERE 1=1');
         is_deeply all_tags($engine), [], 'Should now have no tags';
 
         # Put it back.
@@ -748,7 +748,7 @@ sub run {
         ok $req->resolved_id($change->id),      'Set resolved ID in required depend';
         # Send this change back in time.
         $engine->dbh->do(
-            'UPDATE changes SET committed_at = ?',
+            'UPDATE changes SET committed_at = ? WHERE 1=1',
                 undef, '2013-03-30 00:47:47',
         );
         ok $engine->log_deploy_change($change2),    'Deploy second change';

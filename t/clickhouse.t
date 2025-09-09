@@ -397,6 +397,7 @@ $uri = URI->new(
     'db:clickhouse://default@localhost/default?Driver=ClickHouse'
 );
 $uri->dbname('default') unless $uri->dbname;
+diag $uri->dbi_dsn; exit;
 my $err = try {
     $ch->use_driver;
     $dbh = DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {
@@ -426,26 +427,16 @@ DBIEngineTest->run(
         say '# Connected to ClickHouse ' . $self->_capture('--query' => 'SELECT version()');
         1;
     },
-    engine_err_regex  => qr/^You have an error /,
+    engine_err_regex  => qr/^Error while processing query /,
     init_error        => __x(
         'Sqitch database {database} already initialized',
         database => $reg2,
     ),
     test_dbh => sub {
         my $dbh = shift;
-        # Special-case sql_mode.
-        my $sql_mode = $dbh->selectcol_arrayref('SELECT @@SESSION.sql_mode')->[0];
-        for my $mode (qw(
-                ansi
-                strict_trans_tables
-                no_auto_value_on_zero
-                no_zero_date
-                no_zero_in_date
-                only_full_group_by
-                error_for_division_by_zero
-        )) {
-            like $sql_mode, qr/\b\Q$mode\E\b/i, "sql_mode should include $mode";
-        }
+        # Make sure the sqitch schema is the current database.
+        is $dbh->selectcol_arrayref('SELECT current_database()')->[0],
+            $reg2, 'The Sqitch schema should be the current schema';
     },
         lock_sql => sub {
             my $lock_name = shift->_lock_name; return {

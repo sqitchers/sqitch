@@ -152,6 +152,18 @@ sub _ts2char_format {
     q{formatDateTime(%s, 'year:%%Y:month:%%m:day:%%d:hour:%%H:minute:%%i:second:%%S:time_zone:UTC')};
 }
 
+sub _log_tags_param {
+    [ map { $_->format_name } $_[1]->tags ];
+}
+
+sub _log_requires_param {
+    [ map { $_->as_string } $_[1]->requires ];
+}
+
+sub _log_conflicts_param {
+    [ map { $_->as_string } $_[1]->conflicts ];
+}
+
 sub _version_query { 'SELECT CAST(ROUND(MAX(version), 1) AS CHAR) FROM releases' }
 
 sub _initialized {
@@ -193,7 +205,7 @@ sub _initialize {
 
 sub _no_table_error  {
     # /HTTP status code: 404$/
-    return $DBI::state && $DBI::state eq 'HY000'; # ERRCODE_UNDEFINED_TABLE
+    return $DBI::state && $DBI::state eq 'HY000'; # General Error
 }
 
 sub _no_column_error  {
@@ -208,6 +220,127 @@ sub _unique_error  {
 sub _regex_op { 'REGEXP' }
 
 sub _listagg_format { q{groupArraySorted(10000)(%1$s)} }
+
+sub _cid {
+    my ( $self, $ord, $offset, $project ) = @_;
+
+    my $off = $offset ? " OFFSET $offset" : '';
+    return try {
+        return $self->dbh->selectcol_arrayref(qq{
+            SELECT change_id
+              FROM changes
+             WHERE project = ?
+             ORDER BY committed_at $ord
+             LIMIT 1$off
+        }, undef, $project || $self->plan->project)->[0];
+    } catch {
+        return if $self->_no_table_error && !$self->initialized;
+        die $_;
+    };
+}
+
+sub _log_event {
+    my ( $self, $event, $change, $tags, $requires, $conflicts) = @_;
+    my $dbh    = $self->dbh;
+    my $sqitch = $self->sqitch;
+
+    $tags      ||= $self->_log_tags_param($change);
+    $requires  ||= $self->_log_requires_param($change);
+    $conflicts ||= $self->_log_conflicts_param($change);
+
+    # Use the array() constructor to insert arrays of values.
+    my $tag_ph = 'array('. join(', ', ('?') x @{ $tags      }) . ')';
+    my $req_ph = 'array('. join(', ', ('?') x @{ $requires  }) . ')';
+    my $con_ph = 'array('. join(', ', ('?') x @{ $conflicts }) . ')';
+    my $ts     = $self->_ts_default;
+
+    $dbh->do(qq{
+        INSERT INTO events (
+              event
+            , change_id
+            , change
+            , project
+            , note
+            , tags
+            , requires
+            , conflicts
+            , committer_name
+            , committer_email
+            , planned_at
+            , planner_name
+            , planner_email
+            , committed_at
+        )
+        VALUES (?, ?, ?, ?, ?, $tag_ph, $req_ph, $con_ph, ?, ?, ?, ?, ?, $ts)
+    }, undef,
+        $event,
+        $change->id,
+        $change->name,
+        $change->project,
+        $change->note,
+        @{ $tags      },
+        @{ $requires  },
+        @{ $conflicts },
+        $sqitch->user_name,
+        $sqitch->user_email,
+        $self->_char2ts( $change->timestamp ),
+        $change->planner_name,
+        $change->planner_email,
+    );
+
+    return $self;
+}
+
+sub changes_requiring_change {
+    my ( $self, $change ) = @_;
+    # NOTE: Query from DBIEngine doesn't work in ClickHouse:
+    #   DB::Exception: Current query is not supported yet, because can't find
+    #   correlated column [...] (NOT_IMPLEMENTED)
+    # Looks like it doesn't yet support correlated subqueries.
+    # The CTE-based query borrowed from Exasol seems to be fine, however.
+    return @{ $self->dbh->selectall_arrayref(q{
+        WITH tag AS (
+            SELECT tag, committed_at, project,
+                   ROW_NUMBER() OVER (partition by project ORDER BY committed_at) AS rnk
+              FROM tags
+        )
+        SELECT c.change_id, c.project, c.change, t.tag AS asof_tag
+          FROM dependencies d
+          JOIN changes  c ON c.change_id = d.change_id
+          LEFT JOIN tag t ON t.project   = c.project AND t.committed_at >= c.committed_at
+         WHERE d.dependency_id = ?
+           AND (t.rnk IS NULL OR t.rnk = 1)
+    }, { Slice => {} }, $change->id) };
+}
+
+sub name_for_change_id {
+    my ( $self, $change_id ) = @_;
+    # NOTE: Query from DBIEngine doesn't work in ClickHouse:
+    #   DB::Exception: Current query is not supported yet, because can't find \
+    #   correlated column '__table4.committed_at' in current header: [...] (NOT_IMPLEMENTED)
+    # Looks like it doesn't yet support correlated subqueries.
+    # The CTE-based query borrowed from Exasol seems to be fine, however.
+    return $self->dbh->selectcol_arrayref(q{
+        WITH tag AS (
+            SELECT tag, committed_at, project,
+                   ROW_NUMBER() OVER (partition by project ORDER BY committed_at) AS rnk
+              FROM tags
+        )
+        SELECT change || COALESCE(t.tag, '@HEAD')
+          FROM changes c
+          LEFT JOIN tag t ON c.project = t.project AND t.committed_at >= c.committed_at
+         WHERE change_id = ?
+           AND (t.rnk IS NULL OR t.rnk = 1)
+    }, undef, $change_id)->[0];
+}
+
+sub is_deployed_change {
+    my ( $self, $change ) = @_;
+    $self->dbh->selectcol_arrayref(
+        'SELECT 1 FROM changes WHERE change_id = ?',
+        undef, $change->id
+    )->[0];
+}
 
 sub _run {
     my $self = shift;

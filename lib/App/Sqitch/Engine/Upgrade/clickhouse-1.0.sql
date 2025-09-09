@@ -7,13 +7,11 @@ CREATE TABLE releases (
     installer_email TEXT                 NOT NULL
                     COMMENT 'Email address of the user who installed the registry release.'
 ) ENGINE = MergeTree
+  SETTINGS enable_block_number_column = 1, enable_block_offset_column = 1
   COMMENT 'Sqitch registry releases.';
 
 -- Add the script_hash column to the changes table. Copy change_id for now.
 ALTER TABLE changes ADD COLUMN script_hash TEXT COMMENT 'Deploy script SHA-1 hash.';
-ALTER TABLE changes MODIFY SETTING
-    enable_block_number_column = 1,
-    enable_block_offset_column = 1;
 UPDATE changes SET script_hash = change_id WHERE TRUE;
 
 -- Allow "merge" events.

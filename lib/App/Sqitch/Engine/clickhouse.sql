@@ -8,6 +8,7 @@ CREATE TABLE releases (
     installer_email TEXT                 NOT NULL
                     COMMENT 'Email address of the user who installed the registry release.'
 ) ENGINE = MergeTree
+  SETTINGS enable_block_number_column = 1, enable_block_offset_column = 1
   COMMENT 'Sqitch registry releases.';
 
 CREATE TABLE projects (
@@ -21,6 +22,7 @@ CREATE TABLE projects (
     creator_email   TEXT                 NOT NULL
                     COMMENT 'Email address of the user who added the project.'
 ) ENGINE = MergeTree
+  SETTINGS enable_block_number_column = 1, enable_block_offset_column = 1
   COMMENT 'Sqitch projects deployed to this database.';
 
 CREATE TABLE changes (
@@ -46,6 +48,7 @@ CREATE TABLE changes (
     planner_email   TEXT        NOT NULL
                     COMMENT 'Email address of the user who planned the change.'
 ) ENGINE = MergeTree
+  SETTINGS enable_block_number_column = 1, enable_block_offset_column = 1
   COMMENT 'Tracks the changes currently deployed to the database.';
 
 CREATE TABLE tags (
@@ -71,6 +74,7 @@ CREATE TABLE tags (
     planner_email   TEXT        NOT NULL
                     COMMENT 'Email address of the user who planned the tag.'
 ) ENGINE = MergeTree
+  SETTINGS enable_block_number_column = 1, enable_block_offset_column = 1
   COMMENT 'Tracks the tags currently applied to the database.';
 
 CREATE TABLE dependencies (
@@ -88,6 +92,7 @@ CREATE TABLE dependencies (
     )    
 ) ENGINE = MergeTree
   PRIMARY KEY (change_id, dependency)
+  SETTINGS enable_block_number_column = 1, enable_block_offset_column = 1
   COMMENT 'Tracks the tags currently applied to the database.';
 
 CREATE TABLE events (
@@ -124,4 +129,5 @@ CREATE TABLE events (
                     COMMENT 'Email address of the user who plan planned the change.',
 ) ENGINE = MergeTree
   PRIMARY KEY (committed_at, change_id)
+  SETTINGS enable_block_number_column = 1, enable_block_offset_column = 1
   COMMENT 'Contains full history of all deployment events.';
