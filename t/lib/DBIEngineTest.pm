@@ -175,7 +175,7 @@ sub run {
         ok $engine->initialized, 'Database should be initialized again';
         ok !$engine->needs_upgrade, 'Registry should not need upgrading';
 
-        is $engine->earliest_change_id, undef, 'Still no earlist change';
+        is $engine->earliest_change_id, undef, 'Still no earliest change';
         is $engine->latest_change_id, undef, 'Still no latest changes';
 
         # Make sure a second attempt to initialize dies.
@@ -343,9 +343,9 @@ sub run {
             'users',
             'engine',
             'User roles',
-            $engine->_log_requires_param($change),
-            $engine->_log_conflicts_param($change),
-            $engine->_log_tags_param($change),
+            reqs_for($change),
+            flicts_for($change),
+            tags_for($change),
             $sqitch->user_name,
             $sqitch->user_email,
             $change->planner_name,
@@ -418,9 +418,9 @@ sub run {
             change_id       => $change->id,
             change          => 'users',
             note            => 'User roles',
-            requires        => $engine->_log_requires_param($change),
-            conflicts       => $engine->_log_conflicts_param($change),
-            tags            => $engine->_log_tags_param($change),
+            requires        => reqs_for($change),
+            conflicts       => flicts_for($change),
+            tags            => tags_for($change),
             committer_name  => $sqitch->user_name,
             committer_email => $sqitch->user_email,
             committed_at    => dt_for_event($engine, 0),
@@ -486,9 +486,9 @@ sub run {
             'users',
             'engine',
             'User roles',
-            $engine->_log_requires_param($change),
-            $engine->_log_conflicts_param($change),
-            $engine->_log_tags_param($change),
+            reqs_for($change),
+            flicts_for($change),
+            tags_for($change),
             $sqitch->user_name,
             $sqitch->user_email,
             $change->planner_name,
@@ -511,9 +511,9 @@ sub run {
             change_id       => $change->id,
             change          => 'users',
             note            => 'User roles',
-            requires        => $engine->_log_requires_param($change),
-            conflicts       => $engine->_log_conflicts_param($change),
-            tags            => $engine->_log_tags_param($change),
+            requires        => reqs_for($change),
+            conflicts       => flicts_for($change),
+            tags            => tags_for($change),
             committer_name  => $sqitch->user_name,
             committer_email => $sqitch->user_email,
             committed_at    => dt_for_event($engine, 1),
@@ -543,9 +543,9 @@ sub run {
             'users',
             'engine',
             'User roles',
-            $engine->_log_requires_param($change),
-            $engine->_log_conflicts_param($change),
-            $engine->_log_tags_param($change),
+            reqs_for($change),
+            flicts_for($change),
+            tags_for($change),
             $sqitch->user_name,
             $sqitch->user_email,
             $change->planner_name,
@@ -563,9 +563,9 @@ sub run {
             change_id       => $change->id,
             change          => 'users',
             note            => 'User roles',
-            requires        => $engine->_log_requires_param($change),
-            conflicts       => $engine->_log_conflicts_param($change),
-            tags            => $engine->_log_tags_param($change),
+            requires        => reqs_for($change),
+            conflicts       => flicts_for($change),
+            tags            => tags_for($change),
             committer_name  => $sqitch->user_name,
             committer_email => $sqitch->user_email,
             committed_at    => dt_for_event($engine, 2),
@@ -667,9 +667,9 @@ sub run {
             'users',
             'engine',
             'User roles',
-            $engine->_log_requires_param($change),
-            $engine->_log_conflicts_param($change),
-            $engine->_log_tags_param($change),
+            reqs_for($change),
+            flicts_for($change),
+            tags_for($change),
             $user2_name,
             $user2_email,
             $change->planner_name,
@@ -680,9 +680,9 @@ sub run {
             'widgets',
             'engine',
             'All in',
-            $engine->_log_requires_param($change2),
-            $engine->_log_conflicts_param($change2),
-            $engine->_log_tags_param($change2),
+            reqs_for($change2),
+            flicts_for($change2),
+            tags_for($change2),
             $user2_name,
             $user2_email,
             $change2->planner_name,
@@ -761,9 +761,9 @@ sub run {
             change_id       => $change2->id,
             change          => 'widgets',
             note            => 'All in',
-            requires        => $engine->_log_requires_param($change2),
-            conflicts       => $engine->_log_conflicts_param($change2),
-            tags            => $engine->_log_tags_param($change2),
+            requires        => reqs_for($change2),
+            conflicts       => flicts_for($change2),
+            tags            => tags_for($change2),
             committer_name  => $user2_name,
             committer_email => $user2_email,
             committed_at    => dt_for_event($engine, 4),
@@ -776,9 +776,9 @@ sub run {
             change_id       => $change->id,
             change          => 'users',
             note            => 'User roles',
-            requires        => $engine->_log_requires_param($change),
-            conflicts       => $engine->_log_conflicts_param($change),
-            tags            => $engine->_log_tags_param($change),
+            requires        => reqs_for($change),
+            conflicts       => flicts_for($change),
+            tags            => tags_for($change),
             committer_name  => $user2_name,
             committer_email => $user2_email,
             committed_at    => dt_for_event($engine, 3),
@@ -908,9 +908,9 @@ sub run {
             change_id       => $change2->id,
             change          => 'widgets',
             note            => 'All in',
-            requires        => $engine->_log_requires_param($change2),
-            conflicts       => $engine->_log_conflicts_param($change2),
-            tags            => $engine->_log_tags_param($change2),
+            requires        => reqs_for($change2),
+            conflicts       => flicts_for($change2),
+            tags            => tags_for($change2),
             committer_name  => $user2_name,
             committer_email => $user2_email,
             committed_at    => dt_for_event($engine, 6),
@@ -923,9 +923,9 @@ sub run {
             change_id       => $change2->id,
             change          => 'widgets',
             note            => 'All in',
-            requires        => $engine->_log_requires_param($change2),
-            conflicts       => $engine->_log_conflicts_param($change2),
-            tags            => $engine->_log_tags_param($change2),
+            requires        => reqs_for($change2),
+            conflicts       => flicts_for($change2),
+            tags            => tags_for($change2),
             committer_name  => $user2_name,
             committer_email => $user2_email,
             committed_at    => dt_for_event($engine, 5),
@@ -1039,9 +1039,9 @@ sub run {
             change_id       => $barney->id,
             change          => 'barney',
             note            => 'Hello Barney',
-            requires        => $engine->_log_requires_param($barney),
-            conflicts       => $engine->_log_conflicts_param($barney),
-            tags            => $engine->_log_tags_param($barney),
+            requires        => reqs_for($barney),
+            conflicts       => flicts_for($barney),
+            tags            => tags_for($barney),
             committer_name  => $user2_name,
             committer_email => $user2_email,
             committed_at    => dt_for_event($engine, 8),
@@ -1054,9 +1054,9 @@ sub run {
             change_id       => $fred->id,
             change          => 'fred',
             note            => 'Hello Fred',
-            requires        => $engine->_log_requires_param($fred),
-            conflicts       => $engine->_log_conflicts_param($fred),
-            tags            => $engine->_log_tags_param($fred),
+            requires        => reqs_for($fred),
+            conflicts       => flicts_for($fred),
+            tags            => tags_for($fred),
             committer_name  => $user2_name,
             committer_email => $user2_email,
             committed_at    => dt_for_event($engine, 7),
@@ -1169,9 +1169,9 @@ sub run {
             change_id       => $ext_change->id,
             change          => $ext_change->name,
             note            => $ext_change->note,
-            requires        => $engine->_log_requires_param($ext_change),
-            conflicts       => $engine->_log_conflicts_param($ext_change),
-            tags            => $engine->_log_tags_param($ext_change),
+            requires        => reqs_for($ext_change),
+            conflicts       => flicts_for($ext_change),
+            tags            => tags_for($ext_change),
             committer_name  => $user2_name,
             committer_email => $user2_email,
             committed_at    => dt_for_event($engine, 9),
@@ -1897,12 +1897,20 @@ sub all_tags {
 }
 
 sub all_events {
-    shift->dbh->selectall_arrayref(q{
+    my $engine = shift;
+    my $events = $engine->dbh->selectall_arrayref(q{
         SELECT event, change_id, e.change, project, note, requires, conflicts, tags,
                committer_name, committer_email, planner_name, planner_email
           FROM events e
          ORDER BY committed_at
     });
+    # Format requires, conflicts, and tags as arrays.
+    for my $row (@{ $events }) {
+        for (5, 6, 7) {
+            $row->[$_] = $engine->_parse_array($row->[$_]) unless ref $row->[$_];
+        }
+    }
+    return $events;
 }
 
 sub get_dependencies {
@@ -1925,4 +1933,16 @@ sub test_templates_for {
     }
 }
 
+
+sub tags_for {
+    [ map { $_->format_name } shift->tags ];
+}
+
+sub reqs_for {
+    [ map { $_->as_string } shift->requires ];
+}
+
+sub flicts_for {
+    [ map { $_->as_string } shift->conflicts ];
+}
 1;

@@ -547,6 +547,9 @@ sub search_events {
         my $row = $sth->fetchrow_hashref or return;
         $row->{committed_at} = _dt $row->{committed_at};
         $row->{planned_at}   = _dt $row->{planned_at};
+        for my $col (qw(tags requires conflicts)) {
+            $row->{$col} = $self->_parse_array($row->{$col});
+        }
         return $row;
     };
 }

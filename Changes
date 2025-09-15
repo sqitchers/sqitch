@@ -1,6 +1,11 @@
 Revision history for Perl extension App::Sqitch
 
 1.5.2  Not yet Released
+     - Refactored the parsing of arrays for engines that don't support arrays
+       (e.g., SQLite & Firebird). A new method in DBIEngine, `_parse_array`,
+       replaces inline uses of `split`. This allows the tests to more
+       consistently compare arrays as arrays, though `search_events` must now
+       always parse `tags`, `requires`, and `conflicts`.
 
 1.5.2  2025-04-29T15:13:35Z
      - Added missing German translations, thanks to @0xflotus for the PR
