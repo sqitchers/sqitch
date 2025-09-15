@@ -21,6 +21,157 @@ sub randstr {
     join "", map $s[rand @s], 1..8;
 }
 
+=head3 run
+
+Run the live tests. See sample usages in the engine tests in the C<t>
+directory. Parameters:
+
+=over
+
+=item C<class>
+
+  class => 'App::Sqitch::Engine::pg',
+
+The Engine class. Required.
+
+=item C<sqitch_params>
+
+  sqitch_params => [ user_email => 'hi@example.com' ],
+
+An array of parameters to pass to C<< App::Sqitch->new >>. Optional.
+
+=item C<target_params>
+
+  target_params => [ uri => $uri, registry => $reg1 ],
+
+Optional array of parameters to pass to C<< App::Sqitch::Target->new >> for
+the first registry tested.
+
+=item C<alt_target_params>
+
+  alt_target_params => [ uri => $uri, registry => $reg2 ],
+
+Optional array of parameters to pass to C<< App::Sqitch::Target->new >> for
+the second registry tested.
+
+=item C<engine_params>
+
+  engine_params => [ log_only => 1 ],
+
+Optional list of parameters, other than C<sqitch> and C<target>, to pass to
+the first instance of the engine created for testing.
+
+=item C<alt_engine_params>
+
+  alt_engine_params => [ log_only => 1 ],
+
+Optional list of parameters, other than C<sqitch> and C<target>, passed to
+the second instance of the engine created for testing.
+
+=item C<skip_unless>
+
+    skip_unless => sub {
+        die $err if $err;
+        my $self = shift;
+        my $version = $self->sqitch->capture( $self->client, '--version' );
+        say "# Detected $version";
+        $self->_capture('--command' => 'SELECT version()');
+    },
+
+Optional subroutine that should raise an error if for some reason the engine
+cannot be tested. The single argument passed ot it is an instance of the
+engine. Often used to raise an error if an error was previously detected in
+the test, as in the use of C<$err> in the example above.
+
+=item C<version_query>
+
+  version_query => 'SELECT version()',
+
+Optional SQL query that should return a single row with a single column
+containing the engine server version. Used to display a diagnostic in the
+test output.
+
+=item C<init_error>
+
+    init_error => __x(
+        'Sqitch schema "{schema}" already exists',
+        schema => $reg2,
+    ),
+
+Localized string representing the error raised when database initialization
+fails because the registry database already exists. Required.
+
+=item C<engine_err_regex>
+
+    engine_err_regex => qr/^ERROR:  /,
+
+Regular expression that matches an error from the database engine. Required.
+
+=item C<test_dbh>
+
+    test_dbh => sub {
+        my $dbh = shift;
+        # Make sure the sqitch schema is the first in the search path.
+        is $dbh->selectcol_arrayref('SELECT current_schema')->[0],
+            $reg2, 'The Sqitch schema should be the current schema';
+    },
+
+Optional subroutine that tests a database connection once it has been
+established. Use to test that connection parameters were properly set or
+executed.
+
+=item C<add_second_format>
+
+    add_second_format => 'dateadd(second, 1, %s)',
+
+Optional C<sprintf> format that adds one second to the named timestamp
+column, to be filled in for C<%s>. Use for engines without sub-second
+timestamp precision.
+
+=item C<no_unique>
+
+  no_unique => 1,
+
+Indicates that the engine being tested does not support unique constraints.
+Required for such engines.
+
+=item C<lock_sql>
+
+Anonymous subroutine that returns a hash reference with SQL queries to test
+for various lock states. Required only for engines that support locking on
+a per-deploy basis. The keys in the returned hash reference must be:
+
+=over
+
+=item C<is_locked>
+
+An SQL query that returns true if a lock is in place. Required.
+
+=item C<try_lock>
+
+An SQL query that returns true when it creates a lock and false when it fails
+to create a lock. Required.
+
+=item C<free_lock>
+
+An SQL query that frees a lock. Required.
+
+=item C<wait_time>
+
+Time to pass to C<lock_timeout> to wait for a lock to time out. Defaults to
+C<0.005>.
+
+=item C<async_free>
+
+Boolean indicating whether the freeing of a lock is performed asynchronously.
+Required only for engines that don't free locks synchronously.
+
+=back
+
+=back
+
+=cut
+
 sub run {
     my ( $self, %p ) = @_;
 
