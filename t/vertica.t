@@ -257,7 +257,7 @@ ok $vta->run_handle('FH'), 'Spool a "file handle"';
 is_deeply \@spool, ['FH', $vta->vsql],
     'Handle should be passed to spool()';
 
-# Verify should go to capture unless verosity is > 1.
+# Verify should go to capture unless verbosity is > 1.
 ok $vta->run_verify('foo/bar.sql'), 'Verify foo/bar.sql';
 is_deeply \@capture, [$vta->vsql, '--file', 'foo/bar.sql'],
     'Verify file should be passed to capture()';
@@ -265,7 +265,7 @@ is_deeply \@capture, [$vta->vsql, '--file', 'foo/bar.sql'],
 $mock_sqitch->mock(verbosity => 2);
 ok $vta->run_verify('foo/bar.sql'), 'Verify foo/bar.sql again';
 is_deeply \@run, [$vta->vsql, '--file', 'foo/bar.sql'],
-    'Verifile file should be passed to run() for high verbosity';
+    'Verify file should be passed to run() for high verbosity';
 
 $mock_sqitch->unmock_all;
 

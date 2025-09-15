@@ -547,8 +547,6 @@ sub _cid {
 
 1;
 
-1;
-
 __END__
 
 =head1 Name

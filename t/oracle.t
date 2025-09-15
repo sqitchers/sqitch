@@ -479,7 +479,7 @@ $fh = $handles->[0];
 is join('', <$fh>), $ora->_script, 'First file handle should be script';
 is $handles->[1], 'FH', 'Second should be the passed handle';
 
-# Verify should go to capture unless verosity is > 1.
+# Verify should go to capture unless verbosity is > 1.
 $mock_ora->mock(_capture => sub {shift; @capture = @_ });
 ok $ora->run_verify('foo/bar.sql'), 'Verify foo/bar.sql';
 is_deeply \@capture, ['@"foo/bar.sql"'],
@@ -488,7 +488,7 @@ is_deeply \@capture, ['@"foo/bar.sql"'],
 $mock_sqitch->mock(verbosity => 2);
 ok $ora->run_verify('foo/bar.sql'), 'Verify foo/bar.sql again';
 is_deeply \@run, ['@"foo/bar.sql"'],
-    'Verifile file should be passed to run() for high verbosity';
+    'Verify file should be passed to run() for high verbosity';
 
 $mock_sqitch->unmock_all;
 $mock_ora->unmock_all;

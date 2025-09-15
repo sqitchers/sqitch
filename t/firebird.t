@@ -244,7 +244,7 @@ ok $fb->run_handle('FH'), 'Spool a "file handle"';
 is_deeply \@spool, ['FH', $fb->isql],
     'Handle should be passed to spool()';
 
-# Verify should go to capture unless verosity is > 1.
+# Verify should go to capture unless verbosity is > 1.
 ok $fb->run_verify('foo/bar.sql'), 'Verify foo/bar.sql';
 is_deeply \@capture, [$fb->isql, '-input', 'foo/bar.sql'],
     'Verify file should be passed to capture()';
