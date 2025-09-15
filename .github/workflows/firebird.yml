@@ -12,11 +12,11 @@ jobs:
     strategy:
       matrix:
         include:
-          - { version: '5',      image: ghcr.io/fdcastel/firebird, dir: /var/lib/firebird/data }
-          - { version: '4',      image: ghcr.io/fdcastel/firebird, dir: /var/lib/firebird/data }
-          - { version: '3',      image: ghcr.io/fdcastel/firebird, dir: /var/lib/firebird/data }
-          - { version: '2.5-ss', image: jacobalberty/firebird,     dir: /firebird/data         } # deprecated
-          - { version: '2.5-sc', image: jacobalberty/firebird,     dir: /firebird/data         } # deprecated
+          - { version: '5',      image: firebirdsql/firebird,  dir: /var/lib/firebird/data }
+          - { version: '4',      image: firebirdsql/firebird,  dir: /var/lib/firebird/data }
+          - { version: '3',      image: firebirdsql/firebird,  dir: /var/lib/firebird/data }
+          - { version: '2.5-ss', image: jacobalberty/firebird, dir: /firebird/data         } # deprecated
+          - { version: '2.5-sc', image: jacobalberty/firebird, dir: /firebird/data         } # deprecated
     name: 🔥 Firebird ${{ matrix.version }}
     runs-on: ubuntu-latest
     services:

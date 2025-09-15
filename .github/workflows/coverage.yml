@@ -18,7 +18,7 @@ jobs:
         ports: [ 8563 ]
         options: --privileged
       firebird:
-        image: ghcr.io/fdcastel/firebird:latest
+        image: firebirdsql/firebird
         ports: [ 3050 ]
         env:
           FIREBIRD_ROOT_PASSWORD: nix
@@ -41,7 +41,7 @@ jobs:
           --health-timeout 10s
           --health-retries 10
       vertica:
-        image: vertica/vertica-ce:latest
+        image: cjonesy/docker-vertica:9.2.1-0
         ports: [ 5433 ]
     steps:
       # https://github.com/orgs/community/discussions/25678#discussioncomment-9017167
@@ -98,7 +98,7 @@ jobs:
           SQITCH_TEST_SNOWFLAKE_URI: db:snowflake://${{ secrets.SNOWFLAKE_USERNAME }}@sra81677.us-east-1/sqitchtest?DSN=sqitch;warehouse=compute_wh
           LIVE_SQLITE_REQUIRED: true
           LIVE_VERTICA_REQUIRED: true
-          SQITCH_TEST_VSQL_URI: db:vertica://dbadmin@localhost:${{ job.services.vertica.ports[5433] }}/VMart?Driver=Vertica
+          SQITCH_TEST_VSQL_URI: db:vertica://dbadmin@localhost:${{ job.services.vertica.ports[5433] }}/docker?Driver=Vertica
           LIVE_COCKROACH_REQUIRED: true
           SQITCH_TEST_COCKROACH_URI: db:cockroach://root@localhost:26257/
         run: prove -lrj4 t

@@ -2,7 +2,7 @@
 
 set -e
 
-PGVERSION=${PGVERSION:=${1:-14}}
+PGVERSION=${PGVERSION:=${1:-18}}
 [[ $PGVERSION =~ ^[0-9]$ ]] && PGVERSION+=.0
 
 curl -O https://salsa.debian.org/postgresql/postgresql-common/-/raw/master/pgdg/apt.postgresql.org.sh

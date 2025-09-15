@@ -1,7 +1,7 @@
 # This workflow tests Sqitch's MySQL engine on all supported versions of
-# MySQL. It runs for pushes and pull requests on the `main`, `develop`,
+# MariaDB. It runs for pushes and pull requests on the `main`, `develop`,
 # `**mysql**`, `**maria**`, and `**engine**` branches.
-name: 🐬 MySQL
+name: 🦭 MariaDB
 on:
   push:
     branches: [main, develop, "**engine**", "**mysql**", "**maria**" ]
@@ -11,16 +11,16 @@ jobs:
   MySQL:
     strategy:
       matrix:
-        # curl -s https://registry.hub.docker.com/v2/repositories/library/mysql/tags\?page_size\=10000 | jq '.results[].name'
-        mysql: [ '9.1', '8.4', '5.7', '5.6', '5.5' ]
-    name: 🐬 MySQL ${{ matrix.mysql }}
+        # curl -s https://registry.hub.docker.com/v2/repositories/library/mariadb/tags\?page_size\=10000 | jq '.results[].name'
+        maria: [ '12.0', '11.8', '11.7', '11.6', '11.5', '11.4', '11.3', '11.2', '11.1', '11.0', '10.11', '10.10', '10.9', '10.8', '10.7', '10.6', '10.5', '10.4', '10.3', '10.2', '10.1', '10.0' ]
+    name: 🦭 MariaDB ${{ matrix.maria }}
     runs-on: ubuntu-latest
     services:
-      # Run the MySQL service in a container we can connect to. Means that the
+      # Run the MariaDB service in a container we can connect to. Means that the
       # CLI and libraries DBD::MariaDB use are static to the version on the runner
       # machine.
       mysql:
-        image: mysql:${{ matrix.mysql }}
+        image: mariadb:${{ matrix.maria }}
         env: { MYSQL_ALLOW_EMPTY_PASSWORD: yes }
         ports: [ 3306 ]
         options: --health-cmd="healthcheck.sh --innodb_initialized || mysqladmin ping --protocol=tcp" --health-interval=5s --health-timeout=2s --health-retries=3

@@ -2,8 +2,8 @@
 
 set -e
 
-version=23.6.0.24.10
-icdr=2360000
+version=23.9.0.25.07
+icdr=2390000
 
 # Download dependencies.
 if [ -z "$SKIP_DEPENDS" ]; then
@@ -22,7 +22,7 @@ curl -sSLO "${baseurl}/instantclient-basic-linux.x64-${version}.zip"
 curl -sSLO "${baseurl}/instantclient-sqlplus-linux.x64-${version}.zip"
 curl -sSLO "${baseurl}/instantclient-sdk-linux.x64-${version}.zip"
 
-# Unpack Intant Client.
+# Unpack Instant Client.
 mkdir -p /opt/instantclient
 bsdtar -C /opt/instantclient --strip-components 1 -zxf "instantclient-basic-linux.x64-${version}.zip"
 bsdtar -C /opt/instantclient --strip-components 1 -zxf "instantclient-sqlplus-linux.x64-${version}.zip"
