@@ -1,0 +1,47 @@
+# This workflow tests Sqitch's ClickHouse engine on recent supported versions
+# of Oracle. It runs for pushes to branches matching `main`, `develop`,
+# `**clickhouse**`, and `**engine**`.
+name: 🏠 ClickHouse
+on:
+  push:
+    branches: [main, develop, "**engine**", "**clickhouse**" ]
+jobs:
+  ClickHouse:
+    strategy:
+      matrix:
+        clickhouse: ['25.8']
+    name: 🏠 ClickHouse ${{ matrix.clickhouse }}
+    runs-on: ubuntu-latest
+    services:
+      clickhouse:
+        image: clickhouse:${{ matrix.clickhouse }}
+        ports: [ 8123, 9000 ]
+        env:
+          CLICKHOUSE_SKIP_USER_SETUP: 1
+        options: >-
+          --ulimit nofile=262144:262144
+          --health-cmd "clickhouse-client --query 'SELECT 1'"
+          --health-interval 20s
+          --health-timeout 10s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Clients
+        run: .github/ubuntu/clickhouse.sh
+      - name: Setup Perl
+        id: perl
+        uses: shogo82148/actions-setup-perl@v1
+        with: { perl-version: latest }
+      - name: Cache CPAN Modules
+        uses: actions/cache@v4
+        with:
+          path: local
+          key: perl-${{ steps.perl.outputs.perl-hash }}
+      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends --cpanfile dist/cpanfile
+      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends DBD::ODBC
+      - name: prove
+        env:
+          PERL5LIB: "${{ github.workspace }}/local/lib/perl5"
+          LIVE_CLICKHOUSE_REQUIRED: true
+          SQITCH_TEST_CLICKHOUSE_URI: db:clickhouse://default@localhost:${{ job.services.clickhouse.ports[8123] }}/default?Driver=ClickHouse&NativePort=${{ job.services.clickhouse.ports[9000] }}
+        run: prove -lvr t/clickhouse.t

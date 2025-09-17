@@ -16,8 +16,6 @@ echo "deb [signed-by=/usr/share/keyrings/clickhouse-keyring.gpg arch=${ARCH}] ht
 sudo apt-get update -qq
 sudo env DEBIAN_FRONTEND=noninteractive apt-get install -qq clickhouse-client
 
-cat t/odbc/clickhouse.ini | sudo tee -a /etc/clickhouse.ini
-
 # Prepare the configuration.
 mkdir -p /opt/clickhouse
 
