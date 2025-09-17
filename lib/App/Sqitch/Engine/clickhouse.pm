@@ -75,10 +75,11 @@ has dbh => (
         my $self = shift;
         $self->use_driver;
         return DBI->connect($self->_dsn, $self->username, $self->password, {
-            PrintError  => 0,
-            RaiseError  => 0,
-            AutoCommit  => 1,
-            HandleError => $self->error_handler,
+            PrintError   => 0,
+            RaiseError   => 0,
+            AutoCommit   => 1,
+            HandleError  => $self->error_handler,
+            odbc_utf8_on => 1,
         });
     }
 );
@@ -164,6 +165,26 @@ sub _log_conflicts_param {
     [ map { $_->as_string } $_[1]->conflicts ];
 }
 
+sub _limit_offset {
+    # LIMIT/OFFSET don't support parameters, alas. So just put them in the query.
+    my ($self, $lim, $off)  = @_;
+    return ["LIMIT $lim", "OFFSET $off"], [] if $lim && $off;
+    return ["LIMIT $lim"], [] if $lim;
+    return ["OFFSET $off"], [] if $off;
+    return [], [];
+}
+
+# ClickHouse ODBC does not support arrays. So we must parse them manually.
+# I'd rather not do an eval, so rip this out once the issue is fixed.
+# https://github.com/clickHouse/clickhouse-odbc/issues/525
+sub _parse_array {
+    return [] unless $_[1];
+    my $list = eval $_[1];
+    return [] unless $list;
+    pop @{ $list } if @{ $list } && $list->[0] eq '';
+    return $list;
+}
+
 sub _version_query { 'SELECT CAST(ROUND(MAX(version), 1) AS CHAR) FROM releases' }
 
 sub _initialized {
@@ -178,7 +199,7 @@ sub _initialized {
         }, undef, $self->registry, 'changes')->[0]
     } catch {
         return 0 if $DBI::state && $DBI::state eq 'HY000';
-        die $_;        
+        die $_;
     }
 }
 
@@ -239,6 +260,7 @@ sub _cid {
     };
 }
 
+# Override to query for existing tags separately.
 sub _log_event {
     my ( $self, $event, $change, $tags, $requires, $conflicts) = @_;
     my $dbh    = $self->dbh;
@@ -248,7 +270,8 @@ sub _log_event {
     $requires  ||= $self->_log_requires_param($change);
     $conflicts ||= $self->_log_conflicts_param($change);
 
-    # Use the array() constructor to insert arrays of values.
+    # Use the array() constructor to insert arrays of values. Remove if
+    # https://github.com/clickHouse/clickhouse-odbc/issues/525 fixed.
     my $tag_ph = 'array('. join(', ', ('?') x @{ $tags      }) . ')';
     my $req_ph = 'array('. join(', ', ('?') x @{ $requires  }) . ')';
     my $con_ph = 'array('. join(', ', ('?') x @{ $conflicts }) . ')';
@@ -291,38 +314,91 @@ sub _log_event {
     return $self;
 }
 
+# Override to save tags as an array rather than a space-delimited string.
+sub log_revert_change {
+    my ($self, $change) = @_;
+    my $dbh = $self->dbh;
+    my $cid = $change->id;
+
+    # Retrieve and delete tags.
+    my $del_tags = $dbh->selectcol_arrayref(
+        'SELECT tag FROM tags WHERE change_id = ?',
+        undef, $cid
+    ) || {};
+
+    $dbh->do(
+        'DELETE FROM tags WHERE change_id = ?',
+        undef, $cid
+    );
+
+    # Retrieve dependencies and delete.
+    my $sth = $dbh->prepare(q{
+        SELECT dependency
+          FROM dependencies
+         WHERE change_id = ?
+           AND type      = ?
+    });
+
+    my $req = $dbh->selectcol_arrayref( $sth, undef, $cid, 'require' );
+    my $conf = $dbh->selectcol_arrayref( $sth, undef, $cid, 'conflict' );
+
+    $dbh->do('DELETE FROM dependencies WHERE change_id = ?', undef, $cid);
+
+    # Delete the change record.
+    $dbh->do(
+        'DELETE FROM changes where change_id = ?',
+        undef, $cid,
+    );
+
+    # Log it.
+    return $self->_log_event( revert => $change, $del_tags, $req, $conf );
+}
+
+# NOTE: Query from DBIEngine doesn't work in ClickHouse:
+#   DB::Exception: Current query is not supported yet, because can't find
+#   correlated column [...] (NOT_IMPLEMENTED)
+# Looks like it doesn't yet support correlated subqueries. The CTE-based query
+# adapted from Exasol seems to be fine, however.
 sub changes_requiring_change {
     my ( $self, $change ) = @_;
-    # NOTE: Query from DBIEngine doesn't work in ClickHouse:
-    #   DB::Exception: Current query is not supported yet, because can't find
-    #   correlated column [...] (NOT_IMPLEMENTED)
-    # Looks like it doesn't yet support correlated subqueries.
-    # The CTE-based query borrowed from Exasol seems to be fine, however.
+    # Weirdly, ClickHouse doesn't inject NULLs when the tag window query
+    # returns no rows, but empty values: "" for tag name and 0 for rank. Use
+    # multiIf() to change an empty string to a NULL, and compare rank to <= 1
+    # instead of bothering with NULLs.
     return @{ $self->dbh->selectall_arrayref(q{
         WITH tag AS (
             SELECT tag, committed_at, project,
                    ROW_NUMBER() OVER (partition by project ORDER BY committed_at) AS rnk
               FROM tags
         )
-        SELECT c.change_id, c.project, c.change, t.tag AS asof_tag
+        SELECT c.change_id AS change_id,
+               c.project   AS project,
+               c.change    AS change,
+               multiIf(t.tag == '', NULL, t.tag) AS asof_tag
           FROM dependencies d
           JOIN changes  c ON c.change_id = d.change_id
           LEFT JOIN tag t ON t.project   = c.project AND t.committed_at >= c.committed_at
          WHERE d.dependency_id = ?
-           AND (t.rnk IS NULL OR t.rnk = 1)
+           AND t.rnk <= 1
     }, { Slice => {} }, $change->id) };
 }
 
+# NOTE: Query from DBIEngine doesn't work in ClickHouse:
+#   DB::Exception: Current query is not supported yet, because can't find \
+#   correlated column '__table4.committed_at' in current header: [...] (NOT_IMPLEMENTED)
+# Looks like it doesn't yet support correlated subqueries. The CTE-based query
+# adapted from Exasol seems to be fine, however.
 sub name_for_change_id {
     my ( $self, $change_id ) = @_;
-    # NOTE: Query from DBIEngine doesn't work in ClickHouse:
-    #   DB::Exception: Current query is not supported yet, because can't find \
-    #   correlated column '__table4.committed_at' in current header: [...] (NOT_IMPLEMENTED)
-    # Looks like it doesn't yet support correlated subqueries.
-    # The CTE-based query borrowed from Exasol seems to be fine, however.
+    # Weirdly, ClickHouse doesn't inject NULLs when the tag window query
+    # returns no rows, but empty values: "" for tag name and 0 for rank. Use
+    # multiIf() to change an empty string to a NULL, and compare rank to <= 1
+    # instead of bothering with NULLs.
     return $self->dbh->selectcol_arrayref(q{
         WITH tag AS (
-            SELECT tag, committed_at, project,
+            SELECT multiIf(tag == '', NULL, tag) AS tag,
+                   committed_at,
+                   project,
                    ROW_NUMBER() OVER (partition by project ORDER BY committed_at) AS rnk
               FROM tags
         )
@@ -330,10 +406,12 @@ sub name_for_change_id {
           FROM changes c
           LEFT JOIN tag t ON c.project = t.project AND t.committed_at >= c.committed_at
          WHERE change_id = ?
-           AND (t.rnk IS NULL OR t.rnk = 1)
+           AND t.rnk <= 1
     }, undef, $change_id)->[0];
 }
 
+# There is a bug in ClickHouse EXISTS(), so do without it.
+# https://github.com/ClickHouse/ClickHouse/issues/86415
 sub is_deployed_change {
     my ( $self, $change ) = @_;
     $self->dbh->selectcol_arrayref(
@@ -341,6 +419,88 @@ sub is_deployed_change {
         undef, $change->id
     )->[0];
 }
+
+# There is a bug in ClickHouse EXISTS(), so do without it.
+# https://github.com/ClickHouse/ClickHouse/issues/86415
+sub is_deployed_tag {
+    my ( $self, $tag ) = @_;
+    return $self->dbh->selectcol_arrayref(
+        'SELECT 1 FROM tags WHERE tag_id = ?',
+        undef, $tag->id,
+    )->[0];
+}
+
+# Override to query for existing tags in a separate query. The LEFT JOIN/UNION
+# dance simply didn't work in ClickHouse.
+sub log_new_tags {
+    my ( $self, $change ) = @_;
+    my @tags   = $change->tags or return $self;
+    my $sqitch = $self->sqitch;
+
+    my ($id, $name, $proj, $user, $email) = (
+        $change->id,
+        $change->format_name,
+        $change->project,
+        $sqitch->user_name,
+        $sqitch->user_email
+    );
+
+    # Get a list of existing tags.
+    my $in = join ', ', ('?') x @tags;
+    my %exists = map { $_ => undef } $self->dbh->selectrow_array(
+        "SELECT tag_id FROM tags WHERE tag_id IN($in)",
+        undef, map { $_->id } @tags,
+    );
+
+    # Filter out the existing tags.
+    @tags = grep { ! exists $exists{$_->id} } @tags;
+    return $self unless @tags;
+
+    # Insert the new tags.
+    my $row = q{(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)};
+    $self->dbh->do(
+        q{
+            INSERT INTO tags (
+                   tag_id
+                 , tag
+                 , project
+                 , change_id
+                 , note
+                 , committer_name
+                 , committer_email
+                 , planned_at
+                 , planner_name
+                 , planner_email
+            ) VALUES
+                } . join( ",\n                ", ($row) x @tags ),
+        undef,
+        map { (
+            $_->id,
+            $_->format_name,
+            $proj,
+            $id,
+            $_->note,
+            $user,
+            $email,
+            $self->_char2ts($_->timestamp),
+            $_->planner_name,
+            $_->planner_email,
+        ) } @tags
+    );
+
+    return $self;
+}
+
+# Wrap _select_state to parse the tags into an array. Remove if and when
+# clickhouse-odbc properly supports arrays. Remove if
+# https://github.com/clickHouse/clickhouse-odbc/issues/525 fixed.
+around _select_state => sub {
+    my ($orig, $self) = (shift, shift);
+    my $state = $self->$orig(@_);
+    $state->{tags} = $self->_parse_array($state->{tags})
+        if $state && $state->{tags};
+    return $state;
+};
 
 sub _run {
     my $self = shift;

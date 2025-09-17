@@ -307,13 +307,14 @@ DBI: {
 }
 
 is_deeply [$ch->_limit_offset(8, 4)],
-    [['LIMIT ?', 'OFFSET ?'], [8, 4]],
+    [['LIMIT 8', 'OFFSET 4'], []],
     'Should get limit and offset';
-is_deeply [$ch->_limit_offset(0, 2)], [['OFFSET ?'], [2]],
+is_deeply [$ch->_limit_offset(0, 2)],
+    [['OFFSET 2'], []],
     'Should get limit and offset when offset only';
-is_deeply [$ch->_limit_offset(12, 0)], [['LIMIT ?'], [12]],
+is_deeply [$ch->_limit_offset(12, 0)], [['LIMIT 12'], []],
     'Should get only limit with 0 offset';
-is_deeply [$ch->_limit_offset(12)], [['LIMIT ?'], [12]],
+is_deeply [$ch->_limit_offset(12)], [['LIMIT 12'], []],
     'Should get only limit with noa offset';
 is_deeply [$ch->_limit_offset(0, 0)], [[], []],
     'Should get no limit or offset for 0s';
@@ -397,7 +398,7 @@ $uri = URI->new(
     'db:clickhouse://default@localhost/default?Driver=ClickHouse'
 );
 $uri->dbname('default') unless $uri->dbname;
-diag $uri->dbi_dsn; exit;
+
 my $err = try {
     $ch->use_driver;
     $dbh = DBI->connect($uri->dbi_dsn, $uri->user, $uri->password, {
@@ -416,6 +417,7 @@ my $err = try {
 
 DBIEngineTest->run(
     class             => $CLASS,
+    no_unique         => 1,
     target_params     => [ registry => $reg1, uri => $uri ],
     alt_target_params => [ registry => $reg2, uri => $uri ],
     skip_unless       => sub {
@@ -438,20 +440,6 @@ DBIEngineTest->run(
         is $dbh->selectcol_arrayref('SELECT current_database()')->[0],
             $reg2, 'The Sqitch schema should be the current schema';
     },
-        lock_sql => sub {
-            my $lock_name = shift->_lock_name; return {
-            is_locked  => "SELECT is_used_lock('$lock_name')",
-            try_lock   => "SELECT get_lock('$lock_name', 0)",
-            wait_time  => 1, # get_lock() does not support sub-second precision, apparently.
-            async_free => 1,
-            free_lock  => 'SELECT ' . ($dbh ? do {
-                # ClickHouse 5.5-5.6 and Maria 10.0-10.4 prefer release_lock(), while
-                # 5.7+ and 10.5+ prefer release_all_locks().
-                $dbh->selectrow_arrayref('SELECT version()')->[0] =~ /^(?:5\.[56]|10\.[0-4])/
-                    ? "release_lock('$lock_name')"
-                    : 'release_all_locks()'
-            } : ''),
-        } },
 );
 
 done_testing;

@@ -1890,7 +1890,7 @@ sub run {
 
         ######################################################################
         # Let's make sure script_hash upgrades work.
-        $engine->dbh->do('UPDATE changes SET script_hash = change_id');
+        $engine->dbh->do('UPDATE changes SET script_hash = change_id WHERE 1=1');
         ok $engine->_update_script_hashes, 'Update script hashes';
 
         # Make sure they were updated properly.
