@@ -24,6 +24,7 @@ use constant ENGINES => qw(
     exasol
     snowflake
     cockroach
+    clickhouse
 );
 
 has sqitch => (
@@ -371,6 +372,8 @@ Returns the list of supported engines, currently:
 =item * C<snowflake>
 
 =item * C<cockroach>
+
+=item * C<clickhouse>
 
 =back
 

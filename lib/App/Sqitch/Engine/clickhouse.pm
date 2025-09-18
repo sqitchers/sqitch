@@ -108,31 +108,42 @@ has _cli => (
         ) unless $uri->dbname;
 
         my @ret = ($self->client);
-        push @ret => 'client' if $ret[0] !~ /-client$/;
-        # Use _port instead of port so it's empty if no port is in the URI.
-        # https://github.com/sqitchers/sqitch/issues/675
+        push @ret => 'client' if $ret[0] !~ /-client(?:[.]exe)?$/;
+        # Omit port because the CLI needs the native port and the URL
+        # specifies the HTTP port.
         for my $spec (
             [ user     => $self->username ],
             [ password => $self->password ],
             [ database => $uri->dbname    ],
             [ host     => $uri->host      ],
-            [ port     => $uri->_port     ],
         ) {
             push @ret, "--$spec->[0]" => $spec->[1] if $spec->[1];
         }
 
+        # Add variables, if any.
+        if (my %vars = $self->variables) {
+            push @ret => map {; "--param_$_" => $vars{$_} } sort keys %vars;
+        }
+
         # Options to keep things quiet.
         push @ret => (
-            '--progress' => 'off',
-            '--disable_suggestion',
+            '--progress'       => 'off',
             '--progress-table' => 'off',
+            '--disable_suggestion',
         );
 
         # Add relevant query args.
         if (my @p = $uri->query_params) {
             while (@p) {
-                my ($k, $v) = (shift @p, shift @p);
-                push @ret => '--secure' if lc $k eq 'sslmode' && $v eq 'require';
+                my ($k, $v) = (lc shift @p, shift @p);
+                if ($k eq 'sslmode') {
+                    # Prefer secure connectivity if SSL mode specified.
+                    push @ret => '--secure';
+                } elsif ($k eq 'nativeport') {
+                    # Custom config to set the CLI port, which is different
+                    # from the HTTP port used by the ODBC driver.
+                    push @ret => '--port', $v;
+                }
             }
         }
         return \@ret;
@@ -178,10 +189,11 @@ sub _limit_offset {
 # I'd rather not do an eval, so rip this out once the issue is fixed.
 # https://github.com/clickHouse/clickhouse-odbc/issues/525
 sub _parse_array {
+    no utf8;
     return [] unless $_[1];
     my $list = eval $_[1];
     return [] unless $list;
-    pop @{ $list } if @{ $list } && $list->[0] eq '';
+    shift @{ $list } if @{ $list } && $list->[0] eq '';
     return $list;
 }
 
@@ -324,7 +336,7 @@ sub log_revert_change {
     my $del_tags = $dbh->selectcol_arrayref(
         'SELECT tag FROM tags WHERE change_id = ?',
         undef, $cid
-    ) || {};
+    );
 
     $dbh->do(
         'DELETE FROM tags WHERE change_id = ?',

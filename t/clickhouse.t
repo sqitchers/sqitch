@@ -4,7 +4,7 @@
 # SQITCH_TEST_CLICKHOUSE_URI environment variable. this is a standard URI::db
 # URI, and should look something like this:
 #
-#     export SQITCH_TEST_CLICKHOUSE_URI=db:clickhouse://default@localhost/default?DSN=Clickhouse
+#     export SQITCH_TEST_CLICKHOUSE_URI=db:clickhouse://default@localhost/default?Driver=ClickHouse
 #
 
 use strict;
@@ -64,9 +64,9 @@ is $ch->registry_destination, 'db:clickhouse:sqitch',
     'registry_destination should be the same as registry_uri';
 
 my @std_opts = (
-    '--progress' => 'off',
-    '--disable_suggestion',
+    '--progress'       => 'off',
     '--progress-table' => 'off',
+    '--disable_suggestion',
 );
 
 my $mock_sqitch = Test::MockModule->new('App::Sqitch');
@@ -80,6 +80,18 @@ is_deeply $warning, [__x
      uri => $ch->uri
 ], 'Should have emitted a warning for no database name';
 
+isa_ok $ch = $CLASS->new(sqitch => $sqitch, target => $target), $CLASS;
+ok $ch->set_variables(foo => 'baz', whu => 'hi there', yo => 'stellar'),
+    'Set some variables';
+is_deeply [$ch->cli], [
+    $client,
+    '--user', $sqitch->sysuser,
+    '--param_foo' => 'baz',
+    '--param_whu' => 'hi there',
+    '--param_yo' => 'stellar',
+    @std_opts,
+], 'Variables should be passed to psql via --set';
+
 $mock_sqitch->unmock_all;
 
 $target = App::Sqitch::Target->new(
@@ -92,13 +104,23 @@ isa_ok $ch = $CLASS->new(
 ), $CLASS;
 
 ##############################################################################
-# Make sure environment variables are read.
+# Make sure config and environment variables are read.
 ENV: {
+    my $mock = Test::MockModule->new($CLASS);
+    $mock->mock(_clickcnf => {
+        user => 'lincoln',
+        password => 's3cr3t',
+    });
+    ok my $ch = $CLASS->new(sqitch => $sqitch, target => $target),
+        'Create engine with env config set';
+    is $ch->password, 's3cr3t', 'Password should be set from config';
+    is $ch->username, 'lincoln', 'Username should be set from config';
+
     local $ENV{CLICKHOUSE_USER} = 'kamala';
     local $ENV{CLICKHOUSE_PASSWORD} = '__KAMALA';
     local $ENV{CLICKHOUSE_HOST} = 'sqitch.sql';
-    ok my $ch = $CLASS->new(sqitch => $sqitch, target => $target),
-        'Create engine with env vars set set';
+    ok $ch = $CLASS->new(sqitch => $sqitch, target => $target),
+        'Create engine with env vars set';
     is $ch->password, $ENV{CLICKHOUSE_PASSWORD},
         'Password should be set from environment';
     is $ch->username, $ENV{CLICKHOUSE_USER},
@@ -149,7 +171,7 @@ is_deeply [$ch->cli], [
 # Make sure URI params get passed through to the client.
 $target = App::Sqitch::Target->new(
     sqitch => $sqitch,
-    uri    => URI->new('db:clickhouse://foo.com/widgets?SSLMode=require',
+    uri    => URI->new('db:clickhouse://foo.com/widgets?SSLMode=require&NativePort=90210',
 ));
 ok $ch = $CLASS->new(sqitch => $sqitch, target => $target),
     'Create a clickhouse with query params';
@@ -159,6 +181,7 @@ is_deeply [$ch->cli], [
     qw(--database widgets --host foo.com),
     @std_opts,
     '--secure',
+    '--port' => 90210,
 ], 'clickhouse command should be configured with query vals';
 
 ##############################################################################
@@ -297,13 +320,17 @@ DBI: {
     local *DBI::state;
     ok !$ch->_no_table_error, 'Should have no table error';
     ok !$ch->_no_column_error, 'Should have no column error';
+    dies_ok { $ch->_initialized } '_initialized should die';
+    dies_ok { $ch->_cid('ASC') } '_cid should die';
     $DBI::state = 'HY000';
     ok $ch->_no_table_error, 'Should now have table error';
     ok !$ch->_no_column_error, 'Still should have no column error';
+    ok !$ch->_initialized, 'Should get false from _initialized';
+    is undef, $ch->_cid('ASC'), 'Should get undef from _cid';
     $DBI::state = '42703';
     ok !$ch->_no_table_error, 'Should again have no table error';
     ok $ch->_no_column_error, 'Should now have no column error';
-    ok !$ch->_unique_error, 'Unique constraints not supported by Snowflake';
+    ok !$ch->_unique_error, 'Unique constraints not supported by ClickHouse';
 }
 
 is_deeply [$ch->_limit_offset(8, 4)],
@@ -326,6 +353,30 @@ is_deeply [$ch->_regex_expr('corn', 'Obama$')],
     'Should use REGEXP for regex expr';
 
 ##############################################################################
+# Test parse_array.
+is_deeply $ch->_parse_array(''), [], 'Should get empty array from empty string';
+is_deeply $ch->_parse_array(undef), [], 'Should get empty array from undef';
+is_deeply $ch->_parse_array('no'), [], 'Should get empty array invalid array';
+is_deeply $ch->_parse_array('[1]'), [1], 'Should parse single int array';
+is_deeply $ch->_parse_array('[1, 2, 3]'), [1,2,3], 'Should parse int array';
+is_deeply $ch->_parse_array(q{['hi']}), ['hi'], 'Should parse single string array';
+is_deeply $ch->_parse_array(q{['O\'Toole']}), ["O'Toole"],
+    'Should parse string array with escape';
+is_deeply $ch->_parse_array(q{['bread\\water']}), ['bread\\water'],
+    'Should parse string array with escape slash';
+is_deeply $ch->_parse_array(q{['🏠']}), ['🏠'],
+    'Should parse string array with Unicode';
+is_deeply $ch->_parse_array(q{['', 'hi', 'there']}), ['hi', 'there'],
+    'Should pop empty string when first value in array';
+is_deeply $ch->_parse_array(q{['']}), [],
+    'Should pop empty string when only value in array';
+
+# Test _version_query
+is $ch->_version_query,
+    'SELECT CAST(ROUND(MAX(version), 1) AS CHAR) FROM releases',
+    'Should have version query';
+
+##############################################################################
 # Test unexpected database error in initialized() and _cid().
 MOCKDBH: {
     my $mock = Test::MockModule->new($CLASS);
@@ -339,13 +390,6 @@ MOCKDBH: {
 ##############################################################################
 # Test run_upgrade().
 UPGRADE: {
-    my $mock = Test::MockModule->new($CLASS);
-    my $fracsec;
-    my $version = 50500;
-    $mock->mock(_fractional_seconds => sub { $fracsec });
-    $mock->mock(dbh => sub { { mariadb_serverversion => $version } });
-    $mock->mock(_create_check_function => 1);
-
     # Mock run.
     my @run;
     $mock_sqitch->mock(run => sub { shift; @run = @_ });
@@ -369,8 +413,24 @@ UPGRADE: {
     is_deeply \@run, [@cmd, '--queries-file', $fn],
         'It should have run the unchanged file';
 
+    # Test without the --database option.
+    splice @cmd, $db_opt_idx, 2;
+    my $mock = Test::MockModule->new($CLASS);
+    $mock->mock(cli => sub { @cmd });
+    ok $ch->run_upgrade($fn), 'Run the upgrade';
+    is $tmp_fh, undef, 'Should not have created a temp file';
+    is_deeply \@run, [@cmd, '--database', $ch->registry, '--queries-file', $fn],
+        'It should appended the --database option';
+
     $mock_sqitch->unmock_all;
 }
+
+##############################################################################
+# Make sure log_new_tags returns if no tags.
+ok $ch->log_new_tags(App::Sqitch::Plan::Change->new(
+    name => 'hi',
+    plan => App::Sqitch::Plan->new(sqitch => $sqitch, target => $target),
+)), 'log_new_tags should just return when no tags to log';
 
 # Make sure we have templates.
 DBIEngineTest->test_templates_for($ch->key);
@@ -423,7 +483,7 @@ DBIEngineTest->run(
     skip_unless       => sub {
         my $self = shift;
         die $err if $err;
-        # Make sure we have clickhouse and can connect to the database.
+        # Make sure we have the clickhouse CLI & can connect to the database.
         my $version = $self->sqitch->capture( $self->client, '--version' );
         say "# Detected CLI $version";
         say '# Connected to ClickHouse ' . $self->_capture('--query' => 'SELECT version()');
@@ -438,7 +498,7 @@ DBIEngineTest->run(
         my $dbh = shift;
         # Make sure the sqitch schema is the current database.
         is $dbh->selectcol_arrayref('SELECT current_database()')->[0],
-            $reg2, 'The Sqitch schema should be the current schema';
+            $reg2, 'The Sqitch database should be the current database';
     },
 );
 

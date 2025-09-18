@@ -17,6 +17,7 @@ API
 Blockchain
 blog
 change's
+ClickHouse
 CLDR
 CockroachDB
 command's
@@ -101,6 +102,7 @@ sql
 SQLite
 sqlite
 SQLite's
+SSLMode
 subdirectories
 sublicense
 Suciu
