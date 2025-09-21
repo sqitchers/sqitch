@@ -1,12 +1,11 @@
 # This workflow tests Sqitch's Exasol engine on recent supported versions of
-# Oracle. It runs for pushes and pull requests on the `main`, `develop`,
-# `**exasol**`, and `**engine**` branches.
+# Exasol. It runs on pushes to branches matching `develop`, `**exasol**`, and
+# `**engine**` as well as pull requests.
 name: ☀️ Exasol
 on:
   push:
-    branches: [main, develop, "**engine**", "**exasol**" ]
+    branches: [develop, "**engine**", "**exasol**"]
   pull_request:
-    branches: [main, develop, "**engine**", "**exasol**" ]
 jobs:
   Exasol:
     strategy:

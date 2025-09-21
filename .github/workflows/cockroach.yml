@@ -1,12 +1,11 @@
 # This workflow tests Sqitch's Cockroach engine on all supported versions of
-# Postgres. It runs for pushes and pull requests on the `main`, `develop`,
-# `**cockroach**`, and `**engine**` branches.
+# CockroachDB. It runs on pushes to branches matching `develop`,
+# `**cockroach**`, and `**engine**` as well as pull requests.
 name: 🪳 Cockroach
 on:
   push:
-    branches: [main, develop, "**engine**", "**cockroach**" ]
+    branches: [develop, "**engine**", "**cockroach**"]
   pull_request:
-    branches: [main, develop, "**engine**", "**cockroach**" ]
 jobs:
   Cockroach:
     strategy:

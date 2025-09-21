@@ -1,12 +1,11 @@
 # This workflow tests Sqitch's SQLite engine on all supported versions of
-# Postgres. It runs for pushes and pull requests on the `main`, `develop`,
-# `**sqlite**`, and `**engine**` branches.
+# SQLite. It runs on pushes to branches matching `develop`, `**sqlite**`, and
+# `**engine**` as well as pull requests.
 name: 💡 SQLite
 on:
   push:
-    branches: [main, develop, "**engine**", "**sqlite**" ]
+    branches: [develop, "**engine**", "**sqlite**"]
   pull_request:
-    branches: [main, develop, "**engine**", "**sqlite**" ]
 jobs:
   SQLite:
     strategy:

@@ -1,12 +1,12 @@
-# This workflow tests Sqitch's basic functionality (no database testing) on all
-# supported versions of Perl on Ubuntu, macOS, and Windows. It runs for pushes
-# and pull requests on the main and develop branches.
+# This workflow tests Sqitch's basic functionality (no database testing) on
+# all supported versions of Perl on Ubuntu, macOS, and Windows. It runs on
+# pushes to branches matching `develop` and `**perl**` as well as pull
+# requests.
 name: 🧅 Perl
 on:
   push:
-    branches: [main, develop, "**perl**"]
+    branches: [develop, "**perl**"]
   pull_request:
-    branches: [main, develop, "**perl**"]
 jobs:
   Perl:
     strategy:

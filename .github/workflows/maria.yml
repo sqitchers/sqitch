@@ -1,12 +1,11 @@
 # This workflow tests Sqitch's MySQL engine on all supported versions of
-# MariaDB. It runs for pushes and pull requests on the `main`, `develop`,
-# `**mysql**`, `**maria**`, and `**engine**` branches.
+# MariaDB. It runs on pushes to branches matching `develop`, `**mysql**`,
+# `**maria**`, and `**engine**` as well as pull requests.
 name: 🦭 MariaDB
 on:
   push:
-    branches: [main, develop, "**engine**", "**mysql**", "**maria**" ]
+    branches: [develop, "**engine**", "**mysql**", "**maria**"]
   pull_request:
-    branches: [main, develop, "**engine**", "**mysql**", "**maria**" ]
 jobs:
   MySQL:
     strategy:

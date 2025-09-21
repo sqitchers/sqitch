@@ -1,12 +1,11 @@
 # This workflow tests Sqitch's PostgreSQL engine on all supported versions of
-# YugabyteDB. It runs for pushes and pull requests on the `main`, `develop`,
-# `**postgres**`, `**yugabyte**`, and `**engine**` branches.
+# YugabyteDB. It runs on pushes to branches matching `develop`,
+# `**postgres**`, `**yugabyte**`, and `**engine**` as well as pull requests.
 name: 💫 Yugabyte
 on:
   push:
-    branches: [main, develop, "**engine**", "**postgres**", "**yugabyte**" ]
+    branches: [develop, "**engine**", "**postgres**", "**yugabyte**" ]
   pull_request:
-    branches: [main, develop, "**engine**", "**postgres**", "**yugabyte**" ]
 jobs:
   Yugabyte:
     strategy:

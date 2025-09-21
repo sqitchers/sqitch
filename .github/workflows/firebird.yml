@@ -1,12 +1,11 @@
 # This workflow tests Sqitch's Firebird engine on all supported versions of
-# Postgres. It runs for pushes and pull requests on the `main`, `develop`,
-# `**firebird**`, and `**engine**` branches.
+# Firebird. It runs on pushes to branches matching `develop`, `**firebird**`,
+# and `**engine**` as well as pull requests.
 name: 🔥 Firebird
 on:
   push:
-    branches: [main, develop, "**engine**", "**firebird**" ]
+    branches: [develop, "**engine**", "**firebird**"]
   pull_request:
-    branches: [main, develop, "**engine**", "**firebird**" ]
 jobs:
   Firebird:
     strategy:

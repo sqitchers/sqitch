@@ -1,12 +1,11 @@
 # This workflow tests Sqitch's Vertica engine on all supported versions of
-# Vertica. It runs for pushes and pull requests on the `main`, `develop`,
-# `**vertica**`, and `**engine**` branches.
+# Vertica. It runs on pushes to branches matching `develop`, `**vertica**`,
+# and `**engine**` as well as pull requests.
 name: 🔺 Vertica
 on:
   push:
-    branches: [main, develop, "**engine**", "**vertica**" ]
+    branches: [develop, "**engine**", "**vertica**" ]
   pull_request:
-    branches: [main, develop, "**engine**", "**vertica**" ]
 jobs:
   Vertica:
     strategy:

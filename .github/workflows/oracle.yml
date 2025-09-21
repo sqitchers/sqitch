@@ -1,12 +1,11 @@
 # This workflow tests Sqitch's Oracle engine on recent supported versions of
-# Oracle. It runs for pushes and pull requests on the `main`, `develop`,
-# `**oracle**`, and `**engine**` branches.
+# Oracle. It runs on pushes to branches matching `develop`, `**oracle**`, and
+# `**engine**` as well as pull requests.
 name: 🔮 Oracle
 on:
   push:
-    branches: [main, develop, "**engine**", "**oracle**" ]
+    branches: [develop, "**engine**", "**oracle**"]
   pull_request:
-    branches: [main, develop, "**engine**", "**oracle**" ]
 jobs:
   Oracle:
     strategy:
