@@ -308,6 +308,25 @@ also be installed.
 %files snowflake
 # No additional files required.
 
+%package snowflake
+Summary:        Sensible database change management for ClickHouse
+Group:          Development/Libraries
+Requires:       sqitch >= %{version}
+Requires:       perl(DBI) => 1.631
+Requires:       perl(DBD::ODBC) >= 1.59
+Requires:       libclickhouseodbcw.so
+Requires:       /usr/bin/clickhouse
+Provides:       sqitch-clickhouse
+
+%description clickhouse
+Sqitch provides a simple yet robust interface for database change management.
+The philosophy and functionality is inspired by Git. This package bundles the
+Sqitch ClickHouse support. It requires that the CLickHouse client and ODBC
+driver also be installed.
+
+%files clickhouse
+# No additional files required.
+
 %changelog
 * Mon Apr 29 2025 David E. Wheeler <david@justatheory.com> 1.5.2-1
 - Upgrade to v1.5.2.

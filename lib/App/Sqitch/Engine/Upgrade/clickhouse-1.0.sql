@@ -7,6 +7,7 @@ CREATE TABLE releases (
     installer_email TEXT                 NOT NULL
                     COMMENT 'Email address of the user who installed the registry release.'
 ) ENGINE = MergeTree
+  ORDER BY version
   SETTINGS enable_block_number_column = 1, enable_block_offset_column = 1
   COMMENT 'Sqitch registry releases.';
 

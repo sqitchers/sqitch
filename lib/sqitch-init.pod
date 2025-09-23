@@ -55,6 +55,8 @@ include:
 
 =item * C<cockroach> - L<CockroachDB|https://www.cockroachlabs.com/product/>
 
+=item * C<clickhouse> - L<ClickHouse|https://www.clickhouse.com/clickhouse/>
+
 =back
 
 =item C<--top-dir>

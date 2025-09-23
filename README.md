@@ -1,13 +1,13 @@
 App/Sqitch version v1.5.3-dev
 =========================
 
-| Release           | Coverage          | Database                              ||
-|-------------------|-------------------|-------------------|--------------------|
-| [![CPAN]][📚]     | [![OSes]][💿]     | [![Exasol]][☀️]    | [![Oracle]][🔮]    |
-| [![Docker]][🐳]   | [![Perl]][🧅]     | [![Firebird]][🔥] | [![Snowflake]][❄️]  |
-| [![Homebrew]][🍺] | [![Coverage]][📈] | [![MySQL]][🐬]    | [![SQLite]][💡]    |
-| [![Debian]][🍥]   |                   | [![Postgres]][🐘] | [![Vertica]][🔺]   |
-|                   |                   | [![Yugabyte]][💫] | [![Cockroach]][🪳] |
+| Release           | Coverage          | Database                                                |||
+|-------------------|-------------------|-------------------|------------------|--------------------|
+| [![CPAN]][📚]      | [![OSes]][💿]      | [![Postgres]][🐘]  | [![SQLite]][💡]   | [![MySQL]][🐬]      |
+| [![Docker]][🐳]    | [![Perl]][🧅]      | [![Yugabyte]][💫]  | [![Firebird]][🔥] | [![MariaDB]][🦭]    |
+| [![Homebrew]][🍺]  | [![Coverage]][📈]  | [![Cockroach]][🪳] | [![Exasol]][☀️]   | [![ClickHouse]][🏠] |
+| [![Debian]][🍥]    |                   | [![Snowflake]][❄️] | [![Oracle]][🔮]   | [![Vertica]][🔺]    |
+
 
 [Sqitch] is a database change management application. It currently supports:
 
@@ -22,6 +22,7 @@ App/Sqitch version v1.5.3-dev
 *   [Vertica][vert] 7.2+
 *   [Exasol][exa] 6.0+
 *   [Snowflake][flake]
+*   [ClickHouse][click] 25.8+
 
 What makes it different from your typical migration approaches? A few things:
 
@@ -179,7 +180,9 @@ SOFTWARE.
   [Coverage]:  https://img.shields.io/coveralls/github/sqitchers/sqitch?label=%F0%9F%93%88%20Coverage
   [📈]:        https://coveralls.io/r/sqitchers/sqitch "Test Coverage"
   [MySQL]:     https://github.com/sqitchers/sqitch/actions/workflows/mysql.yml/badge.svg
-  [🐬]:        https://github.com/sqitchers/sqitch/actions/workflows/mysql.yml "Tested with MySQL 5.5–9.1 and MariaDB 10.0–12.0"
+  [🐬]:        https://github.com/sqitchers/sqitch/actions/workflows/mysql.yml "Tested with MySQL 5.5–9.1"
+  [MariaDB]:   https://github.com/sqitchers/sqitch/actions/workflows/maria.yml/badge.svg
+  [🦭]:        https://github.com/sqitchers/sqitch/actions/workflows/maria.yml "Tested with MariaDB 10.0–12.0"
   [SQLite]:    https://github.com/sqitchers/sqitch/actions/workflows/sqlite.yml/badge.svg
   [💡]:        https://github.com/sqitchers/sqitch/actions/workflows/sqlite.yml "Tested with SQLite 3.8–3.50"
   [Debian]:    https://img.shields.io/debian/v/sqitch?label=%F0%9F%8D%A5%20Debian
@@ -190,8 +193,10 @@ SOFTWARE.
   [💫]:        https://github.com/sqitchers/sqitch/actions/workflows/yugabyte.yml "Tested with YugabyteDB 2.6–2025.1"
   [Vertica]:   https://github.com/sqitchers/sqitch/actions/workflows/vertica.yml/badge.svg
   [🔺]:        https://github.com/sqitchers/sqitch/actions/workflows/vertica.yml "Tested with Vertica 7.2–12.0"
-[Cockroach]: https://github.com/sqitchers/sqitch/actions/workflows/cockroach.yml/badge.svg
+  [Cockroach]: https://github.com/sqitchers/sqitch/actions/workflows/cockroach.yml/badge.svg
   [🪳]:        https://github.com/sqitchers/sqitch/actions/workflows/cockroach.yml "Tested with CockroachDB v21-24"
+  [ClickHouse]: https://github.com/sqitchers/sqitch/actions/workflows/clickhouse.yml/badge.svg
+  [🏠]:          https://github.com/sqitchers/sqitch/actions/workflows/clickhouse.yml "Tested with ClickHouse v25.8"
 
   [Sqitch]: https://sqitch.org/
   [PostgreSQL]: https://postgresql.org/
@@ -206,6 +211,7 @@ SOFTWARE.
   [vert]: https://www.vertica.com/
   [exa]: https://www.exasol.com/
   [flake]: https://www.snowflake.net/
+  [click]: https://clickhouse.com/clickhouse
   [SQL\*Plus]: https://www.orafaq.com/wiki/SQL*Plus
   [Merkle tree]: https://en.wikipedia.org/wiki/Merkle_tree "Wikipedia: “Merkle tree”"
   [gitmerkle]: https://stackoverflow.com/a/18589734/

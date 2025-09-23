@@ -323,6 +323,29 @@ Snowflake.
 
 =back
 
+=head3 ClickHouse
+
+The Sqitch ClickHouse engine supports the following environment variables:
+
+=over
+
+=item C<CLICKHOUSE_USER>
+
+The username to use to connect to ClickHouse. Superseded by
+C<$SQITCH_USERNAME> and the target URI username.
+
+=item C<CLICKHOUSE_PASSWORD>
+
+The password to use to connect to Firebird. Superseded by C<$SQITCH_PASSWORD>
+and the target URI password.
+
+=item C<CLICKHOUSE_HOST>
+
+The ClickHouse server host to connect to. Superseded by the target URI host
+name.
+
+=back
+
 =head1 See Also
 
 =over

@@ -455,6 +455,8 @@ The database engine to use. Supported engines include:
 
 =item * C<cockroach> - L<CockroachDB|https://www.cockroachlabs.com/product/>
 
+=item * C<clickhouse> - L<ClickHouse|https://www.clickhouse.com/clickhouse/>
+
 =back
 
 =item C<core.top_dir>
@@ -611,6 +613,13 @@ C<sqitch>.
 For the Snowflake engine, the C<registry> value identifies the schema for
 Sqitch to use for its own data. No other data should be stored there. Defaults
 to C<sqitch>.
+
+=item C<engine.clickhouse.registry>
+
+For the ClickHouse engine, the C<registry> value identifies the database for
+Sqitch to use for its own data. If you need to manage multiple databases on a
+single server, and don't want them all to share the same registry, change this
+property to a value specific for your database. Defaults to C<sqitch>.
 
 =back
 

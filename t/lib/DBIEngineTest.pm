@@ -746,11 +746,36 @@ sub run {
             'Only the first change should be deployed';
         my ($req) = $change2->requires;
         ok $req->resolved_id($change->id),      'Set resolved ID in required depend';
+
         # Send this change back in time.
-        $engine->dbh->do(
-            'UPDATE changes SET committed_at = ? WHERE 1=1',
-                undef, '2013-03-30 00:47:47',
-        );
+        if ($engine->key eq 'clickhouse') {
+            # ClickHouse forbids key column update; delete and insert instead.
+            $engine->dbh->do(
+                'DELETE FROM changes WHERE change_id = ?',
+                undef, $change->id,
+            );
+            $engine->dbh->do(
+                'INSERT INTO changes VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                undef,
+                $change->id,
+                $change->script_hash,
+                $change->format_name,
+                $change->project,
+                $change->note,
+                '2013-03-30 00:47:47',
+                $sqitch->user_name,
+                $sqitch->user_email,
+                $engine->_char2ts( $change->timestamp ),
+                $change->planner_name,
+                $change->planner_email,
+            );
+        } else {
+            $engine->dbh->do(
+                'UPDATE changes SET committed_at = ? WHERE 1=1',
+                    undef, '2013-03-30 00:47:47',
+            );
+        }
+
         ok $engine->log_deploy_change($change2),    'Deploy second change';
         is $engine->earliest_change_id, $change->id, 'Should still get users ID for earliest change ID';
         is $engine->earliest_change_id(1), $change2->id,

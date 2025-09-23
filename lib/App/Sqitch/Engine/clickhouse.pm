@@ -586,40 +586,34 @@ App::Sqitch::Engine::clickhouse - Sqitch ClickHouse Engine
 =head1 Description
 
 App::Sqitch::Engine::clickhouse provides the ClickHouse storage engine for Sqitch. It
-supports ClickHouse 5.1.0 and higher (best on 5.6.4 and higher), as well as MariaDB
-5.3.0 and higher.
+supports ClickHouse v25.8 and higher.
 
 =head1 Interface
 
 =head2 Instance Methods
 
-=head3 C<clickhouse>
+=head3 C<cli>
 
 Returns a list containing the C<clickhouse> client and options to be passed to it.
-Used internally when executing scripts. Query parameters in the URI that map
-to C<clickhouse> client options will be passed to the client, as follows:
+Used internally when executing scripts.
+L<Query parameters|https://github.com/clickHouse/clickhouse-odbc> in the URI
+that map to C<clickhouse> client options will be passed to the client, as
+follows:
 
 =over
 
-=item * C<clickhouse_compression=1>: C<--compress>
+=item * C<SSLMode>: C<--secure>
 
-=item * C<clickhouse_ssl=1>: C<--ssl>
+Assume that TLS is required in the client if SSLMode is set.
 
-=item * C<clickhouse_connect_timeout>: C<--connect_timeout>
+=item * C<NativePort>: C<--port>
 
-=item * C<clickhouse_init_command>: C<--init-command>
-
-=item * C<clickhouse_socket>: C<--socket>
-
-=item * C<clickhouse_ssl_client_key>: C<--ssl-key>
-
-=item * C<clickhouse_ssl_client_cert>: C<--ssl-cert>
-
-=item * C<clickhouse_ssl_ca_file>: C<--ssl-ca>
-
-=item * C<clickhouse_ssl_ca_path>: C<--ssl-capath>
-
-=item * C<clickhouse_ssl_cipher>: C<--ssl-cipher>
+Sqitch-specific parameter for the client port. Required because the
+ODBC driver uses the HTTP ports (8123 or 8443 with C<SSLMode>) while the
+ClickHouse CLI uses the Native Protocol port (9000 or 9440 with C<SSLMode>).
+Use this option to specify an alternative port for the CLI. See
+L<Network Ports|https://clickhouse.com/docs/guides/sre/network-ports> for
+additional information.
 
 =back
 
@@ -628,11 +622,8 @@ to C<clickhouse> client options will be passed to the client, as follows:
 =head3 C<password>
 
 Overrides the methods provided by the target so that, if the target has
-no username or password, Sqitch looks them up in the
-L<F</etc/my.cnf> and F<~/.my.cnf> files|https://dev.clickhouse.com/doc/refman/5.7/en/password-security-user.html>.
-These files must limit access only to the current user (C<0600>). Sqitch will
-look for a username and password under the C<[client]> and C<[clickhouse]>
-sections, in that order.
+no username or password, Sqitch can look them up in a configuration file
+(although it does not yet do so).
 
 =head1 Author
 

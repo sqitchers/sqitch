@@ -1,10 +1,10 @@
 # This workflow tests Sqitch's ClickHouse engine on recent supported versions
-# of Oracle. It runs for pushes to branches matching `main`, `develop`,
-# `**clickhouse**`, and `**engine**`.
+# of ClickHouse. It runs on pushes to branches matching `develop`,
+# `**clickhouse**`, and `**engine**` as well as pull requests.
 name: 🏠 ClickHouse
 on:
   push:
-    branches: [main, develop, "**engine**", "**clickhouse**" ]
+    branches: [develop, "**engine**", "**clickhouse**" ]
 jobs:
   ClickHouse:
     strategy:

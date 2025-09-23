@@ -72,6 +72,10 @@ L<F<~/.snowsql/config> file|https://docs.snowflake.com/en/user-guide/snowsql-sta
 and use the default C<connections.username> value. Otherwise, it uses the
 system username.
 
+=item ClickHouse
+
+The ClickHouse engine uses the C<CLICKHOUSE_USER> environment variable, if set.
+
 =back
 
 =head1 Passwords
@@ -202,6 +206,11 @@ Sadly, both the C<SNOWSQL_PRIVATE_KEY_PASSPHRASE> environment variable and
 the C<priv_key_file_pwd> ODBC parameter must be set, as Sqitch uses ODBC to
 maintain its registry and SnowSQL to execute change scripts.
 
+=item ClickHouse
+
+The ClickHouse client supports passwordless authentication via an SSH key
+file. Sqitch does not currently support this feature.
+
 =back
 
 =head2 Use a Password File
@@ -330,6 +339,12 @@ The variables that Sqitch currently reads are:
 
 =back
 
+=item ClickHouse
+
+ClickHouse supports password configuration via its L<client configuration
+file|https://clickhouse.com/docs/interfaces/cli#connection-credentials>.
+Sqitch does not currently support this feature.
+
 =back
 
 =head2 Use C<$SQITCH_PASSWORD>
@@ -365,6 +380,10 @@ C<$ISC_PASSWORD>
 =item Snowflake
 
 C<$SNOWSQL_PWD>
+
+=item ClickHouse
+
+C<$CLICKHOUSE_PASSWORD>
 
 =back
 

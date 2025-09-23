@@ -1,6 +1,7 @@
 
 CREATE TABLE releases (
-    version         REAL COMMENT 'Version of the Sqitch registry.' PRIMARY KEY,
+    version         REAL                 NOT NULL
+                    COMMENT 'Version of the Sqitch registry.',
     installed_at    DATETIME64(6, 'UTC') NOT NULL DEFAULT now64(6, 'UTC')
                     COMMENT 'Date the registry release was installed.',
     installer_name  TEXT                 NOT NULL
@@ -8,12 +9,15 @@ CREATE TABLE releases (
     installer_email TEXT                 NOT NULL
                     COMMENT 'Email address of the user who installed the registry release.'
 ) ENGINE = MergeTree
+  PRIMARY KEY version
+  ORDER BY version
   SETTINGS enable_block_number_column = 1, enable_block_offset_column = 1
   COMMENT 'Sqitch registry releases.';
 
 CREATE TABLE projects (
-    project         TEXT        COMMENT 'Unique Name of a project.' PRIMARY KEY,
-    uri             TEXT                 NULL
+    project         TEXT                 NOT NULL
+                    COMMENT 'Unique Name of a project.',
+    uri             TEXT                     NULL
                     COMMENT 'Optional project URI',
     created_at      DATETIME64(6, 'UTC') NOT NULL DEFAULT now64(6, 'UTC')
                     COMMENT 'Date the project was added to the database.',
@@ -22,11 +26,14 @@ CREATE TABLE projects (
     creator_email   TEXT                 NOT NULL
                     COMMENT 'Email address of the user who added the project.'
 ) ENGINE = MergeTree
+  PRIMARY KEY project
+  ORDER BY project
   SETTINGS enable_block_number_column = 1, enable_block_offset_column = 1
   COMMENT 'Sqitch projects deployed to this database.';
 
 CREATE TABLE changes (
-    change_id       TEXT        COMMENT 'Change primary key.' PRIMARY KEY,
+    change_id       TEXT        NOT NULL
+                    COMMENT 'Change primary key.',
     script_hash     TEXT            NULL
                     COMMENT 'Deploy script SHA-1 hash.',
     change          TEXT        NOT NULL
@@ -48,11 +55,14 @@ CREATE TABLE changes (
     planner_email   TEXT        NOT NULL
                     COMMENT 'Email address of the user who planned the change.'
 ) ENGINE = MergeTree
+  PRIMARY KEY (project, change_id)
+  ORDER BY (project, change_id)
   SETTINGS enable_block_number_column = 1, enable_block_offset_column = 1
   COMMENT 'Tracks the changes currently deployed to the database.';
 
 CREATE TABLE tags (
-    tag_id          TEXT        COMMENT 'Tag primary key.' PRIMARY KEY,
+    tag_id          TEXT        NOT NULL
+                    COMMENT 'Tag primary key.',
     tag             TEXT        NOT NULL
                     COMMENT 'Project-unique tag name.',
     project         TEXT        NOT NULL
@@ -74,6 +84,8 @@ CREATE TABLE tags (
     planner_email   TEXT        NOT NULL
                     COMMENT 'Email address of the user who planned the tag.'
 ) ENGINE = MergeTree
+  PRIMARY KEY (project, change_id, tag_id)
+  ORDER BY (project, change_id, tag_id)
   SETTINGS enable_block_number_column = 1, enable_block_offset_column = 1
   COMMENT 'Tracks the tags currently applied to the database.';
 
@@ -92,11 +104,12 @@ CREATE TABLE dependencies (
     )    
 ) ENGINE = MergeTree
   PRIMARY KEY (change_id, dependency)
+  ORDER BY (change_id, dependency)
   SETTINGS enable_block_number_column = 1, enable_block_offset_column = 1
   COMMENT 'Tracks the tags currently applied to the database.';
 
 CREATE TABLE events (
-    event           TEXT        NOT NULL
+    event           TEXT                 NOT NULL
                     COMMENT 'Type of event.',
     CONSTRAINT events_event_check CHECK (
         event IN ('deploy', 'revert', 'fail', 'merge')
@@ -128,6 +141,7 @@ CREATE TABLE events (
     planner_email   TEXT                 NOT NULL
                     COMMENT 'Email address of the user who plan planned the change.',
 ) ENGINE = MergeTree
-  PRIMARY KEY (committed_at, change_id)
+  PRIMARY KEY (project, committed_at)
+  ORDER BY (project, committed_at)
   SETTINGS enable_block_number_column = 1, enable_block_offset_column = 1
   COMMENT 'Contains full history of all deployment events.';

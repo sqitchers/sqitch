@@ -128,7 +128,8 @@ be evaluated.
 This option allows one to define templates for specific tasks, such as
 creating a table, and then use them for changes that perform those tasks.
 Defaults to the name of the database engine (C<pg>, C<sqlite>, C<mysql>,
-C<oracle>, C<firebird>, C<vertica>, C<exasol>, or C<snowflake>).
+C<oracle>, C<firebird>, C<vertica>, C<exasol>, C<snowflake>, C<cockroach>, or
+C<clickhouse>).
 
 =item C<--use script=template>
 
@@ -358,8 +359,8 @@ The name of the change being added.
 =item C<engine>
 
 The name of the engine for which the change was added. One of C<pg>,
-C<sqlite>, C<mysql>, C<oracle>, C<firebird>, C<vertica> C<exasol>, or
-C<snowflake>.
+C<sqlite>, C<mysql>, C<oracle>, C<firebird>, C<vertica> C<exasol>,
+C<snowflake>, C<cockroach>, or C<clickhouse>).
 
 =item C<project>
 

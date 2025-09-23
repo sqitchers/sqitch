@@ -237,17 +237,13 @@ configuration values. Defaults to F<$top_dir/sqitch.plan>.
 =item C<[revert.variables]>
 
 A section defining database client variables. These variables are useful if
-your database engine supports variables in scripts, such as PostgreSQL's
-L<C<psql>
-variables|https://www.postgresql.org/docs/current/static/app-psql.html#APP-PSQL-INTERPOLATION>,
-Vertica's L<C<vsql>
-variables|https://my.vertica.com/docs/7.1.x/HTML/index.htm#Authoring/ConnectingToHPVertica/vsql/Variables.htm>,
-MySQL's L<user
-variables|https://dev.mysql.com/doc/refman/5.6/en/user-variables.html>,
-SQL*Plus's L<C<DEFINE>
-variables|https://docs.oracle.com/cd/B19306_01/server.102/b14357/ch12017.htm>,
-and Snowflake's L<SnowSQL
-variables|https://docs.snowflake.com/en/user-guide/snowsql-use.html#using-variables>.
+your database engine supports variables in scripts, such as
+PostgreSQL's L<C<psql> variables|https://www.postgresql.org/docs/current/static/app-psql.html#APP-PSQL-INTERPOLATION>,
+Vertica's L<C<vsql> variables|https://docs.vertica.com/24.2.x/en/connecting-to/using-vsql/variables/>,
+MySQL's L<user variables|https://dev.mysql.com/doc/refman/5.6/en/user-variables.html>,
+SQL*Plus's L<C<DEFINE> variables|https://docs.oracle.com/cd/B19306_01/server.102/b14357/ch12017.htm>,
+Snowflake's L<SnowSQL variables|https://docs.snowflake.com/en/user-guide/snowsql-use.html#using-variables>,
+and ClickHouse's L<queries with parameters|https://clickhouse.com/docs/interfaces/cli#cli-queries-with-parameters>.
 
 May be overridden by C<--set>, C<--set-deploy>, C<--set-revert>, or target and
 engine configuration. Variables are merged in the following priority order:

@@ -36,6 +36,8 @@ Sqitch is a database change management application. It currently supports:
 
 =item * L<Snowflake|https://www.snowflake.net/>
 
+=item * L<ClickHouse|https://www.clickhouse.com/clickhouse/> 24+
+
 =back
 
 What makes it different from your typical

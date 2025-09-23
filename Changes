@@ -6,6 +6,9 @@ Revision history for Perl extension App::Sqitch
        replaces inline uses of `split`. This allows the tests to more
        consistently compare arrays as arrays, though `search_events` must now
        always parse `tags`, `requires`, and `conflicts`.
+     - Added support for ClickHouse. It relies on the C<clickhouse> CLI and
+       ODBC driver. Like MySQL, it uses a database for the registry schema,
+       where the tables use the C<MergeTree> engine.
 
 1.5.2  2025-04-29T15:13:35Z
      - Added missing German translations, thanks to @0xflotus for the PR
