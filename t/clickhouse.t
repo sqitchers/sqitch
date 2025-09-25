@@ -10,6 +10,7 @@
 use strict;
 use warnings;
 use 5.010;
+use Cwd qw(getcwd);
 use Test::More;
 use App::Sqitch;
 use App::Sqitch::Target;
@@ -18,6 +19,7 @@ use Test::MockModule;
 use Path::Class;
 use Try::Tiny;
 use Test::Exception;
+use Path::Class;
 use List::MoreUtils qw(firstidx);
 use Locale::TextDomain qw(App-Sqitch);
 use File::Temp 'tempdir';
@@ -73,8 +75,8 @@ my $mock_sqitch = Test::MockModule->new('App::Sqitch');
 my $warning;
 $mock_sqitch->mock(warn => sub { shift; $warning = [@_] });
 $ch->uri->dbname('');
-is_deeply [$ch->cli], [$client, '--user', $sqitch->sysuser, @std_opts],
-    'clickhouse command should be user and std opts-only';
+is_deeply [$ch->cli], [$client, @std_opts],
+    'clickhouse command should be std opts-only';
 is_deeply $warning, [__x
     'Database name missing in URI "{uri}"',
      uri => $ch->uri
@@ -85,7 +87,6 @@ ok $ch->set_variables(foo => 'baz', whu => 'hi there', yo => 'stellar'),
     'Set some variables';
 is_deeply [$ch->cli], [
     $client,
-    '--user', $sqitch->sysuser,
     '--param_foo' => 'baz',
     '--param_whu' => 'hi there',
     '--param_yo' => 'stellar',
@@ -96,7 +97,7 @@ $mock_sqitch->unmock_all;
 
 $target = App::Sqitch::Target->new(
     sqitch => $sqitch,
-    uri => URI::db->new('db:clickhouse:foo'),
+    uri => URI::db->new('db:clickhouse:'),
 );
 isa_ok $ch = $CLASS->new(
     sqitch => $sqitch,
@@ -108,25 +109,212 @@ isa_ok $ch = $CLASS->new(
 ENV: {
     my $mock = Test::MockModule->new($CLASS);
     $mock->mock(_clickcnf => {
-        user => 'lincoln',
+        user     => 'lincoln',
         password => 's3cr3t',
+        host     => 'bagel.cat',
+        database => 'red',
     });
+
+    my $uri = URI::db->new('db:clickhouse:');
+    my $target = App::Sqitch::Target->new( sqitch => $sqitch, uri => $uri );
     ok my $ch = $CLASS->new(sqitch => $sqitch, target => $target),
         'Create engine with env config set';
     is $ch->password, 's3cr3t', 'Password should be set from config';
     is $ch->username, 'lincoln', 'Username should be set from config';
+    is $ch->uri, 'db:clickhouse://bagel.cat/red',
+        'Host and database should be set from config';
 
     local $ENV{CLICKHOUSE_USER} = 'kamala';
     local $ENV{CLICKHOUSE_PASSWORD} = '__KAMALA';
     local $ENV{CLICKHOUSE_HOST} = 'sqitch.sql';
+    $uri = URI::db->new('db:clickhouse:');
+    $target = App::Sqitch::Target->new( sqitch => $sqitch, uri => $uri );
     ok $ch = $CLASS->new(sqitch => $sqitch, target => $target),
         'Create engine with env vars set';
     is $ch->password, $ENV{CLICKHOUSE_PASSWORD},
         'Password should be set from environment';
     is $ch->username, $ENV{CLICKHOUSE_USER},
         'Username should be set from environment';
-     is $ch->uri->host, $ENV{CLICKHOUSE_HOST},
-        'URI should reflect CLICKHOUSE_HOST';
+    is $ch->uri, 'db:clickhouse://sqitch.sql/red',
+        'URI host should be set from environment';
+
+    $uri = URI::db->new('db:clickhouse://bert:up@lol.host');
+    $target = App::Sqitch::Target->new( sqitch => $sqitch, uri => $uri );
+    ok $ch = $CLASS->new(sqitch => $sqitch, target => $target),
+        'Create engine with URI filled out';
+    is $ch->password, 'up', 'Password should be set from URI';
+    is $ch->username, 'bert', 'Username should be set from URI';
+    is $ch->uri, 'db:clickhouse://bert:up@lol.host/red',
+        'Host and database should be set from URI';
+}
+
+# Make sure uri reads the config.
+URI_CONFIG: {
+    my $mock = Test::MockModule->new($CLASS);
+    my $cfg = {};
+    $mock->mock(_clickcnf => $cfg);
+
+    for my $tc (
+        {
+            test => 'empty',
+            cfg  => {},
+            uri => 'db:clickhouse:',
+        },
+        {
+            test => 'basic',
+            cfg  => {
+                host     => 'bagel.cat',
+                database => 'red',
+            },
+            uri => 'db:clickhouse://bagel.cat/red',
+        },
+        {
+            test => 'secure',
+            cfg  => {
+                host     => 'bagel.cat',
+                secure   => 1,
+                database => 'red',
+            },
+            uri => 'db:clickhouse://bagel.cat/red?SSLMode=require',
+        },
+        {
+            test => 'secure_no_repeat',
+            cfg  => {
+                host     => 'bagel.cat',
+                secure   => 1,
+                database => 'red',
+            },
+            target =>  => App::Sqitch::Target->new(
+                sqitch => $sqitch,
+                uri => URI::db->new('db:clickhouse:?SSLMode=require'),
+            ),
+            uri => 'db:clickhouse://bagel.cat/red?SSLMode=require',
+        },
+        {
+            test => 'clickhouse.cloud',
+            cfg  => {
+                host     => 'xyz.clickhouse.cloud',
+                database => 'red',
+            },
+            uri => 'db:clickhouse://xyz.clickhouse.cloud/red?SSLMode=require',
+        },
+        {
+            test => 'secure port',
+            cfg  => {
+                host     => 'bagel.cat',
+                port     => 9440,
+                database => 'red',
+            },
+            uri => 'db:clickhouse://bagel.cat:8443/red?SSLMode=require',
+        },
+        {
+            test => 'tls',
+            cfg  => {
+                host     => 'sushi.cat',
+                database => 'green',
+                tls      => {
+                    privateKeyFile   => '/x/private.pem',
+                    certificateFile  => '/x/cert.pem',
+                    caConfig         => '/x/ca.pem',
+                    verificationMode => 'strict',
+                }
+            },
+            uri => 'db:clickhouse://sushi.cat/green',
+            params => [
+                [ PrivateKeyFile  => '/x/private.pem' ],
+                [ CertificateFile => '/x/cert.pem'    ],
+                [ CALocation      => '/x/ca.pem'      ],
+                [ SSLMode         => 'require'        ],
+            ]
+        },
+        {
+            test => 'param mismatch',
+            cfg  => {
+                tls => { privateKeyFile => '/x/private.pem' }
+            },
+            target =>  => App::Sqitch::Target->new(
+                sqitch => $sqitch,
+                uri => URI::db->new('db:clickhouse:?PrivateKeyFile=/y/sinister.pem'),
+            ),
+            err => __x(
+                'Client config {cfg_key} value "{cfg_val}" conflicts with ODBC param {odb_param} value "{odbc_val}"',
+                cfg_key    => "openSSL.client.privateKeyFile",
+                cfg_val    => '/x/private.pem',
+                odbc_param => 'PrivateKeyFile',
+                odbc_val   => '/y/sinister.pem',
+            ),
+        },
+        {
+            test => 'param match',
+            cfg  => {
+                tls => { privateKeyFile => '/x/private.pem' }
+            },
+            target =>  => App::Sqitch::Target->new(
+                sqitch => $sqitch,
+                uri => URI::db->new('db:clickhouse:?PrivateKeyFile=/x/private.pem'),
+            ),
+            uri => 'db:clickhouse:',
+            params => [[ PrivateKeyFile => '/x/private.pem' ]],
+        },
+        {
+            test => 'tls once',
+            cfg  => {
+                tls => { verificationMode => 'once' },
+            },
+            uri => 'db:clickhouse:?SSLMode=require',
+        },
+        {
+            test => 'tls relaxed',
+            cfg  => {
+                tls => { verificationMode => 'relaxed' },
+            },
+            uri => 'db:clickhouse:?SSLMode=allow',
+        },
+        {
+            test => 'tls none',
+            cfg  => {
+                tls => { verificationMode => 'none' },
+            },
+            uri => 'db:clickhouse:',
+        },
+        {
+            test => 'no override secure',
+            cfg  => {
+                tls => { verificationMode => 'relaxed' },
+            },
+            uri => 'db:clickhouse:?SSLMode=allow',
+        },
+        {
+            test => 'SSLMode overrides verificationMode',
+            cfg  => {
+                tls => { verificationMode => 'relaxed' },
+            },
+            target =>  => App::Sqitch::Target->new(
+                sqitch => $sqitch,
+                uri => URI::db->new('db:clickhouse:?SSLMode=require'),
+            ),
+            uri => 'db:clickhouse:?SSLMode=require',
+        },
+    ) {
+        %{ $cfg } = %{ $tc->{cfg} };
+        my $target = $tc->{target} || App::Sqitch::Target->new(
+            sqitch => $sqitch, uri => URI::db->new('db:clickhouse:'),
+        );
+        $ch = $CLASS->new(sqitch => $sqitch, target => $target);
+        my $uri = URI->new($tc->{uri});
+        if (my $p = $tc->{params}) {
+            $uri->query_param( @{ $_ }) for @{ $p };
+        }
+        if (my $err = $tc->{err}) {
+            local $ENV{FOO} = 1;
+            throws_ok { $ch->uri } 'App::Sqitch::X',
+                "Should get error for $tc->{test} config";
+            is $@->ident, 'engine', "Ident for $tc->{test} should be 'engine'";
+            is $@->message, $tc->{err}, "Message for $tc->{test} should be correct";
+        } else {
+            is $ch->uri, $uri, "Should get URI for $tc->{test} config";
+        }
+    }
 }
 
 ##############################################################################
@@ -177,12 +365,306 @@ ok $ch = $CLASS->new(sqitch => $sqitch, target => $target),
     'Create a clickhouse with query params';
 is_deeply [$ch->cli], [
     qw(/path/to/clickhouse client),
-    '--user', $sqitch->sysuser,
     qw(--database widgets --host foo.com),
     @std_opts,
     '--secure',
     '--port' => 90210,
 ], 'clickhouse command should be configured with query vals';
+
+# Make sure the TLS HTTP ports trigger the encrypted native port.
+for my $port (8443, 443) {
+    my $target = App::Sqitch::Target->new(
+        sqitch => $sqitch,
+        uri    => URI->new("db:clickhouse://foo.com:$port/widgets",
+    ));
+    ok $ch = $CLASS->new(sqitch => $sqitch, target => $target),
+        "Create a clickhouse with URI port $port";
+    is_deeply [$ch->cli], [
+        qw(/path/to/clickhouse client),
+        qw(--database widgets --host foo.com),
+        @std_opts,
+        '--port' => 9440,
+    ], "clickhouse command should be configured with port 9449";
+}
+
+# But not when the configuration defines a port.
+PORT: {
+    my $mock = Test::MockModule->new($CLASS);
+    $mock->mock(_clickcnf => { port => 8888 });
+    my $target = App::Sqitch::Target->new(
+        sqitch => $sqitch,
+        uri    => URI->new("db:clickhouse://foo.com:443/widgets",
+    ));
+    ok $ch = $CLASS->new(sqitch => $sqitch, target => $target),
+        "Create a clickhouse with default port 8888";
+    is_deeply [$ch->cli], [
+        qw(/path/to/clickhouse client),
+        qw(--database widgets --host foo.com),
+        @std_opts,
+    ], "clickhouse command should not include --port";
+}
+
+##############################################################################
+# Test _clickcnf
+CONFIG: {
+    my $orig_dir = getcwd();
+    my $tmp_dir = tempdir CLEANUP => 1;
+    chdir $tmp_dir;
+    my $tmp_home = tempdir CLEANUP => 1;
+    my $mock_config = Test::MockModule->new('App::Sqitch::Config');
+    $mock_config->mock(home_dir => $tmp_home);
+
+    # Write config files.
+    for my $spec (
+        [qw(temp . clickhouse-client)],
+        ['home', $tmp_home, '.clickhouse-client'],
+    ) {
+        for my $ext (qw(xml yaml yml)) {
+            my $path = file $spec->[1], "$spec->[2].$ext";
+            open my $fh, '>:utf8', $path or die "Cannot open $path: $!";
+            if ($ext eq 'xml') {
+                print {$fh} qq{
+                    <config>
+                      <user>$spec->[0]</user>
+                      <password>$ext</password>
+                      <connections_credentials>
+                        <connection>
+                          <name>lol.cats</name>
+                          <hostname>cats.example</hostname>
+                        </connection>
+                      </connections_credentials>
+                    </config>
+                };
+            } else {
+                print {$fh} qq{
+                    user: $spec->[0]
+                    password: $ext
+                    connections_credentials:
+                      connection:
+                      - name: lol.cats
+                        hostname: cats.example
+                };
+            }
+        }
+    }
+
+    # Now find them in order.
+    for my $spec (
+        [qw(temp . clickhouse-client)],
+        ['home', $tmp_home, '.clickhouse-client'],
+    ) {
+        for my $ext (qw(xml yaml yml)) {
+            $target = App::Sqitch::Target->new(
+                sqitch => $sqitch,
+                uri    => URI->new('db:clickhouse://lol.cats',
+            ));
+
+            my $ch = $CLASS->new(sqitch => $sqitch, target => $target);
+            ok my $cfg = $ch->_clickcnf, "Should load $ext config from $spec->[0]";
+            is_deeply $cfg, {
+                user     => $spec->[0],
+                password => $ext,
+                host     => 'cats.example',
+            }, "Should have $ext config from $spec->[0]";
+            unlink file $spec->[1], "$spec->[2].$ext";
+        }
+    }
+
+    chdir $orig_dir;
+}
+
+##############################################################################
+# Test _load_xml.
+XML: {
+    my $dir = dir qw(t click-conf);
+    while (my $file = $dir->next) {
+        next if $file !~ /\.xml$/;
+        my $perl =  do{ (my $x = $file) =~ s/\.xml$/.pl/; file $x };
+        my $exp = eval $perl->slurp;
+        die "Failed to eval $perl: $@" if $@;
+        my $got = App::Sqitch::Engine::clickhouse::_load_xml($file);
+        is_deeply ($got, $exp, "Should have properly parsed $file");
+    }
+}
+
+##############################################################################
+# Test _is_true.
+for my $t (qw(true on yes On YES True TRUE 42 99 -42 99.6)) {
+    is App::Sqitch::Engine::clickhouse::_is_true $t, 1, "$t should be true";
+}
+
+for my $f ('', qw(0 0.0 false off no False FALSE Off nO)) {
+    is App::Sqitch::Engine::clickhouse::_is_true $f, 0, "$f should be false";
+}
+
+##############################################################################
+# Test _conn_cfg.
+for my $tc (
+    {
+        test   => 'empty',
+        config => {},
+        exp    => {},
+    },
+    {
+        test   => 'root only',
+        config => {
+            secure   => 'true',
+            host     => 'bagel.cat',
+            port     => 8000,
+            user     => 'sushi',
+            password => 's3cr3t',
+            database => 'pets',
+        },
+        exp => {
+            secure   => 1,
+            host     => 'bagel.cat',
+            port     => 8000,
+            user     => 'sushi',
+            password => 's3cr3t',
+            database => 'pets',
+        },
+    },
+    {
+        test   => 'client TLS',
+        config => {
+            secure  => 'yes',
+            user    => 'biscuit',
+            openSSL => {
+                client => {
+                    caConfig => '/etc/ssl/cert.pem',
+                }
+            }
+        },
+        exp => {
+            secure  => 1,
+            user    => 'biscuit',
+            tls => { caConfig => '/etc/ssl/cert.pem' },
+        },
+    },
+    {
+        test   => 'no client TLS',
+        config => {
+            secure  => 'no',
+            openSSL => {
+                server => {
+                    caConfig => '/etc/ssl/cert.pem',
+                }
+            }
+        },
+        exp => { secure => 0 },
+    },
+    {
+        test   => 'default connection',
+        config => {
+            secure   => 'true',
+            user     => 'sushi',
+            password => 's3cr3t',
+            database => 'pets',
+            connections_credentials => { connection => {
+                name     => 'localhost',
+                secure   => 'false',
+                hostname => 'cats.lol',
+                port     => 8181,
+                user     => 'biscuit',
+                password => 'meow',
+                database => 'cats',
+            }}
+        },
+        exp => {
+            secure   => 0,
+            host     => 'cats.lol',
+            port     => 8181,
+            user     => 'biscuit',
+            password => 'meow',
+            database => 'cats',
+        },
+    },
+    {
+        test   => 'different host',
+        config => {
+            secure   => 'true',
+            host     => 'bagel.cat',
+            user     => 'sushi',
+            password => 's3cr3t',
+            database => 'pets',
+            connections_credentials => { connection => {
+                name     => 'localhost',
+                secure   => 'false',
+                hostname => 'cats.lol',
+                user     => 'biscuit',
+                password => 'meow',
+                database => 'cats',
+            }}
+        },
+        exp => {
+            secure   => 1,
+            host     => 'bagel.cat',
+            user     => 'sushi',
+            password => 's3cr3t',
+            database => 'pets',
+        },
+    },
+    {
+        test   => 'multiple connections',
+        config => {
+            connections_credentials => { connection => [
+                {
+                    name     => 'localhost',
+                    user     => 'biscuit',
+                },
+                {
+                    name     => 'pumpkin',
+                    user     => 'pumpkin',
+                },
+            ]},
+        },
+        exp => {
+            user => 'biscuit',
+        },
+    },
+    {
+        test   => 'repeat connection',
+        config => {
+            host => 'cats.lol',
+            connections_credentials => { connection => [
+                {
+                    name     => 'localhost',
+                    user     => 'biscuit',
+                },
+                {
+                    user     => 'jimmy',
+                },
+                {
+                    name     => 'cats.lol',
+                    user     => 'pumpkin',
+                },
+                {
+                    name     => 'cats.lol',
+                    user     => 'strawberry',
+                },
+            ]},
+        },
+        exp => {
+            host => 'cats.lol',
+            user => 'strawberry',
+        },
+    },
+    {
+        test   => 'empty connections_credentials',
+        config => {
+            host => 'cats.lol',
+            connections_credentials => {},
+        },
+        exp => {
+            host => 'cats.lol',
+        },
+    },
+) {
+    my $got = App::Sqitch::Engine::clickhouse::_conn_cfg(
+        $tc->{config}, $tc->{host},
+    );
+    is_deeply $got, $tc->{exp}, "Should process $tc->{test} config";
+}
 
 ##############################################################################
 # Test _run(), _capture(), and _spool().

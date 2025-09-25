@@ -68,6 +68,24 @@ installed it. Consult the documentation for your ODBC driver manager (e.g.,
 L<UnixODBC|https://www.unixodbc.org> or L<iODBC|https://www.iodbc.org>) for
 details.
 
+With this configured, Sqitch target URIs can specify the driver name like so:
+
+  db:clickhouse://user:pass@host:port/dbname?Driver=ClickHouse
+
+=head3 Ports
+
+In addition to the ODBC connection Sqitch uses to maintain its registry
+tables, it depends on the
+C<ClickHouse Client|https://clickhouse.com/docs/interfaces/cli> to run
+change scripts. As such, Sqitch requires on both the HTTP and Native
+L<ports|https://clickhouse.com/docs/guides/sre/network-ports> to connect.\
+The port provided as part of a URI will determines the HTTP port used
+by ODBC. Therefore, if your ClickHouse server uses a non-standard Native
+port (other than C<9004> or C<9440> for encrypted connections), you'll
+need to specify the native port via the C<NativePort> query parameter:
+
+  db:clickhouse://user:pass@host:port/dbname?Driver=ClickHouse?NativePort=9999
+
 =head1 Starting a New Project
 
 Usually the first thing to do when starting a new project is to create a

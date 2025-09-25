@@ -336,8 +336,8 @@ C<$SQITCH_USERNAME> and the target URI username.
 
 =item C<CLICKHOUSE_PASSWORD>
 
-The password to use to connect to Firebird. Superseded by C<$SQITCH_PASSWORD>
-and the target URI password.
+The password to use to connect to ClickHouse. Superseded by
+C<$SQITCH_PASSWORD> and the target URI password.
 
 =item C<CLICKHOUSE_HOST>
 

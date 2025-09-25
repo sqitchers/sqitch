@@ -1,0 +1,19 @@
+<config>
+    <connections_credentials>
+        <connection>
+            <name>default</name>
+            <user>default</user>
+            <password>password</password>
+        </connection>
+        <connection>
+            <name>sqitch</name>
+            <user>sqitch</user>
+            <password>s3cr3t</password>
+        </connection>
+        <connection>
+            <name>blanket</name>
+            <user>blanket</user>
+            <password>howdy</password>
+        </connection>
+    </connections_credentials>
+</config>

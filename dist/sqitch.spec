@@ -314,6 +314,8 @@ Group:          Development/Libraries
 Requires:       sqitch >= %{version}
 Requires:       perl(DBI) => 1.631
 Requires:       perl(DBD::ODBC) >= 1.59
+Requires:       perl(XML::Tiny) >= 2.07
+Requires:       perl(YAML::Tiny) >= 1.76
 Requires:       libclickhouseodbcw.so
 Requires:       /usr/bin/clickhouse
 Provides:       sqitch-clickhouse

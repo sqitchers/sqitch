@@ -9,6 +9,7 @@ use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::Plan::Change;
 use Path::Class;
+use Scalar::Util qw(looks_like_number);
 use Moo;
 use App::Sqitch::Types qw(DBH URIDB ArrayRef Str HashRef);
 use namespace::autoclean;
@@ -22,13 +23,81 @@ has uri => (
     is       => 'ro',
     isa      => URIDB,
     lazy     => 1,
-    default  => sub {
-        my $self = shift;
-        my $uri = $self->SUPER::uri;
-        $uri->host($ENV{CLICKHOUSE_HOST}) if !$uri->host  && $ENV{CLICKHOUSE_HOST};
-        return $uri;
-    },
+    default  => \&_setup_uri,
 );
+
+sub _setup_uri {
+    my $self = shift;
+    my $uri = $self->SUPER::uri;
+    my $cfg = $self->_clickcnf;
+    if (!$uri->host && (my $host = $ENV{CLICKHOUSE_HOST} || $cfg->{host})) {
+        $uri->host($host);
+    }
+    if (!$uri->dbname && (my $db = $cfg->{database})) {
+        $uri->dbname($db);
+    }
+
+    # Use HTTPS port if CLI using native TLS port.
+    # https://clickhouse.com/docs/guides/sre/network-ports
+    $uri->port(8443) if !$uri->_port && ($cfg->{port} || 0) == 9440;
+
+    # Always require secure connections when required.
+    # https://github.com/ClickHouse/ClickHouse/blob/faf6d05/src/Client/ConnectionParameters.cpp#L27-L43
+    if (
+        $cfg->{secure}
+        || ($cfg->{port} || 0) == 9440 # assume both native and http should be secure or not.
+        || ($uri->host || '') =~ /\.clickhouse(?:-staging)?\.cloud\z/
+    ) {
+        $uri->query_param( SSLMode => 'require' )
+            unless $uri->query_param( 'SSLMode' );
+    }
+
+    # Add ODBC params for TLS configs.
+    # https://clickhouse.com/docs/operations/server-configuration-parameters/settings
+    # https://github.com/clickHouse/clickhouse-odbc?tab=readme-ov-file#configuration
+    if ( my $tls = $cfg->{tls} ) {
+        for my $map (
+            [ privateKeyFile  => 'PrivateKeyFile'  ],
+            [ certificateFile => 'CertificateFile' ],
+            [ caConfig        => 'CALocation'      ],
+        ) {
+            if ( my $val = $tls->{ $map->[0] } ) {
+                if ( my $p = $uri->query_param( $map->[1] ) ) {
+                    # Ideally the ODBC param would override the config,
+                    # bug there is currently no way to pass TLS options to
+                    # the CLI.
+                    hurl engine => __x(
+                        'Client config {cfg_key} value "{cfg_val}" conflicts with ODBC param {odb_param} value "{odbc_val}"',
+                        cfg_key    => "openSSL.client.$map->[0]",
+                        cfg_val    => $val,
+                        odbc_param => $map->[1],
+                        odbc_val   => $p,
+                    ) if $p ne $val;
+                }
+                $uri->query_param( $map->[1] => $val );
+            }
+        }
+
+        # verificationMode | SSLMode
+        # -----------------|---------------
+        # none             | [nonexistent]
+        # relaxed          | allow
+        # strict           | require
+        # once             | require
+        if (
+            (my $mode = $tls->{verificationMode})
+            && !$uri->query_param( 'SSLMode' )
+        ) {
+            if ($mode eq 'strict' || $mode eq 'once') {
+                $uri->query_param( SSLMode => 'require' );
+            } elsif ($mode eq 'relaxed') {
+                $uri->query_param( SSLMode => 'allow' );
+            }
+        }
+    }
+
+    return $uri;
+}
 
 has registry_uri => (
     is       => 'ro',
@@ -51,21 +120,113 @@ sub registry_destination {
     return $uri->as_string;
 }
 
+sub _load_xml {
+    my $path = shift;
+    require XML::Tiny;
+    my $doc = XML::Tiny::parsefile($path->stringify);
+    return {} unless @{ $doc } > 0;
+    return _xml2hash($doc->[0]);
+}
+
+sub _xml2hash {
+    my $e = shift;
+    my $n = $e->{content};
+    # Return text if it's a text node.
+    return $n->[0]{content} if @{ $n } == 1 && $n->[0]{type} eq 't';
+    my $hash = {};
+    for my $c (@{ $n }) {
+        # We only care about element nodes.
+        next if $c->{type} ne 'e';
+        if (my $prev = $hash->{ $c->{name} }) {
+            # Convert to an array.
+            $hash->{ $c->{name} } = $prev = [$prev] unless ref $prev eq 'ARRAY';
+            push @{ $prev } => _xml2hash($c)
+        } else {
+            $hash->{ $c->{name} } = _xml2hash($c);
+        }
+    }
+    return $hash;
+}
+
+sub _is_true($) {
+    my $val = shift || return 0;
+    # https://github.com/ClickHouse/ClickHouse/blob/ce5a43c/base/poco/Util/src/AbstractConfiguration.cpp#L528C29-L547
+    return $val != 0 || 0 if looks_like_number $val;
+    $val = lc $val;
+    return $val eq 'true' || $val eq 'yes' || $val eq 'on' || 0;
+}
+
+# Connection name defaults to host name from url, or else hostname from config
+# or else localhost. Then look for that name in a connection under
+# `connections_credentials`. If it exists, copy/overwrite `hostname`, `port`,
+# `secure`, `user`, `password`, and `database`. Fall back on root object
+# values `host` (not `hostname`) `port`, `secure`, `user`, `password`, and
+# `database`.
+#
+# https://github.com/ClickHouse/ClickHouse/blob/d0facf0/programs/client/Client.cpp#L139-L212
+sub _conn_cfg {
+    my ($cfg, $host) = @_;
+
+    # Copy root-level configs.
+    my $conn = {
+        (exists $cfg->{secure} ? (secure => _is_true $cfg->{secure}) : ()),
+        map { ( $_ => $cfg->{$_}) } grep { $cfg->{$_} } qw(host port user password database),
+    };
+
+    # Copy client TLS config if exists.
+    if (my $tls = $cfg->{openSSL}) {
+        $conn->{tls} = $tls->{client} if $tls->{client};
+    }
+
+    # Copy connection credentials for this host if they exists.
+    $host ||= $cfg->{host} || 'localhost';
+    my $creds = $cfg->{connections_credentials} or return $conn;
+    my $conns = $creds->{connection} or return $conn;
+    for my $c (@{ ref $conns eq 'ARRAY' ? $conns : [$conns] }) {
+        next unless ($c->{name} || '') eq $host;
+        if (exists $c->{secure}) {
+            $conn->{secure} = _is_true $c->{secure}
+        }
+        $conn->{host} = $c->{hostname} if $c->{hostname};
+        $conn->{$_} = $c->{$_} for grep { $c->{$_} } qw(port user password database);
+    }
+    return $conn;
+}
+
 has _clickcnf => (
-    is => 'rw',
+    is      => 'rw',
     isa     => HashRef,
-    default => sub {
-        # XXX Need to create a module to parse the ClickHouse CLI format.
-        # https://clickhouse.com/docs/interfaces/cli#configuration_files
-        return {}
-    },
+    lazy    => 1,
+    default => \&_load_cfg,
 );
 
-sub _def_user { $ENV{CLICKHOUSE_USER} || $_[0]->_clickcnf->{user} || $_[0]->sqitch->sysuser }
+sub _load_cfg {
+    my $self = shift;
+    # https://clickhouse.com/docs/interfaces/cli#configuration_files
+    # https://github.com/ClickHouse/ClickHouse/blob/master/src/Common/Config/getClientConfigPath.cpp
+    for my $spec (
+        ['.', 'clickhouse-client'],
+        [App::Sqitch::Config->home_dir, '.clickhouse-client'],
+        ['etc', 'clickhouse-client'],
+    ) {
+        for my $ext (qw(xml yaml yml)) {
+            my $path = file $spec->[0], "$spec->[1].$ext";
+            next unless -f $path;
+            my $config = $ext eq 'xml' ? _load_xml $path : do {
+                require YAML::Tiny;
+                YAML::Tiny->read($path)->[0];
+            };
+            # We want the hostname specified by the user, if present.
+            my $host = $ENV{CLICKHOUSE_HOST} || $self->SUPER::uri->host;
+            return _conn_cfg $config, $host;
+        }
+    }
+    return {};
+}
+
+sub _def_user { $ENV{CLICKHOUSE_USER}     || $_[0]->_clickcnf->{user}     }
 sub _def_pass { $ENV{CLICKHOUSE_PASSWORD} || shift->_clickcnf->{password} }
 sub _dsn { shift->registry_uri->dbi_dsn }
-
-use Test::More;
 
 has dbh => (
     is      => 'rw',
@@ -95,60 +256,72 @@ has _ts_default => (
 with 'App::Sqitch::Role::DBIEngine';
 
 has _cli => (
-    is         => 'ro',
-    isa        => ArrayRef,
-    lazy       => 1,
-    default    => sub {
-        my $self = shift;
-        my $uri  = $self->uri;
+    is      => 'ro',
+    isa     => ArrayRef,
+    lazy    => 1,
+    default => \&_load_cli,
+);
 
-        $self->sqitch->warn(__x
-            'Database name missing in URI "{uri}"',
-            uri => $uri
-        ) unless $uri->dbname;
+sub _load_cli {
+    my $self = shift;
+    my $uri  = $self->uri;
 
-        my @ret = ($self->client);
-        push @ret => 'client' if $ret[0] !~ /-client(?:[.]exe)?$/;
-        # Omit port because the CLI needs the native port and the URL
-        # specifies the HTTP port.
-        for my $spec (
-            [ user     => $self->username ],
-            [ password => $self->password ],
-            [ database => $uri->dbname    ],
-            [ host     => $uri->host      ],
-        ) {
-            push @ret, "--$spec->[0]" => $spec->[1] if $spec->[1];
-        }
+    $self->sqitch->warn(__x
+        'Database name missing in URI "{uri}"',
+        uri => $uri
+    ) unless $uri->dbname;
 
-        # Add variables, if any.
-        if (my %vars = $self->variables) {
-            push @ret => map {; "--param_$_" => $vars{$_} } sort keys %vars;
-        }
+    my @ret = ($self->client);
+    push @ret => 'client' if $ret[0] !~ /-client(?:[.]exe)?$/;
+    # Omit port because the CLI needs the native port and the URL
+    # specifies the HTTP port.
+    for my $spec (
+        [ user     => $self->username ],
+        [ password => $self->password ],
+        [ database => $uri->dbname    ],
+        [ host     => $uri->host      ],
+    ) {
+        push @ret, "--$spec->[0]" => $spec->[1] if $spec->[1];
+    }
 
-        # Options to keep things quiet.
-        push @ret => (
-            '--progress'       => 'off',
-            '--progress-table' => 'off',
-            '--disable_suggestion',
-        );
+    # Add variables, if any.
+    if (my %vars = $self->variables) {
+        push @ret => map {; "--param_$_" => $vars{$_} } sort keys %vars;
+    }
 
-        # Add relevant query args.
-        if (my @p = $uri->query_params) {
-            while (@p) {
-                my ($k, $v) = (lc shift @p, shift @p);
-                if ($k eq 'sslmode') {
-                    # Prefer secure connectivity if SSL mode specified.
-                    push @ret => '--secure';
-                } elsif ($k eq 'nativeport') {
-                    # Custom config to set the CLI port, which is different
-                    # from the HTTP port used by the ODBC driver.
-                    push @ret => '--port', $v;
-                }
+    # Options to keep things quiet.
+    push @ret => (
+        '--progress'       => 'off',
+        '--progress-table' => 'off',
+        '--disable_suggestion',
+    );
+
+    # Add relevant query args.
+    my $have_port = $self->_clickcnf->{port} || 0;
+    if (my @p = $uri->query_params) {
+        while (@p) {
+            my ($k, $v) = (lc shift @p, shift @p);
+            if ($k eq 'sslmode') {
+                # Prefer secure connectivity if SSL mode specified.
+                push @ret => '--secure';
+            } elsif ($k eq 'nativeport') {
+                # Custom config to set the CLI port, which is different
+                # from the HTTP port used by the ODBC driver.
+                push @ret => '--port', $v;
+                $have_port = 1;
             }
         }
-        return \@ret;
-    },
-);
+    }
+
+    # If no port from config or query params, set it to encrypted port
+    # 9440 if the URL port is an HTTPS port.
+    if (!$have_port) {
+        my $http_port = $uri->port;
+        push @ret => '--port', 9440 if $http_port == 8443 || $http_port == 443;
+    }
+
+    return \@ret;
+}
 
 sub cli { @{ shift->_cli } }
 
@@ -624,6 +797,71 @@ additional information.
 Overrides the methods provided by the target so that, if the target has
 no username or password, Sqitch can look them up in a configuration file
 (although it does not yet do so).
+
+=head3 C<uri>
+
+Returns the L<URI> used to connect to the database. It modifies the URI as
+follows:
+
+=over
+
+=item hostname
+
+If the host name is not set, sets it from the C<$CLICKHOUSE_HOSTNAME>
+environment variable or the hostname read from the ClickHouse configuration
+file.
+
+=item port
+
+If the port is not set but the configuration file specifies port C<9440>, assume
+the HTTP port should also be secure and set it to C<8443>.
+
+=item database
+
+If the database name is not set, sets it from the C<database> parameter read
+from the ClickHouse configuration file.
+
+=item query
+
+Sets ODBC L<query parameters|https://github.com/clickHouse/clickhouse-odbc>
+based on the C<$.openSSL.client> parameters from the ClickHouse configuration
+file as follows:
+
+=over
+
+=item C<privateKeyFile>: C<PrivateKeyFile>
+
+Path to private key file. Raises an error if both are set and not the same
+value.
+
+=item C<certificateFile>: C<CertificateFile>
+
+Path to certificate file. Raises an error if both are set and not the same
+value.
+
+=item C<caConfig>: C<CALocation>
+
+Path to the file or directory containing the CA/root certificates. Raises an
+error if both are set and not the same value.
+
+=item C<secure>, C<port>, C<host>, C<verificationMode>: C<SSLMode>
+
+Sets the ODBC C<SSLMode> parameter to C<require> when the C<secure> parameter
+from the configuration file is true or the port is C<9440>, or the host name
+from the configuration file or the target ends in C<.clickhouse.cloud>. If
+none of those are true but C<verificationMode> is set, set the C<SSLMode>
+query parameters as follows:
+
+   verificationMode | SSLMode
+  ------------------|-----------
+   none             | [not set]
+   relaxed          | allow
+   strict           | require
+   once             | require
+
+=back
+
+=back
 
 =head1 Author
 
