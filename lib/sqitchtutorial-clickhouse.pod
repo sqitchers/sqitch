@@ -2,7 +2,7 @@
 
 =head1 Name
 
-sqitchtutorial-firebird - A tutorial introduction to Sqitch change management on Firebird
+sqitchtutorial-clickhouse - A tutorial introduction to Sqitch change management on ClickHouse
 
 =head1 Synopsis
 
@@ -10,13 +10,15 @@ sqitchtutorial-firebird - A tutorial introduction to Sqitch change management on
 
 =head1 Description
 
-This tutorial explains how to create a sqitch-enabled Firebird project, use a
+This tutorial explains how to create a sqitch-enabled ClickHouse project, use a
 VCS for deployment planning, and work with other developers to make sure
 changes remain in sync and in the proper order.
 
-We'll start by creating new project from scratch, a fictional antisocial
+We'll start by creating a new project from scratch, a fictional antisocial
 networking site called Flipr. All examples use L<Git|https://git-scm.com/> as
-the VCS and L<Firebird|https://www.firebirdsql.org/> as the storage engine.
+the VCS and L<ClickHouse|https://clickhouse.com/clickhouse> as the storage
+engine, but for the most part you can substitute other VCSes and database
+engines in the examples as appropriate.
 
 If you'd like to manage a database with a different database engine, see one
 of the following other tutorials:
@@ -31,6 +33,8 @@ of the following other tutorials:
 
 =item L<MySQL and MariaDB Tutorial|sqitchtutorial-mysql>
 
+=item L<Firebird Tutorial|sqitchtutorial-firebird>
+
 =item L<Vertica Tutorial|sqitchtutorial-vertica>
 
 =item L<Exasol Tutorial|sqitchtutorial-exasol>
@@ -40,6 +44,29 @@ of the following other tutorials:
 =item L<ClickHouse Tutorial|sqitchtutorial-clickhouse>
 
 =back
+
+=head2 Connection Configuration
+
+Sqitch requires ClickHouse v25.8 or higher for its support for lightweight
+updates and deletes. If you've upgraded an instance from an earlier version,
+be sure to C<SET compatibility = '25.8'> or higher.
+
+Sqitch requires ODBC to connect to the ClickHouse database. As such, you'll
+need to make sure that the
+L<ClickHouse ODBC driver|https://github.com/ClickHouse/clickhouse-odbc>
+is installed and properly configured. At its simplest, on Unix-like systems,
+name the driver "ClickHouse" by adding this entry to C<odbcinst.ini> (usually
+found in C</etc>, C</usr/etc>, or C</usr/local/etc>):
+
+  [ClickHouse]
+  Description = Unicode ODBC Driver for ClickHouse
+  Driver      = /opt/clickhouse/lib/libclickhouseodbcw.so
+
+Note the use of the Unicode rather than the ANSI driver. Also, you might need
+to adjust the path depending on the version of the ODBC driver, and where you
+installed it. Consult the documentation for your ODBC driver manager (e.g.,
+L<UnixODBC|https://www.unixodbc.org> or L<iODBC|https://www.iodbc.org>) for
+details.
 
 =head1 Starting a New Project
 
@@ -53,13 +80,13 @@ source code repository. So let's do that with Git:
   > touch README.md
   > git add .
   > git commit -am 'Initialize project, add README.'
-  [main (root-commit) 761ffcd] Initialize project, add README.
-   1 files changed, 39 insertions(+), 0 deletions(-)
+  [main (root-commit) 046b8f5] Initialize project, add README.
+   1 file changed, 38 insertions(+)
    create mode 100644 README.md
 
-If you're a Git user and want to follow along the history, the
-repository used in these examples is
-L<on GitHub|https://github.com/sqitchers/sqitch-firebird-intro>.
+If you're a Git user and want to follow along the history, the repository
+used in these examples is
+L<on GitHub|https://github.com/sqitchers/sqitch-clickhouse-intro>.
 
 Now that we have a repository, let's get started with Sqitch. Every Sqitch
 project must have a name associated with it, and, optionally, a unique URI. We
@@ -67,7 +94,7 @@ recommend including the URI, as it increases the uniqueness of object
 identifiers internally, and will prevent the deployment of a different project
 with the same name. So let's specify one when we initialize Sqitch:
 
-  > sqitch init flipr --uri https://github.com/sqitchers/sqitch-firebird-intro/ --engine firebird
+  > sqitch init flipr --uri https://github.com/sqitchers/sqitch-clickhouse-intro/ --engine clickhouse
   Created sqitch.conf
   Created sqitch.plan
   Created deploy/
@@ -78,38 +105,29 @@ Let's have a look at F<sqitch.conf>:
 
   > cat sqitch.conf
   [core]
-  	engine = firebird
+  	engine = clickhouse
   	# plan_file = sqitch.plan
   	# top_dir = .
-  # [engine "firebird"]
-  	# target = db:firebird:
+  # [engine "clickhouse"]
+  	# target = db:clickhouse:
   	# registry = sqitch
-  	# client = isql-fb
+  	# client = clickhouse-client
 
-Good, it picked up on the fact that we're creating changes for the Firebird
-engine, thanks to the C<--engine firebird> option, and saved it to the
-file. Furthermore, it wrote a commented-out C<[engine "firebird"]> section
-with all the available Firebird engine-specific settings commented out and
-ready to be edited as appropriate.
+Good, it picked up on the fact that we're creating changes for the ClickHouse
+engine, thanks to the C<--engine clickhouse> option, and saved it to the
+file. Furthermore, it wrote a commented-out C<[engine "clickhouse"]> section
+with ClickHouse engine-specific settings commented out and ready to be edited
+as appropriate.
 
 By default, Sqitch will read F<sqitch.conf> in the current directory for
 settings. But it will also read F<~/.sqitch/sqitch.conf> for user-specific
-settings.
-
-The current implementation of the engine will try to find Firebird's
-L<C<firebird> client|https://www.firebirdsql.org/manual/isql-commands.html>
-(implemented for GNU/Linux and Microsoft Windows).  This might fail,
-so we go ahead an tell it where to find the client on our computer,
-for example on GNU/Linux with the standard location of the Firebird
-installation the command is (don't bother if you're using the
+settings. Since ClickHouse's C<clickhouse> client is not in the path on my
+system, let's go ahead an tell it where to find the client on our computer
+(don't bother if you're using the
 L<Docker image|https://hub.docker.com/r/sqitch/sqitch/> because it uses the
 client inside the container, not on your host machine):
 
-  > sqitch config --user engine.firebird.client /opt/firebird/bin/isql
-
-Note: On some GNU/Linux distributions the firebird client is renamed
-to C<isql-fb>, for example in Debian and Fedora, or C<fbsql> in
-Gentoo.
+  > sqitch config --user engine.clickhouse.client /opt/bin/clickhouse
 
 And let's also tell it who we are, since this data will be used in all
 of our projects:
@@ -117,46 +135,40 @@ of our projects:
   > sqitch config --user user.name 'Marge N. O’Vera'
   > sqitch config --user user.email 'marge@example.com'
 
-Have a look at F<~/.sqitch/sqitch.conf> and you'll see something like
-this:
+Have a look at F<~/.sqitch/sqitch.conf> and you'll see this:
 
   > cat ~/.sqitch/sqitch.conf
-  [engine "firebird"]
-    client = /opt/local/bin/isql
+  [engine "clickhouse"]
+  	client = /opt/bin/clickhouse
   [user]
-    name = Marge N. O’Vera
-    email = marge@example.com
+  	name = Marge N. O’Vera
+  	email = marge@example.com
 
-Which means that Sqitch should be able to find C<isql> for any project, and
-that it will always properly identify us when planning and committing changes.
+Which means that Sqitch should be able to find C<clickhouse> for any project,
+and that it will always properly identify us when planning and committing
+changes.
 
 Back to the repository. Have a look at the plan file, F<sqitch.plan>:
 
   > cat sqitch.plan
   %syntax-version=1.0.0
   %project=flipr
-  %uri=https://github.com/sqitchers/sqitch-firebird-intro/
-  
+  %uri=https://github.com/sqitchers/sqitch-clickhouse-intro/
 
-Note that it has picked up on the name and URI of the app we're building.
-Sqitch uses this data to manage cross-project dependencies. The
-C<%syntax-version> pragma is always set by Sqitch, so that it always knows how
-to parse the plan, even if the format changes in the future.
+
+Note that it contains the name and URI of the app we're building. Sqitch uses
+this data to manage cross-project dependencies. The C<%syntax-version> pragma
+is always set by Sqitch, so that it always knows how to parse the plan, even
+if the format changes in the future.
 
 Let's commit these changes and start creating the database changes.
 
   > git add .
   > git commit -am 'Initialize Sqitch configuration.'
-  [main 2177ce4] Initialize Sqitch configuration.
-   2 files changed, 19 insertions(+), 0 deletions(-)
+  [main d32b8ae] Initialize Sqitch configuration.
+   2 files changed, 12 insertions(+)
    create mode 100644 sqitch.conf
    create mode 100644 sqitch.plan
-
-Let's create our flipr test database using C<isql>:
-
-  > sudo -u firebird mkdir /tmp/flipr_test
-  > echo "CREATE DATABASE 'localhost:/tmp/flipr_test/flipr.fdb'; exit;" \
-    | isql-fb -q -u SYSDBA -p masterkey
 
 =head1 Our First Change
 
@@ -174,7 +186,7 @@ deploy, revert, and verify scripts that represent the change. Now we edit
 these files. The C<deploy> script's job is to create the table. By default,
 the F<deploy/users.sql> file looks like this:
 
-  -- Deploy flipr:users to firebird
+  -- Deploy flipr:users to clickhouse
 
   -- XXX Add DDLs here.
 
@@ -183,80 +195,67 @@ the F<deploy/users.sql> file looks like this:
 What we want to do is to replace the C<XXX> comment with the C<CREATE TABLE>
 statement, like so:
 
-  -- Deploy flipr:users to firebird
+  -- Deploy flipr:users to clickhouse
 
   CREATE TABLE users (
       nickname   VARCHAR(50)  PRIMARY KEY,
       password   VARCHAR(512) NOT NULL,
       fullname   VARCHAR(512) NOT NULL,
-      twitter    VARCHAR(512) NOT NULL,
-      created_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP NOT NULL
-  );
-
-  COMMIT;
+      mastodon   VARCHAR(512) NOT NULL,
+      created_at DATETIME64(6, 'UTC') NOT NULL DEFAULT now64(6, 'UTC')
+  ) ENGINE = MergeTree;
 
 The C<revert> script's job is to precisely revert the change to the deploy
 script, so we edit this to F<revert/users.sql> to look like this:
 
-  -- Revert flipr:users from firebird
+  -- Revert flipr:users from clickhouse
 
   DROP TABLE users;
 
-  COMMIT;
+Now we can try deploying this change. First, we need to create a database
+to deploy to. Assuming that ClickHouse is running on localhost using the
+C<default> user (as is provided by the
+L<ClickHouse Docker Image|https://hub.docker.com/_/clickhouse>):
 
-Now we can try deploying this change. We tell Sqitch where to send the change
-via a L<database URI|https://github.com/libwww-perl/uri-db/>. Here we've
-specified a database file, F</tmp/flipr_test/flipr.fdb>:
+  > clickhouse client --query 'CREATE DATABASE flipr_test'
 
-  > sqitch deploy db:firebird://sysdba:masterkey@localhost//tmp/flipr_test/flipr.fdb
-  Adding registry tables to db:firebird://sysdba:@localhost//tmp/flipr_test/sqitch.fdb
-  Deploying changes to db:firebird://sysdba:@localhost//tmp/flipr_test/flipr.fdb
+Now we tell Sqitch where to send the change via a
+L<database URI|https://github.com/libwww-perl/uri-db/>, again assuming the
+C<default> user & database and an ODBC driver named C<ClickHouse> (see
+L</Connection Configuration> for details):
+
+  > sqitch deploy 'db:clickhouse://default@localhost/flipr_test?Driver=ClickHouse'
+  Adding registry tables to db:clickhouse://default@localhost/sqitch?Driver=ClickHouse
+  Deploying changes to db:clickhouse://default@localhost/flipr_test?Driver=ClickHouse
     + users .. ok
 
 First Sqitch created the registry database and tables used to track database
-changes. The registry is separate from the database to which the C<users>
-change was deployed; by default, its name is C<sqitch.$suffix>, where
-C<$suffix> is the same as the suffix on the target database, if any. It lives
-in the same directory as the target database, which means that one registry
-database is used for all the databases with the same suffix in a single
-directory. In this case, we should end up with two databases:
+changes. The registry database is separate from the database to which the
+C<users> change was deployed; by default, its name is C<sqitch>, and will be
+used to manage I<all> projects on a single ClickHouse server. Ideally, only
+Sqitch data will be stored in this database, so it probably makes the most
+sense to create a superuser named C<sqitch> or something similar and use it
+to deploy changes.
 
-=over
-
-=item * F</tmp/flipr_test/sqitch.fdb>
-
-The Sqitch registry database.
-
-=item * F</tmp/flipr_test/flipr.fdb>
-
-The database Sqitch manages.
-
-=back
-
-Next, Sqitch deploys changes to the target database. We only have one change
-so far; the C<+> reinforces the idea that the change is being I<added> to the
-database.
-
-If you'd like it to have a different name for the registry database, use
-C<sqitch engine add firebird $name> to configure it (or via the
+If you'd like it to use a different database as the registry database, use
+C<sqitch engine add clickhouse $name> to configure it (or via the
 L<C<target> command|sqitch-target>; more L<below|/On Target>). This will be
 useful if you don't want to use the same registry database to manage multiple
-databases, or if you do, but they live in different directories.
+databases on the same server.
 
 Next, Sqitch deploys changes to the target database, which we specified on the
-command-line. We only have one so far; the C<+> reinforces the idea that the
-change is being I<added> to the database.
+command-line. We only have one change so far; the C<+> reinforces the idea
+that the change is being I<added> to the database.
 
 With this change deployed, if you connect to the database, you'll be able to
-see the C<users> table:
+see the user:
 
-  > echo "CONNECT 'localhost:/tmp/flipr_test/flipr.fdb'; SHOW TABLES; quit;" \
-    | isql-fb -q -u SYSDBA -p masterkey
-       USERS                        
+  > clickhouse client -d flipr_test -q 'show tables'
+  users
 
 =head2 Trust, But Verify
 
-But that's too much work. do you really want to do something like that after
+But that's too much work. Do you really want to do something like that after
 every deploy?
 
 Here's where the C<verify> script comes in. Its job is to test that the deploy
@@ -265,15 +264,15 @@ might be in the database, and should throw an error if the deploy was not
 successful. The easiest way to do that with a table is to simply C<SELECT>
 from it. Put this query into F<verify/users.sql>:
 
-  SELECT nickname, password, fullname, twitter
+  SELECT nickname, password, fullname, mastodon
     FROM users
-   WHERE 1=2;
+   WHERE false;
 
 Now you can run the C<verify> script with the L<C<verify>|sqitch-verify>
 command:
 
-  > sqitch verify db:firebird://sysdba:masterkey@localhost//tmp/flipr_test/flipr.fdb
-  Verifying db:firebird://sysdba:@localhost//tmp/flipr_test/flipr.fdb
+  > sqitch verify 'db:clickhouse://default@localhost/flipr_test?Driver=ClickHouse'
+  Verifying db:clickhouse://default@localhost/flipr_test?Driver=ClickHouse
     * users .. ok
   Verify successful
 
@@ -281,21 +280,21 @@ Looks good! If you want to make sure that the verify script correctly dies if
 the table doesn't exist, temporarily change the table name in the script to
 something that doesn't exist, something like:
 
-  SELECT nickname, password, fullname, twitter, created_at
+  SELECT nickname, password, fullname, mastodon, created_at
     FROM users_nonesuch
-   WHERE 1=2;
+   WHERE false;
 
 Then L<C<verify>|sqitch-verify> again:
 
-  > sqitch verify db:firebird://sysdba:masterkey@localhost//tmp/flipr_test/flipr.fdb
-  Verifying db:firebird://sysdba:@localhost//tmp/flipr_test/flipr.fdb
-    * users .. Statement failed, SQLSTATE = 42S02
-  Dynamic SQL Error
-  -SQL error code = -204
-  -Table unknown
-  -USERS_NONESUCH
-  -At line 3, column 2
-  At line 3 in file verify/users.sql
+  > sqitch verify 'db:clickhouse://default@localhost/flipr_test?Driver=ClickHouse'
+  Verifying db:clickhouse://default@localhost/flipr_test?Driver=ClickHouse
+    * users .. Received exception from server (version 25.8.2):
+  Code: 60. DB::Exception: Received from clickhouse:9000. DB::Exception: Unknown table expression identifier 'users_nonesuch' in scope SELECT nickname, password, fullname, mastodon FROM users_nonesuch WHERE false. (UNKNOWN_TABLE)
+  (query: -- Verify flipr:users on clickhouse
+
+  SELECT nickname, password, fullname, mastodon
+    FROM users_nonesuch
+   WHERE false;)
   # Verify script "verify/users.sql" failed.
   not ok
 
@@ -305,73 +304,69 @@ Then L<C<verify>|sqitch-verify> again:
   Errors:  1
   Verify failed
 
-Firebird is kind enough to tell us what the problem is. Don't forget to change
-the table name back before continuing!
+ClickHouse is kind enough to tell us what the problem is. Don't forget to
+change the table name back before continuing!
 
 =head2 Status, Revert, Log, Repeat
 
 For purely informational purposes, we can always see how a deployment was
-recorded via the L<C<status>|sqitch-status> command, which reads the tables
-from the registry database:
+recorded via the L<C<status>|sqitch-status> command, which reads the registry
+tables from the database:
 
-  > sqitch status db:firebird://sysdba:masterkey@localhost//tmp/flipr_test/flipr.fdb
-  # On database db:firebird://sysdba:@localhost//tmp/flipr_test/flipr.fdb
+  > sqitch status 'db:clickhouse://default@localhost/flipr_test?Driver=ClickHouse'
+  # On database db:clickhouse://default@localhost/flipr_test?Driver=ClickHouse
   # Project:  flipr
-  # Change:   2cde9cc8c19161e9837de57741502243b2ad380e
+  # Change:   02916d6d5dca9faef8f2bb5822c53de8b7ae16bc
   # Name:     users
-  # Deployed: 2014-01-05 14:05:22 -0800
+  # Deployed: 2025-09-19 14:32:08 -0400
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
 
 Let's make sure that we can revert the change:
 
-  > sqitch revert db:firebird://sysdba:masterkey@localhost//tmp/flipr_test/flipr.fdb
-  Revert all changes from db:firebird://sysdba:@localhost//tmp/flipr_test/flipr.fdb? [Yes] 
+  > sqitch revert 'db:clickhouse://default@localhost/flipr_test?Driver=ClickHouse'
+  Revert all changes from db:clickhouse://default@localhost/flipr_test?Driver=ClickHouse? [Yes]
     - users .. ok
 
 The L<C<revert>|sqitch-revert> command first prompts to make sure that we
 really do want to revert. This is to prevent unnecessary accidents. You can
 pass the C<-y> option to disable the prompt. Also, notice the C<-> before the
 change name in the output, which reinforces that the change is being
-I<removed> from the database. And now the C<users> table should be gone:
+I<removed> from the database. And now the schema should be gone:
 
-  > echo "CONNECT 'localhost:/tmp/flipr_test/flipr.fdb'; SHOW TABLES; quit;" \
-    | isql-fb -q -u SYSDBA -p masterkey
-  There are no tables in this database
+  > clickhouse client -d flipr_test -q 'show tables'
 
 And the status message should reflect as much:
 
-  > sqitch status db:firebird://sysdba:masterkey@localhost//tmp/flipr_test/flipr.fdb
-  # On database db:firebird://sysdba:@localhost//tmp/flipr_test/flipr.fdb
+  > sqitch status 'db:clickhouse://default@localhost/flipr_test?Driver=ClickHouse'
+  # On database db:clickhouse://default@localhost/flipr_test?Driver=ClickHouse
   No changes deployed
 
 Of course, since nothing is deployed, the L<C<verify>|sqitch-verify> command
 has nothing to verify:
 
-  > sqitch verify db:firebird://sysdba:masterkey@localhost//tmp/flipr_test/flipr.fdb
-  Verifying db:firebird://sysdba:@localhost//tmp/flipr_test/flipr.fdb
+  > sqitch verify 'db:clickhouse://default@localhost/flipr_test?Driver=ClickHouse'
+  Verifying db:clickhouse://default@localhost/flipr_test?Driver=ClickHouse
   No changes deployed
 
 However, we still have a record that the change happened, visible via the
 L<C<log>|sqitch-log> command:
 
-  > sqitch log db:firebird://sysdba:masterkey@localhost//tmp/flipr_test/flipr.fdb
-  On database db:firebird://sysdba:@localhost//tmp/flipr_test/flipr.fdb
-  Revert 2cde9cc8c19161e9837de57741502243b2ad380e
+  > sqitch log 'db:clickhouse://default@localhost/flipr_test?Driver=ClickHouse'
+  Revert 02916d6d5dca9faef8f2bb5822c53de8b7ae16bc
   Name:      users
   Committer: Marge N. O’Vera <marge@example.com>
-  Date:      2014-01-05 14:06:59 -0800
-
+  Date:      2025-09-19 14:33:23 -0400
+  
       Creates table to track our users.
-
-  Deploy 2cde9cc8c19161e9837de57741502243b2ad380e
+  
+  Deploy 02916d6d5dca9faef8f2bb5822c53de8b7ae16bc
   Name:      users
   Committer: Marge N. O’Vera <marge@example.com>
-  Date:      2014-01-05 14:05:22 -0800
-
+  Date:      2025-09-19 14:32:08 -0400
+  
       Creates table to track our users.
-
 
 Note that the actions we took are shown in reverse chronological order, with
 the revert first and then the deploy.
@@ -380,33 +375,32 @@ Cool. Now let's commit it.
 
   > git add .
   > git commit -m 'Add users table.'
-  [main ec72105] Add users table.
-   4 files changed, 24 insertions(+), 0 deletions(-)
+  [main 414672a] Add users table.
+   4 files changed, 18 insertions(+)
    create mode 100644 deploy/users.sql
    create mode 100644 revert/users.sql
    create mode 100644 verify/users.sql
 
 And then deploy again. This time, let's use the C<--verify> option, so that
 the C<verify> script is applied when the change is deployed:
- 
-  > sqitch deploy db:firebird://sysdba:masterkey@localhost//tmp/flipr_test/flipr.fdb --verify
-  Deploying changes to db:firebird://sysdba:@localhost//tmp/flipr_test/flipr.fdb
+
+  > sqitch deploy --verify 'db:clickhouse://default@localhost/flipr_test?Driver=ClickHouse'
+  Deploying changes to db:clickhouse://default@localhost/flipr_test?Driver=ClickHouse
     + users .. ok
 
-And now the C<users> table should be back:
+And now the schema should be back:
 
-  > echo "CONNECT 'localhost:/tmp/flipr_test/flipr.fdb'; SHOW TABLES; quit;" \
-    | isql-fb -q -u SYSDBA -p masterkey
-         USERS                           
+  > clickhouse client -d flipr_test -q 'show tables'
+  users
 
 When we look at the status, the deployment will be there:
 
-  > sqitch status db:firebird://sysdba:masterkey@localhost//tmp/flipr_test/flipr.fdb
-  # On database db:firebird://sysdba:@localhost//tmp/flipr_test/flipr.fdb
+  > sqitch status 'db:clickhouse://default@localhost/flipr_test?Driver=ClickHouse'
+  # On database db:clickhouse://default@localhost/flipr_test?Driver=ClickHouse
   # Project:  flipr
-  # Change:   2cde9cc8c19161e9837de57741502243b2ad380e
+  # Change:   02916d6d5dca9faef8f2bb5822c53de8b7ae16bc
   # Name:     users
-  # Deployed: 2014-01-05 14:19:32 -0800
+  # Deployed: 2025-09-19 14:34:21 -0400
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
@@ -414,12 +408,12 @@ When we look at the status, the deployment will be there:
 =head1 On Target
 
 I'm getting a little tired of always having to type
-C<db:firebird://sysdba:masterkey@localhost//tmp/flipr_test/flipr.fdb>, aren't
-you? This L<database connection URI|https://github.com/libwww-perl/uri-db/> tells
+C<db:clickhouse://default@localhost/flipr_test?Driver=ClickHouse>, aren't you?
+This L<database connection URI|https://github.com/libwww-perl/uri-db/> tells
 Sqitch how to connect to the deployment target, but we don't have to keep
 using the URI. We can name the target:
 
-  > sqitch target add flipr_test db:firebird://sysdba:masterkey@localhost//tmp/flipr_test/flipr.fdb
+  > sqitch target add flipr_test 'db:clickhouse://default@localhost/flipr_test?Driver=ClickHouse'
 
 The L<C<target>|sqitch-target> command, inspired by
 L<C<git-remote>|https://git-scm.com/docs/git-remote>, allows management of one
@@ -428,7 +422,7 @@ C<flipr_test>, which means we can use the string C<flipr_test> for the target,
 rather than the URI. But since we're doing so much testing, we can also tell
 Sqitch to deploy to the C<flipr_test> target by default:
 
-  > sqitch engine add firebird target flipr_test
+  > sqitch engine add clickhouse flipr_test
 
 Now we can omit the target argument altogether, unless we need to deploy to
 another database. Which we will, eventually, but at least our examples will be
@@ -437,9 +431,9 @@ simpler from here on in, e.g.:
   > sqitch status
   # On database flipr_test
   # Project:  flipr
-  # Change:   2cde9cc8c19161e9837de57741502243b2ad380e
+  # Change:   02916d6d5dca9faef8f2bb5822c53de8b7ae16bc
   # Name:     users
-  # Deployed: 2014-01-05 14:19:32 -0800
+  # Deployed: 2025-09-19 14:34:21 -0400
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
@@ -453,9 +447,9 @@ changes are verified after deploying them:
 We'll see the L<C<rebase>|sqitch-rebase> command a bit later. In the meantime,
 let's commit the new configuration and and make some more changes!
 
-  > git commit -am 'Set default target and always verify.'
-  [main cfc9fea] Set default target and always verify.
-   1 files changed, 8 insertions(+), 0 deletions(-)
+  > git commit -am 'Set default deployment target and always verify.'
+  [main ad3a3b0] Set default deployment target and always verify.
+   1 file changed, 8 insertions(+)
 
 =head1 Deploy with Dependency
 
@@ -477,35 +471,35 @@ idea to be explicit about dependencies.
 Now edit the scripts. When you're done, F<deploy/flips.sql> should look like
 this:
 
-  -- Deploy flipr:flips to firebird
+  -- Deploy flipr:flips to clickhouse
   -- requires: users
 
   CREATE TABLE flips (
       id         INTEGER       NOT NULL PRIMARY KEY,
-      nickname   VARCHAR(50)   NOT NULL REFERENCES users(nickname),
-      body       VARCHAR(512)  DEFAULT '' NOT NULL CHECK ( char_length(body) <= 180 ),
-      created_at TIMESTAMP     DEFAULT CURRENT_TIMESTAMP NOT NULL
-  );
-
-  COMMIT;
+      nickname   VARCHAR(50)   NOT NULL,
+      body       VARCHAR(512)  DEFAULT '' NOT NULL,
+      created_at DATETIME64(6, 'UTC') NOT NULL DEFAULT now64(6, 'UTC'),
+      CONSTRAINT body_length_check CHECK ( char_length(body) <= 180 ),
+  ) ENGINE = MergeTree;
 
 A couple things to notice here. On the second line, the dependence on the
 C<users> change has been listed. This doesn't do anything, but the default
 C<deploy> template lists it here for your reference while editing the file.
 Useful, right?
 
-The C<users.nickname> column references the C<users> table. This is why we
-need to require the C<users> change.
+The C<users.nickname> column implicitly references the C<users> table. This
+is why we need to require the C<users> change, even though ClickHouse itself
+does not enforce such relationships.
 
 Now for the verify script. Again, all we need to do is C<SELECT> from the
 table. I recommend selecting each column by name, too, to be sure that no
 column is missing. Here's the F<verify/flips.sql>:
 
-  -- Verify flipr:flips on firebird
+  -- Verify flipr:flips on clickhouse
 
   SELECT id, nickname, body, created_at
     FROM flips
-    WHERE 1=2;
+   WHERE false;
 
 Now for the revert script: all we have to do is drop the table. Add this to
 F<revert/flips.sql>:
@@ -513,8 +507,6 @@ F<revert/flips.sql>:
   -- Revert flipr:flips from firebird
 
   DROP TABLE flips;
-
-  COMMIT;
 
 Couldn't be much simpler, right? Let's deploy this bad boy:
 
@@ -525,15 +517,15 @@ Couldn't be much simpler, right? Let's deploy this bad boy:
 We know, since verification is enabled, that the table must have been created.
 But for the purposes of visibility, let's have a quick look:
 
-  > echo "CONNECT 'localhost:/tmp/flipr_test/flipr.fdb'; SHOW TABLES; quit;" \
-    | isql-fb -q -u SYSDBA -p masterkey
-         FLIPS                                  USERS
+  > clickhouse client -d flipr_test -q 'show tables'
+  flips
+  users
 
 We can also verify all currently deployed changes with the
 L<C<verify>|sqitch-verify> command:
 
   > sqitch verify
-  Verifying flipr_test.db
+  Verifying flipr_test
     * users .. ok
     * flips .. ok
   Verify successful
@@ -543,9 +535,9 @@ Now have a look at the status:
   > sqitch status
   # On database flipr_test
   # Project:  flipr
-  # Change:   dfe72351c686bd36017a2b586042b5336301e809
+  # Change:   0756d81da8a858a991dca5ffd167fea2de8e98df
   # Name:     flips
-  # Deployed: 2014-01-05 14:22:33 -0800
+  # Deployed: 2025-09-19 14:36:09 -0400
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
@@ -568,9 +560,8 @@ change deployed to the database (or in the plan, depending on the command).
 Back to the database. The C<flips> table should be gone but the
 C<users> table should still be around:
 
-  > echo "CONNECT 'localhost:/tmp/flipr_test/flipr.fdb'; SHOW TABLES; quit;" \
-    | isql-fb -q -u SYSDBA -p masterkey
-       USERS                        
+  > clickhouse client -d flipr_test -q 'show tables'
+  users
 
 The L<C<status>|sqitch-status> command politely informs us that we have
 undeployed changes:
@@ -578,13 +569,14 @@ undeployed changes:
   > sqitch status
   # On database flipr_test
   # Project:  flipr
-  # Change:   2cde9cc8c19161e9837de57741502243b2ad380e
+  # Change:   02916d6d5dca9faef8f2bb5822c53de8b7ae16bc
   # Name:     users
-  # Deployed: 2014-01-05 14:19:32 -0800
+  # Deployed: 2025-09-19 14:34:21 -0400
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Undeployed change:
     * flips
+  
 
 As does the L<C<verify>|sqitch-verify> command:
 
@@ -603,8 +595,8 @@ Okay, let's commit and deploy again:
 
   > git add .
   > git commit -am 'Add flips table.'
-  [main 09c636c] Add flips table.
-   4 files changed, 24 insertions(+), 0 deletions(-)
+  [main 347f867] Add flips table.
+   4 files changed, 19 insertions(+)
    create mode 100644 deploy/flips.sql
    create mode 100644 revert/flips.sql
    create mode 100644 verify/flips.sql
@@ -617,9 +609,9 @@ Looks good. Check the status:
   > sqitch status
   # On database flipr_test
   # Project:  flipr
-  # Change:   dfe72351c686bd36017a2b586042b5336301e809
+  # Change:   0756d81da8a858a991dca5ffd167fea2de8e98df
   # Name:     flips
-  # Deployed: 2014-01-05 14:24:06 -0800
+  # Deployed: 2025-09-19 14:38:00 -0400
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
@@ -638,8 +630,8 @@ create a view that lists user names with their flips.
 
 Now add this SQL to F<deploy/userflips.sql>:
 
-  CREATE OR ALTER VIEW userflips AS
-  SELECT f.id, u.nickname, u.fullname, f.body, f.created_at
+  CREATE OR REPLACE VIEW userflips AS
+  SELECT f.id, u.nickname, u.fullname, f.body, f.created_at AS created_at
     FROM users u
     JOIN flips f ON u.nickname = f.nickname;
 
@@ -647,7 +639,7 @@ Add this SQL to F<verify/userflips.sql>
 
   SELECT id, nickname, fullname, body, created_at
     FROM userflips
-   WHERE 1=2;
+   WHERE false;
 
 And add the C<DROP VIEW> statement to F<revert/userflips.sql>:
 
@@ -673,8 +665,8 @@ Looks good! Commit it.
 
   > git add .
   > git commit -m 'Add the userflips view.'
-  [main 28ffa63] Add the userflips view.
-   4 files changed, 23 insertions(+), 0 deletions(-)
+  [main f21de26] Add the userflips view.
+   4 files changed, 17 insertions(+)
    create mode 100644 deploy/userflips.sql
    create mode 100644 revert/userflips.sql
    create mode 100644 verify/userflips.sql
@@ -688,38 +680,11 @@ release, let's tag it:
   > sqitch tag v1.0.0-dev1 -n 'Tag v1.0.0-dev1.'
   Tagged "userflips" with @v1.0.0-dev1
   > git commit -am 'Tag the database with v1.0.0-dev1.'
-  [main 696a891] Tag the database with v1.0.0-dev1.
+  [main a821008] Tag the database with v1.0.0-dev1.
    1 files changed, 1 insertions(+), 0 deletions(-)
   > git tag v1.0.0-dev1 -am 'Tag v1.0.0-dev1'
 
-We can try deploying to make sure the tag gets picked up like so:
-
-  > sudo -u firebird mkdir /tmp/flipr_dev
-  > echo "CREATE DATABASE 'localhost:/tmp/flipr_dev/flipr.fdb'; exit;" \
-    | isql-fb -q -u SYSDBA -p masterkey
-  > sqitch deploy db:firebird://sysdba:masterkey@localhost//tmp/flipr_dev/flipr.fdb
-  Adding registry tables to db:firebird://sysdba:@localhost//tmp/flipr_dev/sqitch.fdb
-  Deploying changes to db:firebird://sysdba:@localhost//tmp/flipr_dev/flipr.fdb
-    + users ................... ok
-    + flips ................... ok
-    + userflips @v1.0.0-dev1 .. ok
-
-Great, both changes were deployed and C<userflips> was tagged with
-C<@v1.0.0-dev1>. Let's have a look at the status:
-
-  > sqitch status db:firebird://sysdba:masterkey@localhost//tmp/flipr_dev/flipr.fdb
-  # On database db:firebird://sysdba:@localhost//tmp/flipr_dev/flipr.fdb
-  # Project:  flipr
-  # Change:   785a0d14a5e26b2ae24882a137db45d34f71b5ff
-  # Name:     userflips
-  # Tag:      @v1.0.0-dev1
-  # Deployed: 2014-01-05 14:43:28 -0800
-  # By:       Marge N. O’Vera <marge@example.com>
-  # 
-  Nothing to deploy (up-to-date)
-
-Note the listing of the tag as part of the status message. Now let's bundle
-everything up for release:
+Now let's bundle everything up for release:
 
   > sqitch bundle
   Bundling into bundle
@@ -731,21 +696,51 @@ everything up for release:
     + userflips @v1.0.0-dev1
 
 Now we can package the F<bundle> directory and distribute it. When it gets
-installed somewhere, users can use Sqitch to deploy to the database. Let's try
-deploying it:
+installed somewhere, users can use Sqitch to deploy to the database. We ought
+to try deploying it, but first we'll need to revert our existing databases, as
+a single Sqitch project cannot be deployed to two databases on the same server
+unless it uses a different registry database. Fortunately, it's easy to build
+the database again, so let's just revert it.
+
+  > sqitch revert -y
+  Reverting all changes from flipr_test
+    - userflips @v1.0.0-dev1 .. ok
+    - flips ................... ok
+    - users ................... ok
+
+Now we can try deploying the bundle:
 
   > cd bundle
-  > sudo -u firebird mkdir /tmp/flipr_prod
-  > echo "CREATE DATABASE 'localhost:/tmp/flipr_prod/flipr.fdb'; exit;" \
-    | isql-fb -q -u SYSDBA -p masterkey
-  > sqitch deploy db:firebird://sysdba:masterkey@localhost//tmp/flipr_prod/flipr.fdb
-  Adding registry tables to db:firebird://sysdba:@localhost//tmp/flipr_prod/sqitch.fdb
-  Deploying changes to db:firebird://sysdba:@localhost//tmp/flipr_prod/flipr.fdb
+  > clickhouse client --query 'CREATE DATABASE flipr_dev'
+  > sqitch deploy 'db:clickhouse://default@localhost/flipr_dev?Driver=ClickHouse'
+  Deploying changes to db:clickhouse://default@localhost/flipr_dev?Driver=ClickHouse
     + users ................... ok
     + flips ................... ok
     + userflips @v1.0.0-dev1 .. ok
 
-Looks much the same as before, eh? Package it up and ship it!
+Great, all four changes were deployed and C<userflips> was tagged with
+C<@v1.0.0-dev1>. Let's have a look at the status:
+
+  > sqitch status 'db:clickhouse://default@localhost/flipr_dev?Driver=ClickHouse'
+  # On database db:clickhouse://default@localhost/flipr_dev?Driver=ClickHouse
+  # Project:  flipr
+  # Change:   afdfa60d0fd2b7910601648667a23546fe0f7f43
+  # Name:     userflips
+  # Tag:      @v1.0.0-dev1
+  # Deployed: 2025-09-19 14:40:20 -0400
+  # By:       Marge N. O’Vera <marge@example.com>
+  # 
+  Nothing to deploy (up-to-date)
+
+Looks good, eh? Go ahead and revert it:
+
+  > sqitch revert -y 'db:clickhouse://default@localhost/flipr_dev?Driver=ClickHouse'
+  Revert all changes from db:clickhouse://default@localhost/flipr_dev?Driver=ClickHouse? [Yes]
+    - userflips @v1.0.0-dev1 .. ok
+    - flips ................... ok
+    - users ................... ok
+
+Now package it up and ship it!
 
   > cd ..
   > mv bundle flipr-v1.0.0-dev1
@@ -755,8 +750,8 @@ Looks much the same as before, eh? Package it up and ship it!
 
 Now that we've got the basics of the app done, let's add a feature. Gotta
 track the hashtags associated with flips, right? Let's add a table for them.
-But since other folks are working on other tasks in the repository, we'll work
-on a branch, so we can all stay out of each other's way. So let's branch:
+Since other folks are working on other tasks in the repository, we'll work on
+a branch, so we can all stay out of each other's way. So let's branch:
 
   > git checkout -b hashtags
   Switched to a new branch 'hashtags'
@@ -772,14 +767,15 @@ Now we can add a new change to create a table for hashtags.
 You know the drill by now. Add this to F<deploy/hashtags.sql>
 
   CREATE TABLE hashtags (
-      flip_id   INTEGER      NOT NULL REFERENCES flips(id),
-      hashtag   VARCHAR(512) NOT NULL CHECK(char_length(hashtag) > 0),
-      PRIMARY KEY (flip_id, hashtag)
-  );
+      flip_id   INTEGER      NOT NULL,
+      hashtag   VARCHAR(512) NOT NULL,
+      CONSTRAINT hashtag CHECK(char_length(hashtag) > 0)
+  )  ENGINE = MergeTree
+     PRIMARY KEY (flip_id, hashtag);
 
 Again, select from the table in F<verify/hashtags.sql>:
 
-  SELECT flip_id, hashtag FROM hashtags WHERE 1=2;
+  SELECT flip_id, hashtag FROM hashtags WHERE false;
 
 And drop it in F<revert/hashtags.sql>
 
@@ -789,20 +785,23 @@ And give it a whirl:
 
   > sqitch deploy
   Deploying changes to flipr_test
-    + hashtags .. ok
+    + users ................... ok
+    + flips ................... ok
+    + userflips @v1.0.0-dev1 .. ok
+    + hashtags ................ ok
 
 Look good?
 
   > sqitch status --show-tags
   # On database flipr_test
   # Project:  flipr
-  # Change:   9474af3b057294633ccf81b9e8d7771a9588ac67
+  # Change:   dca0003c3d411c71a672172acab78e4a42dfaa8d
   # Name:     hashtags
-  # Deployed: 2014-01-05 14:55:56 -0800
+  # Deployed: 2025-09-19 14:48:13 -0400
   # By:       Marge N. O’Vera <marge@example.com>
   # 
   # Tag:
-  #   @v1.0.0-dev1 - 2014-01-05 14:49:56 -0800 - Marge N. O’Vera <marge@example.com>
+  #   @v1.0.0-dev1 - 2025-09-19 14:48:13 -0400 - Marge N. O’Vera <marge@example.com>
   # 
   Nothing to deploy (up-to-date)
 
@@ -811,8 +810,8 @@ Note the use of C<--show-tags> to show all the deployed tags. Now make it so:
   > rm -rf flipr-v1.0.0-dev1*
   > git add .
   > git commit -am 'Add hashtags table.'
-  [hashtags 9c40bf5] Add hashtags table.
-   4 files changed, 22 insertions(+), 0 deletions(-)
+  [hashtags 1359929] Add hashtags table.
+   4 files changed, 17 insertions(+)
    create mode 100644 deploy/hashtags.sql
    create mode 100644 revert/hashtags.sql
    create mode 100644 verify/hashtags.sql
@@ -826,13 +825,13 @@ Let's do it:
   > git checkout main
   Switched to branch 'main'
   > git pull
-  Updating 696a891..9af80a1
+  Updating a821008..b800878
   Fast-forward
-   deploy/lists.sql |   11 +++++++++++
-   revert/lists.sql |    5 +++++
-   sqitch.plan      |    2 ++
-   verify/lists.sql |    7 +++++++
-   4 files changed, 25 insertions(+), 0 deletions(-)
+   deploy/lists.sql | 10 ++++++++++
+   revert/lists.sql |  3 +++
+   sqitch.plan      |  2 ++
+   verify/lists.sql |  5 +++++
+   4 files changed, 20 insertions(+)
    create mode 100644 deploy/lists.sql
    create mode 100644 revert/lists.sql
    create mode 100644 verify/lists.sql
@@ -873,8 +872,7 @@ VCS is not Git.
 
 So let's restore things to how they were at main:
 
-  > git reset --hard HEAD
-  HEAD is now at d5e7e86 Merge branch 'lists'
+  > git merge --abort
 
 That throws out our botched merge. Now let's go back to our branch and rebase
 it on C<main>:
@@ -882,28 +880,22 @@ it on C<main>:
   > git checkout hashtags
   Switched to branch 'hashtags'
   > git rebase main
-  First, rewinding head to replay your work on top of it...
-  Applying: Add hashtags table.
-  Using index info to reconstruct a base tree...
-  M	sqitch.plan
-  Falling back to patching base and 3-way merge...
   Auto-merging sqitch.plan
   CONFLICT (content): Merge conflict in sqitch.plan
-  Failed to merge in the changes.
-  Patch failed at 0001 Add hashtags table.
-  The copy of the patch that failed is found in:
-     .git/rebase-apply/patch
-
-  When you have resolved this problem, run "git rebase --continue".
-  If you prefer to skip this patch, run "git rebase --skip" instead.
-  To check out the original branch and stop rebasing, run "git rebase --abort".
+  error: could not apply 1359929... Add hashtags table.
+  hint: Resolve all conflicts manually, mark them as resolved with
+  hint: "git add/rm <conflicted_files>", then run "git rebase --continue".
+  hint: You can instead skip this commit: run "git rebase --skip".
+  hint: To abort and get back to the state before "git rebase", run "git rebase --abort".
+  hint: Disable this message with "git config set advice.mergeConflict false"
+  Could not apply 1359929... # Add hashtags table.
 
 Oy, that's kind of a pain. It seems like no matter what we do, we'll need to
 resolve conflicts in that file. Except in Git. Fortunately for us, we can tell
 Git to resolve conflicts in F<sqitch.plan> differently. Because we only ever
 append lines to the file, we can have it use the "union" merge driver, which,
-according to L<its
-docs|https://git-scm.com/docs/gitattributes#_built-in_merge_drivers>:
+according to
+L<its docs|https://git-scm.com/docs/gitattributes#_built-in_merge_drivers>:
 
 =over
 
@@ -925,27 +917,22 @@ and rebase again:
 
   > echo sqitch.plan merge=union > .gitattributes
   > git rebase main
-  First, rewinding head to replay your work on top of it...
-  Applying: Add hashtags table.
-  Using index info to reconstruct a base tree...
-  M sqitch.plan
-  Falling back to patching base and 3-way merge...
-  Auto-merging sqitch.plan
+  Successfully rebased and updated refs/heads/hashtags.
 
 Ah, that looks a bit better. Let's have a look at the plan:
 
   > cat sqitch.plan
   %syntax-version=1.0.0
   %project=flipr
-  %uri=https://github.com/sqitchers/sqitch-firebird-intro/
-
-  users 2014-01-05T22:01:30Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
-  flips [users] 2014-01-05T22:21:24Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.
-  userflips [users flips] 2014-01-05T22:40:29Z Marge N. O’Vera <marge@example.com> # Creates the userflips view.
-  @v1.0.0-dev1 2014-01-05T22:42:36Z Marge N. O’Vera <marge@example.com> # Tag v1.0.0-dev1.
-
-  lists [flips] 2014-01-05T22:44:41Z Marge N. O’Vera <marge@example.com> # Adds table for storing lists.
-  hashtags [flips] 2014-01-05T22:54:27Z Marge N. O’Vera <marge@example.com> # Adds table for storing hashtags.
+  %uri=https://github.com/sqitchers/sqitch-clickhouse-intro/
+  
+  users 2025-09-19T18:29:21Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
+  flips [users] 2025-09-19T18:35:31Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.
+  userflips [users flips] 2025-09-19T18:38:26Z Marge N. O’Vera <marge@example.com> # Creates the userflips view.
+  @v1.0.0-dev1 2025-09-19T18:39:48Z Marge N. O’Vera <marge@example.com> # Tag v1.0.0-dev1.
+  
+  lists [flips] 2025-09-19T18:41:17Z An Oth R. Developer <another@example.com> # Adds table for storing lists.
+  hashtags [flips] 2025-09-19T18:47:02Z Marge N. O’Vera <marge@example.com> # Adds table for storing hashtags.
 
 Note that it has appended the changes from the merged "lists" branch, and then
 merged the changes from our "hashtags" branch. Test it to make sure it works
@@ -972,8 +959,8 @@ worthwhile to keep that change:
 
   > git add .
   > git commit -m 'Add `.gitattributes` with union merge for `sqitch.plan`.'
-  [hashtags 52ed9a2] Add `.gitattributes` with union merge for `sqitch.plan`.
-   1 files changed, 1 insertions(+), 0 deletions(-)
+  [hashtags 862ea7a] Add `.gitattributes` with union merge for `sqitch.plan`.
+   1 file changed, 1 insertion(+)
    create mode 100644 .gitattributes
 
 =head2 Merges Mastered
@@ -983,13 +970,13 @@ And now, finally, we can merge into C<main>:
   > git checkout main
   Switched to branch 'main'
   > git merge --no-ff hashtags -m "Merge branch 'hashtags'"
-  Merge made by recursive.
-   .gitattributes      |    1 +
-   deploy/hashtags.sql |   10 ++++++++++
-   revert/hashtags.sql |    5 +++++
-   sqitch.plan         |    1 +
-   verify/hashtags.sql |    5 +++++
-   5 files changed, 22 insertions(+), 0 deletions(-)
+  Merge made by the 'ort' strategy.
+   .gitattributes      | 1 +
+   deploy/hashtags.sql | 9 +++++++++
+   revert/hashtags.sql | 3 +++
+   sqitch.plan         | 1 +
+   verify/hashtags.sql | 3 +++
+   5 files changed, 17 insertions(+)
    create mode 100644 .gitattributes
    create mode 100644 deploy/hashtags.sql
    create mode 100644 revert/hashtags.sql
@@ -1000,15 +987,15 @@ And double-check our work:
   > cat sqitch.plan
   %syntax-version=1.0.0
   %project=flipr
-  %uri=https://github.com/sqitchers/sqitch-firebird-intro/
-
-  users 2014-01-05T22:01:30Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
-  flips [users] 2014-01-05T22:21:24Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.
-  userflips [users flips] 2014-01-05T22:40:29Z Marge N. O’Vera <marge@example.com> # Creates the userflips view.
-  @v1.0.0-dev1 2014-01-05T22:42:36Z Marge N. O’Vera <marge@example.com> # Tag v1.0.0-dev1.
-
-  lists [flips] 2014-01-05T22:44:41Z Marge N. O’Vera <marge@example.com> # Adds table for storing lists.
-  hashtags [flips] 2014-01-05T22:54:27Z Marge N. O’Vera <marge@example.com> # Adds table for storing hashtags.
+  %uri=https://github.com/sqitchers/sqitch-clickhouse-intro/
+  
+  users 2025-09-19T18:29:21Z Marge N. O’Vera <marge@example.com> # Creates table to track our users.
+  flips [users] 2025-09-19T18:35:31Z Marge N. O’Vera <marge@example.com> # Adds table for storing flips.
+  userflips [users flips] 2025-09-19T18:38:26Z Marge N. O’Vera <marge@example.com> # Creates the userflips view.
+  @v1.0.0-dev1 2025-09-19T18:39:48Z Marge N. O’Vera <marge@example.com> # Tag v1.0.0-dev1.
+  
+  lists [flips] 2025-09-19T18:41:17Z An Oth R. Developer <another@example.com> # Adds table for storing lists.
+  hashtags [flips] 2025-09-19T18:47:02Z Marge N. O’Vera <marge@example.com> # Adds table for storing hashtags.
 
 Much much better, a nice clean main now. And because it is now identical to
 the "hashtags" branch, we can just carry on. Go ahead and tag it, bundle, and
@@ -1017,7 +1004,7 @@ release:
   > sqitch tag v1.0.0-dev2 -n 'Tag v1.0.0-dev2.'
   Tagged "hashtags" with @v1.0.0-dev2
   > git commit -am 'Tag the database with v1.0.0-dev2.'
-  [main 7d07ee3] Tag the database with v1.0.0-dev2.
+  [main 5b56772] Tag the database with v1.0.0-dev2.
    1 file changed, 1 insertion(+)
   > git tag v1.0.0-dev2 -am 'Tag v1.0.0-dev2'
   > sqitch bundle --dest-dir flipr-1.0.0-dev2
@@ -1038,11 +1025,11 @@ F<bundle>.
 =head1 In Place Changes
 
 Well, some folks have been testing the C<1.0.0-dev2> release and have demanded
-that Twitter user links be added to Flipr pages. Why anyone would want to
+that Mastodon user links be added to Flipr pages. Why anyone would want to
 include social network links in an anti-social networking app is beyond us
 programmers, but we're just the plumbers, right? Gotta go with what Marketing
 demands. The upshot is that we need to update the C<userflips> view, which is
-used for the feature in question, to include the Twitter user names.
+used for the feature in question, to include the Mastodon user names.
 
 Normally, modifying views in database changes is a
 L<PITA|https://www.urbandictionary.com/define.php?term=pita>. You have to make
@@ -1052,39 +1039,39 @@ changes like these:
 
 =item 1.
 
-Copy F<deploy/userflips.sql> to F<deploy/userflips_twitter.sql>.
+Copy F<deploy/userflips.sql> to F<deploy/userflips_mastodon.sql>.
 
 =item 2.
 
-Edit F<deploy/userflips_twitter.sql> to re-create the view with the
-new C<twitter> column added to the view.
+Edit F<deploy/userflips_mastodon.sql> to re-create the view with the
+new C<mastodon> column added to the view.
 
 =item 3.
 
-Copy F<deploy/userflips.sql> to F<revert/userflips_twitter.sql>.
+Copy F<deploy/userflips.sql> to F<revert/userflips_mastodon.sql>.
 Yes, copy the original change script to the new revert change.
 
 =item 4.
 
-Add a C<DROP VIEW> statement to F<revert/userflips_twitter.sql>.
+Add a C<DROP VIEW> statement to F<revert/userflips_mastodon.sql>.
 
 =item 5.
 
-Copy F<verify/userflips.sql> to F<verify/userflips_twitter.sql>.
+Copy F<verify/userflips.sql> to F<verify/userflips_mastodon.sql>.
 
 =item 6.
 
-Modify F<verify/userflips_twitter.sql> to include a check for the C<twitter>
+Modify F<verify/userflips_mastodon.sql> to include a check for the C<mastodon>
 column.
 
 =item 7.
 
 Test the changes to make sure you can deploy and revert the
-C<userflips_twitter> change.
+C<userflips_mastodon> change.
 
 =back
 
-But you can have Sqitch do most of the work for you.  The only requirement is
+But you can have Sqitch do most of the work for you. The only requirement is
 that a tag appear between the two instances of a change we want to modify. In
 general, you're going to make a change like this after a release, which you've
 tagged anyway, right? Well we have, with C<@v1.0.0-dev2> added in the previous
@@ -1092,7 +1079,8 @@ section. With that, we can let Sqitch do most of the hard work for us, thanks
 to the L<C<rework>|sqitch-rework> command, which is similar to
 L<C<add>|sqitch-add>:
 
-  > sqitch rework userflips -n 'Adds userflips.twitter.'
+  > git checkout -b mastodon
+  > sqitch rework userflips -n 'Adds userflips.mastodon.'
   Added "userflips [userflips@v1.0.0-dev2]" to sqitch.plan.
   Modify these files as appropriate:
     * deploy/userflips.sql
@@ -1104,23 +1092,20 @@ point of fact, it has copied the files to stand in for the previous instance
 of the C<userflips> change, which we can see via C<git status>:
 
   > git status
-  # On branch main
-  # Your branch is ahead of 'origin/main' by 4 commits.
-  #   (use "git push" to publish your local commits)
-  #
-  # Changes not staged for commit:
-  #   (use "git add <file>..." to update what will be committed)
-  #   (use "git checkout -- <file>..." to discard changes in working directory)
-  #
-  #	modified:   revert/userflips.sql
-  #	modified:   sqitch.plan
-  #
-  # Untracked files:
-  #   (use "git add <file>..." to include in what will be committed)
-  #
-  #	deploy/userflips@v1.0.0-dev2.sql
-  #	revert/userflips@v1.0.0-dev2.sql
-  #	verify/userflips@v1.0.0-dev2.sql
+  On branch mastodon
+  Changes not staged for commit:
+    (use "git add <file>..." to update what will be committed)
+    (use "git restore <file>..." to discard changes in working directory)
+  	modified:   revert/userflips.sql
+  	modified:   sqitch.plan
+  
+  Untracked files:
+    (use "git add <file>..." to include in what will be committed)
+  	deploy/userflips@v1.0.0-dev2.sql
+  	flipr-1.0.0-dev2/
+  	revert/userflips@v1.0.0-dev2.sql
+  	verify/userflips@v1.0.0-dev2.sql
+  
   no changes added to commit (use "git add" and/or "git commit -a")
 
 The "untracked files" part of the output is the first thing to notice. They
@@ -1147,34 +1132,38 @@ deployed. Or, more simply, it should revert changes back to how they were
 as-of the deployment of F<deploy/userflips@v1.0.0-dev2.sql>.
 
 Fortunately, our view deploy scripts are already idempotent, thanks to the
-use of the C<OR ALTER> expression. No matter how many times a deployment
+use of the C<OR REPLACE> expression. No matter how many times a deployment
 script is run, the end result will be the same instance of the view, with
 no duplicates or errors.
 
 As a result, there is no need to explicitly add changes. So go ahead. Modify
-F<deploy/userflips.sql> to add the C<twitter> column.
+F<deploy/userflips.sql> to add the C<mastodon> column.
 
-  @@ -3,7 +3,7 @@
+  --- a/deploy/userflips.sql
+  +++ b/deploy/userflips.sql
+  @@ -3,6 +3,6 @@
    -- requires: flips
- 
-   CREATE OR ALTER VIEW userflips AS
-  -SELECT f.id, u.nickname, u.fullname, f.body, f.created_at
-  +SELECT f.id, u.nickname, u.fullname, u.twitter, f.body, f.created_at
+
+   CREATE OR REPLACE VIEW userflips AS
+  -SELECT f.id, u.nickname, u.fullname, f.body, f.created_at AS created_at
+  +SELECT f.id, u.nickname, u.fullname, u.mastodon, f.body, f.created_at created_at
      FROM users u
      JOIN flips f ON u.nickname = f.nickname;
- 
 
-Next, modify F<verify/userflips.sql> to check for the C<twitter> column.
+
+Next, modify F<verify/userflips.sql> to check for the C<mastodon> column.
 Here's the diff:
 
-  @@ -1,6 +1,6 @@
-   -- Verify flipr:userflips on firebird
- 
+  --- a/verify/userflips.sql
+  +++ b/verify/userflips.sql
+  @@ -1,5 +1,5 @@
+   -- Verify flipr:userflips on clickhouse
+
   -SELECT id, nickname, fullname, body, created_at
-  +SELECT id, nickname, twitter, fullname, body, created_at
+  +SELECT id, nickname, mastodon, fullname, body, created_at
      FROM userflips
-    WHERE 1=2;
- 
+    WHERE false;
+
 
 Now try a deployment:
 
@@ -1184,53 +1173,53 @@ Now try a deployment:
 
 So, are the changes deployed?
 
-  > echo "CONNECT 'localhost:/tmp/flipr_test/flipr.fdb'; SHOW VIEW userflips; quit;" \
-    | isql-fb -q -u SYSDBA -p masterkey
-  ID                              INTEGER Not Null 
-  NICKNAME                        VARCHAR(50) Not Null 
-  FULLNAME                        VARCHAR(512) Not Null 
-  TWITTER                         VARCHAR(512) Not Null 
-  BODY                            VARCHAR(512) Not Null 
-  CREATED_AT                      TIMESTAMP Not Null 
-  View Source:
-  ==== ======
+  > clickhouse client -d flipr_test -q 'describe userflips'
+  id	Int32
+  nickname	String
+  fullname	String
+  mastodon	String
+  body	String
+  created_at	DateTime64(6, \'UTC\')
 
-  SELECT f.id, u.nickname, u.fullname, u.twitter, f.body, f.created_at
-    FROM users u
-    JOIN flips f ON u.nickname = f.nickname
-
-Awesome, the view now includes the C<twitter> column. But can we revert?
+Awesome, the view now includes the C<mastodon> column. But can we revert?
 
   > sqitch revert --to @HEAD^ -y
   Reverting changes to hashtags @v1.0.0-dev2 from flipr_test
     - userflips .. ok
 
-Did that work, is the C<twitter> column gone?
+Did that work, is the C<mastodon> column gone?
 
-  > echo "CONNECT 'localhost:/tmp/flipr_test/flipr.fdb'; SHOW VIEW userflips; quit;" \
-    | isql-fb -q -u SYSDBA -p masterkey
-  ID                              INTEGER Not Null 
-  NICKNAME                        VARCHAR(50) Not Null 
-  FULLNAME                        VARCHAR(512) Not Null 
-  BODY                            VARCHAR(512) Not Null 
-  CREATED_AT                      TIMESTAMP Not Null 
-  View Source:
-  ==== ======
-
-  SELECT f.id, u.nickname, u.fullname, f.body, f.created_at
-    FROM users u
-    JOIN flips f ON u.nickname = f.nickname
+  > clickhouse client -d flipr_test -q 'describe userflips'
+  id	Int32
+  nickname	String
+  fullname	String
+  body	String
+  created_at	DateTime64(6, \'UTC\')
 
 Yes, it works! Sqitch properly finds the original instances of these changes
 in the new script files that include tags.
 
-Excellent. Let's go ahead and commit these changes:
+Excellent. Let's go ahead and commit these changes and merge them into main:
 
   > rm -rf flipr-1.0.0-dev2
   > git add .
-  > git commit -m 'Add the twitter column to the userflips view.'
-  [main f530359] Add the twitter column to the userflips view.
-   7 files changed, 32 insertions(+), 4 deletions(-)
+  > git commit -m 'Add the mastodon column to the userflips view.'
+  [mastodon 571662b] Add the mastodon column to the userflips view.
+   7 files changed, 26 insertions(+), 4 deletions(-)
+   create mode 100644 deploy/userflips@v1.0.0-dev2.sql
+   create mode 100644 revert/userflips@v1.0.0-dev2.sql
+   create mode 100644 verify/userflips@v1.0.0-dev2.sql
+  > git checkout main
+  > git merge --no-ff mastodon -m "Merge branch 'mastodon'"
+  Merge made by the 'ort' strategy.
+   deploy/userflips.sql             | 2 +-
+   deploy/userflips@v1.0.0-dev2.sql | 8 ++++++++
+   revert/userflips.sql             | 9 +++++++--
+   revert/userflips@v1.0.0-dev2.sql | 3 +++
+   sqitch.plan                      | 1 +
+   verify/userflips.sql             | 2 +-
+   verify/userflips@v1.0.0-dev2.sql | 5 +++++
+   7 files changed, 26 insertions(+), 4 deletions(-)
    create mode 100644 deploy/userflips@v1.0.0-dev2.sql
    create mode 100644 revert/userflips@v1.0.0-dev2.sql
    create mode 100644 verify/userflips@v1.0.0-dev2.sql
@@ -1240,11 +1229,9 @@ Excellent. Let's go ahead and commit these changes:
 Sqitch is a work in progress. Better integration with version control systems
 is planned to make managing idempotent reworkings even easier. Stay tuned.
 
-=head1 Authors
+=head1 Author
 
 =over
-
-=item * Ștefan Suciu <stefbv70@gmail.com>
 
 =item * David E. Wheeler <david@justatheory.com>
 

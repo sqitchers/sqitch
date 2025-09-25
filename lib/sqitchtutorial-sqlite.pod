@@ -18,19 +18,28 @@ We'll start by creating new project from scratch, a fictional antisocial
 networking site called Flipr. All examples use L<Git|https://git-scm.com/> as
 the VCS and L<SQLite|https://www.sqlite.org/> as the storage engine.
 
-If you'd like to manage a PostgreSQL database, see L<sqitchtutorial>.
+If you'd like to manage a database with a different database engine, see one
+of the following other tutorials:
 
-If you'd like to manage an Oracle database, see L<sqitchtutorial-oracle>.
+=over
 
-If you'd like to manage a MySQL database, see L<sqitchtutorial-mysql>.
+=item L<PostgreSQL, Yugabyte, and CockroachDB Tutorial|sqitchtutorial>
 
-If you'd like to manage a Firebird database, see L<sqitchtutorial-firebird>.
+=item L<Oracle Tutorial|sqitchtutorial-oracle>
 
-If you'd like to manage a Vertica database, see L<sqitchtutorial-vertica>.
+=item L<MySQL and MariaDB Tutorial|sqitchtutorial-mysql>
 
-If you'd like to manage an Exasol database, see L<sqitchtutorial-exasol>.
+=item L<Firebird Tutorial|sqitchtutorial-firebird>
 
-If you'd like to manage a Snowflake database, see L<sqitchtutorial-snowflake>.
+=item L<Vertica Tutorial|sqitchtutorial-vertica>
+
+=item L<Exasol Tutorial|sqitchtutorial-exasol>
+
+=item L<Snowflake Tutorial|sqitchtutorial-snowflake>
+
+=item L<ClickHouse Tutorial|sqitchtutorial-clickhouse>
+
+=back
 
 =head1 Starting a New Project
 
@@ -1055,7 +1064,7 @@ Copy F<verify/userflips.sql> to F<verify/userflips_twitter.sql>.
 
 =item 6.
 
-Modify F<verify/userflips_twitter.sql> to include a check for the C<twiter>
+Modify F<verify/userflips_twitter.sql> to include a check for the C<twitter>
 column.
 
 =item 7.

@@ -21,19 +21,28 @@ storage engine. Note that you will need to set
 L<C<$ORACLE_HOME>|https://www.orafaq.com/wiki/ORACLE_HOME> so that all the
 database connections will work.
 
-If you'd like to manage a PostgreSQL database, see L<sqitchtutorial>.
+If you'd like to manage a database with a different database engine, see one
+of the following other tutorials:
 
-If you'd like to manage an SQLite database, see L<sqitchtutorial-sqlite>.
+=over
 
-If you'd like to manage a MySQL database, see L<sqitchtutorial-mysql>.
+=item L<PostgreSQL, Yugabyte, and CockroachDB Tutorial|sqitchtutorial>
 
-If you'd like to manage a Firebird database, see L<sqitchtutorial-firebird>.
+=item L<SQLite Tutorial|sqitchtutorial-sqlite>
 
-If you'd like to manage a Vertica database, see L<sqitchtutorial-vertica>.
+=item L<MySQL and MariaDB Tutorial|sqitchtutorial-mysql>
 
-If you'd like to manage an Exasol database, see L<sqitchtutorial-exasol>.
+=item L<Firebird Tutorial|sqitchtutorial-firebird>
 
-If you'd like to manage a Snowflake database, see L<sqitchtutorial-snowflake>.
+=item L<Vertica Tutorial|sqitchtutorial-vertica>
+
+=item L<Exasol Tutorial|sqitchtutorial-exasol>
+
+=item L<Snowflake Tutorial|sqitchtutorial-snowflake>
+
+=item L<ClickHouse Tutorial|sqitchtutorial-clickhouse>
+
+=back
 
 =head2 Prerequisites
 
