@@ -328,8 +328,28 @@ sub cli { @{ shift->_cli } }
 sub key    { 'clickhouse' }
 sub name   { 'ClickHouse' }
 sub driver { 'DBD::ODBC 1.59' }
-# XXX Search path for clickhouse-client or just clickhouse?
-sub default_client { 'clickhouse-client' }
+
+sub default_client {
+    my $self = shift;
+    my $ext  = App::Sqitch::ISWIN || $^O eq 'cygwin' ? '.exe' : '';
+
+    # Try to find the client in the path.
+    my @names = map { $_ . $ext  } 'clickhouse', 'clickhouse-client';
+    for my $dir (File::Spec->path) {
+        for my $try ( @names ) {
+            my $path = file $dir, $try;
+            # GetShortPathName returns undef for nonexistent files.
+            $path = Win32::GetShortPathName($path) // next if App::Sqitch::ISWIN;
+            return $try if -f $path && -x $path;
+        }
+    }
+
+    hurl clickhouse => __x(
+        'Unable to locate {cli} client; set "engine.{eng}.client" via sqitch config',
+        cli => 'clickhouse',
+        eng => 'clickhouse',
+    );
+}
 
 sub _char2ts { $_[1]->set_time_zone('UTC')->iso8601 }
 

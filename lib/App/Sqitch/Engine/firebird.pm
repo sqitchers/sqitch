@@ -931,8 +931,10 @@ sub default_client {
     open STDERR, '>&', $olderr or hurl firebird => __x(
         'Cannot dup STDERR: {error}', $!
     );
-    hurl firebird => __(
-        'Unable to locate Firebird ISQL; set "engine.firebird.client" via sqitch config'
+    hurl firebird => __x(
+        'Unable to locate {cli} client; set "engine.{eng}.client" via sqitch config',
+        cli => 'Firebird ISQL',
+        eng => 'firebird',
     );
 }
 

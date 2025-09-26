@@ -386,8 +386,10 @@ FSPEC: {
     throws_ok { $fb->default_client } 'App::Sqitch::X',
         'Should get error when no client found';
     is $@->ident, 'firebird', 'Client exception ident should be "firebird"';
-    is $@->message, __(
-        'Unable to locate Firebird ISQL; set "engine.firebird.client" via sqitch config'
+    is $@->message, __x(
+        'Unable to locate {cli} client; set "engine.{eng}.client" via sqitch config',
+        cli => 'Firebird ISQL',
+        eng => 'firebird',
     ), 'Client exception message should be correct';
 }
 

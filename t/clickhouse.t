@@ -54,8 +54,6 @@ isa_ok my $ch = $CLASS->new(sqitch => $sqitch, target => $target), $CLASS;
 is $ch->key, 'clickhouse', 'Key should be "clickhouse"';
 is $ch->name, 'ClickHouse', 'Name should be "ClickHouse"';
 
-my $client = 'clickhouse-client' . (App::Sqitch::ISWIN ? '.exe' : '');
-is $ch->client, $client, 'client should default to clickhouse';
 is $ch->registry, 'sqitch', 'registry default should be "sqitch"';
 my $sqitch_uri = $uri->clone;
 $sqitch_uri->dbname('sqitch');
@@ -65,44 +63,81 @@ is $ch->_dsn, 'dbi:ODBC:DSN=sqitch', 'DSN should use DBD::ODBC with registry dat
 is $ch->registry_destination, 'db:clickhouse:sqitch',
     'registry_destination should be the same as registry_uri';
 
+
+# Test the client.
+my $mock_sqitch = Test::MockModule->new('App::Sqitch');
 my @std_opts = (
     '--progress'       => 'off',
     '--progress-table' => 'off',
     '--disable_suggestion',
 );
 
-my $mock_sqitch = Test::MockModule->new('App::Sqitch');
-my $warning;
-$mock_sqitch->mock(warn => sub { shift; $warning = [@_] });
-$ch->uri->dbname('');
-is_deeply [$ch->cli], [$client, @std_opts],
-    'clickhouse command should be std opts-only';
-is_deeply $warning, [__x
-    'Database name missing in URI "{uri}"',
-     uri => $ch->uri
-], 'Should have emitted a warning for no database name';
+##############################################################################
+NO_CLI: {
+    # Make sure we get an error when it can't find the client.
+    my $mock_fs = Test::MockModule->new('File::Spec');
+    $mock_fs->mock(path => sub { 't', 'bin' });
+    throws_ok {
+        $CLASS->new( sqitch => $sqitch, target => $target )->client
+    } 'App::Sqitch::X', 'Should get an error when cannot find CLI';
+    is $@->ident, 'clickhouse', "Ident for missing CLI should be 'clickhouse'";
+    is $@->message, __x(
+        'Unable to locate {cli} client; set "engine.{eng}.client" via sqitch config',
+        cli => 'clickhouse',
+        eng => 'clickhouse',
+    ), "Message for missing CLI should be correct";
+}
 
-isa_ok $ch = $CLASS->new(sqitch => $sqitch, target => $target), $CLASS;
-ok $ch->set_variables(foo => 'baz', whu => 'hi there', yo => 'stellar'),
-    'Set some variables';
-is_deeply [$ch->cli], [
-    $client,
-    '--param_foo' => 'baz',
-    '--param_whu' => 'hi there',
-    '--param_yo' => 'stellar',
-    @std_opts,
-], 'Variables should be passed to psql via --set';
+##############################################################################
+CLI: {
+    my @client;
+    if (my $cli = try { $ch->client }) {
+        like $cli, qr/\Aclickhouse(?:-client)?(?:\.exe)?\z/,
+            'client should default clickhouse or clickhouse-client';
+        @client = $cli =~ /-client/ ? ($cli) : ($cli, 'client');
+    } else {
+        # No client found, explicitly set it to `clickhouse`.
+        @client = (('clickhouse' . (App::Sqitch::ISWIN ? '.exe' : '')), 'client');
+        $config->update( 'engine.clickhouse.client' => $client[0]);
+    }
 
-$mock_sqitch->unmock_all;
+    my $warning;
+    $mock_sqitch->mock(warn => sub { shift; $warning = [@_] });
+    $ch->uri->dbname('');
+    is_deeply [$ch->cli], [@client, @std_opts],
+        'clickhouse command should be std opts-only';
+    is_deeply $warning, [__x
+        'Database name missing in URI "{uri}"',
+        uri => $ch->uri
+    ], 'Should have emitted a warning for no database name';
 
-$target = App::Sqitch::Target->new(
-    sqitch => $sqitch,
-    uri => URI::db->new('db:clickhouse:'),
-);
-isa_ok $ch = $CLASS->new(
-    sqitch => $sqitch,
-    target => $target,
-), $CLASS;
+    isa_ok $ch = $CLASS->new(sqitch => $sqitch, target => $target), $CLASS;
+    ok $ch->set_variables(foo => 'baz', whu => 'hi there', yo => 'stellar'),
+        'Set some variables';
+    is_deeply [$ch->cli], [
+        @client,
+        '--param_foo' => 'baz',
+        '--param_whu' => 'hi there',
+        '--param_yo' => 'stellar',
+        @std_opts,
+    ], 'Variables should be passed to psql via --set';
+
+    # Try alternate spelling of client.
+    my $mock = Test::MockModule->new($CLASS);
+    if (@client == 1) {
+        push @client => 'client';
+    } else {
+        $client[0] =~ s/clickhouse/clickhouse-client/;
+        pop @client;
+    }
+    $mock->mock(client => $client[0]);
+
+    isa_ok $ch = $CLASS->new(sqitch => $sqitch, target => $target), $CLASS;
+    is_deeply [$ch->cli], [ @client, @std_opts ],
+        'Alternate spelling of client should be returned';
+
+    $mock_sqitch->unmock_all;
+}
 
 ##############################################################################
 # Make sure config and environment variables are read.
@@ -971,7 +1006,7 @@ DBIEngineTest->run(
         say '# Connected to ClickHouse ' . $self->_capture('--query' => 'SELECT version()');
         1;
     },
-    engine_err_regex  => qr/^Error while processing query /,
+    engine_err_regex  => qr/Syntax error: failed at position 8/,
     init_error        => __x(
         'Sqitch database {database} already initialized',
         database => $reg2,
