@@ -205,6 +205,7 @@ Runtime-only dependencies
         Class-Singleton
         Class-XSAccessor
         Clone-Choose
+        Clone-PP
         Config-GitLike
         DBD-Firebird
         DBD-MariaDB
@@ -257,6 +258,8 @@ Runtime-only dependencies
         Type-Tiny-XS
         URI-Nested
         URI-db
+        XML-Tiny
+        YAML-Tiny
         libintl-perl
         namespace-autoclean
         namespace-clean

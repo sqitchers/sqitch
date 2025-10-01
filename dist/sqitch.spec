@@ -1,5 +1,5 @@
 Name:           sqitch
-Version:        1.5.3-dev
+Version:        1.6.0
 Release:        1%{?dist}
 Summary:        Sensible database change management
 License:        MIT
@@ -308,7 +308,7 @@ also be installed.
 %files snowflake
 # No additional files required.
 
-%package snowflake
+%package clickhouse
 Summary:        Sensible database change management for ClickHouse
 Group:          Development/Libraries
 Requires:       sqitch >= %{version}
@@ -330,6 +330,11 @@ driver also be installed.
 # No additional files required.
 
 %changelog
+* Mon Oct 6 2025 David E. Wheeler <david@justatheory.com> 1.6.0-1
+- Upgrade to v1.1.6.0.
+- Add sqitch-clickhouse package.
+- Add XML::Tiny and YAML::Tiny dependencies to that package.
+
 * Mon Apr 29 2025 David E. Wheeler <david@justatheory.com> 1.5.2-1
 - Upgrade to v1.5.2.
 
@@ -347,7 +352,7 @@ driver also be installed.
 
 * Mon Aug 1 2023 David E. Wheeler <david@justatheory.com> 1.4.0-1
 - Upgrade to v1.4.0.
-- Incrmented minimal DBI to 1.631.
+- Increment minimal DBI to 1.631.
 
 * Sat Oct 1 2022 David E. Wheeler <david@justatheory.com> 1.3.1-1
 - Upgrade to v1.3.1.
@@ -355,7 +360,7 @@ driver also be installed.
 * Fri Aug 12 2022 David E. Wheeler <david@justatheory.com> 1.3.0-1
 - Add Test::Exit build requirement.
 - Upgrade URI::db to v0.20.
-- Increased minimal MySQL version to 5.1.
+- Increase minimal MySQL version to 5.1.
 
 * Sun Dec 5 2021 David E. Wheeler <david@justatheory.com> 1.2.1-1
 - Upgrade to v1.2.1.

@@ -112,8 +112,9 @@ has user_email => (
             || $self->config->get( key => 'user.email' )
             || $ENV{ SQITCH_ORIG_EMAIL }
         || do {
-            my $sysname = $self->sysuser || hurl user => __(
-                'Cannot infer your email address; run sqitch config --user user.email you@host.com'
+            my $sysname = $self->sysuser || hurl user => __x(
+                'Cannot infer your email address; run sqitch config --user user.email {email}',
+                email => 'you@example.com',
             );
             require Sys::Hostname;
             "$sysname@" . Sys::Hostname::hostname();
