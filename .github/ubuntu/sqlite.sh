@@ -2,7 +2,7 @@
 
 set -e
 
-SQLITE=${SQLITE:=${1:-"$(curl -s https://www.sqlite.org/download.html | perl -nE '/^PRODUCT,(\d[^,]+)/ && print($1) && exit')"}}
+SQLITE=${SQLITE:=${1:-"$(curl -s https://www.sqlite.org/download.html | perl -nE '/^PRODUCT,(3\.\d+[^,]+)/ && print($1) && exit')"}}
 echo "Installing SQLite $SQLITE"
 
 # Convert to the SQLITE_VERSION_NUMBER format https://sqlite.org/c3ref/c_source_id.html
