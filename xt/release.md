@@ -7,8 +7,8 @@ assumption is that they're set to the old and new versions, respectively, e.g.,
 
 ``` sh
 export OLD_VERSION=1.5.1
-export VERSION=1.5.2
-export NEXT_VERSION=1.5.3
+export VERSION=1.6.0
+export NEXT_VERSION=1.6.1
 ```
 
 Preparation
@@ -58,7 +58,7 @@ First, update the sources so that everything is up-to-date.
     changes.  Check the runtime list to ensure that they are runtime-only, and
     review the overlapping list to ensure that all of the items there are used
     at runtime. Commit the changes if it all checks out and looks reasonable.
-    This allows the `./Build bundle` command to remove any build-only
+    This list allows the `./Build bundle` command to remove any build-only
     dependencies from the bundle.
 
 *   Add any new dependencies to `dist/sqitch.spec` and add a new entry to the
@@ -171,7 +171,7 @@ Update the Sqitch Homebrew tap with the new version.
     for it
 
     ```
-    curl -O https://www.cpan.org/authors/id/D/DW/DWHEELER/App-Sqitch-v$VERSION.tar.gz
+    curl -O https://cpan.metacpan.org/authors/id/D/DW/DWHEELER/App-Sqitch-v$VERSION.tar.gz
     shasum -a 256 App-Sqitch-v$VERSION.tar.gz
     ```
 

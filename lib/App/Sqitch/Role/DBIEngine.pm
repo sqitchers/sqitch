@@ -58,6 +58,8 @@ sub _log_conflicts_param {
     join ',' => map { $_->as_string } $_[1]->conflicts;
 }
 
+sub _parse_array { return $_[1] ? [ split / / => $_[1] ] : [] }
+
 sub _ts_default { 'DEFAULT' }
 
 sub _can_limit { 1 }
@@ -173,7 +175,7 @@ sub current_state {
     } or return undef;
 
     unless (ref $state->{tags}) {
-        $state->{tags} = $state->{tags} ? [ split / / => $state->{tags} ] : [];
+        $state->{tags} = $self->_parse_array($state->{tags});
     }
     $state->{committed_at} = _dt $state->{committed_at};
     $state->{planned_at}   = _dt $state->{planned_at};
@@ -310,6 +312,11 @@ sub search_events {
         my $row = $sth->fetchrow_hashref or return;
         $row->{committed_at} = _dt $row->{committed_at};
         $row->{planned_at}   = _dt $row->{planned_at};
+        # Some database engines don't support arrays, so we store
+        # space-delimited lists that must be parsed.
+        for my $col (qw(tags requires conflicts)) {
+            $row->{$col} = $self->_parse_array($row->{$col}) unless ref $row->{$col};
+        }
         return $row;
     };
 }
@@ -776,7 +783,7 @@ sub deployed_changes {
     return map {
         $_->{timestamp} = _dt $_->{timestamp};
         unless (ref $_->{tags}) {
-            $_->{tags} = $_->{tags} ? [ split / / => $_->{tags} ] : [];
+            $_->{tags} = $self->_parse_array($_->{tags});
         }
         $_;
     } @{ $self->dbh->selectall_arrayref(qq{
@@ -799,7 +806,7 @@ sub deployed_changes_since {
     return map {
         $_->{timestamp} = _dt $_->{timestamp};
         unless (ref $_->{tags}) {
-            $_->{tags} = $_->{tags} ? [ split / / => $_->{tags} ] : [];
+            $_->{tags} = $self->_parse_array($_->{tags});
         }
         $_;
     } @{ $self->dbh->selectall_arrayref(qq{
@@ -832,7 +839,7 @@ sub load_change {
     }, undef, $change_id) || return undef;
     $change->{timestamp} = _dt $change->{timestamp};
     unless (ref $change->{tags}) {
-        $change->{tags} = $change->{tags} ? [ split / / => $change->{tags} ] : [];
+        $change->{tags} = $self->_parse_array($change->{tags});
     }
     return $change;
 }
@@ -890,7 +897,7 @@ sub change_offset_from_id {
     }, undef, $self->plan->project, $change_id) || return undef;
     $change->{timestamp} = _dt $change->{timestamp};
     unless (ref $change->{tags}) {
-        $change->{tags} = $change->{tags} ? [ split / / => $change->{tags} ] : [];
+        $change->{tags} = $self->_parse_array($change->{tags});
     }
     return $change;
 }

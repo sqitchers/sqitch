@@ -2,8 +2,8 @@
 
 set -e
 
-SQLITE=${SQLITE:=${1:-3.40.1}}
-echo "Instaling SQLite $SQLITE"
+SQLITE=${SQLITE:=${1:-"$(curl -s https://www.sqlite.org/download.html | perl -nE '/^PRODUCT,(3\.\d+[^,]+)/ && print($1) && exit')"}}
+echo "Installing SQLite $SQLITE"
 
 # Convert to the SQLITE_VERSION_NUMBER format https://sqlite.org/c3ref/c_source_id.html
 SQLITE=$(perl -e 'my @v = split /[.]/, shift; printf "%d%02d%02d%02d\n", @v[0..3]' "$SQLITE")
@@ -12,7 +12,8 @@ SQLITE=$(perl -e 'my @v = split /[.]/, shift; printf "%d%02d%02d%02d\n", @v[0..3
 # 3.18.2, 3.18.1, 3.9.3, and 3.7.11 missing.
 # https://sqlite.org/chronology.html
 # https://stackoverflow.com/a/37712117/79202
-if   (( $SQLITE >= 3450000 )); then YEAR=2024
+if   (( $SQLITE >= 3480000 )); then YEAR=2025
+elif (( $SQLITE >= 3450000 )); then YEAR=2024
 elif (( $SQLITE >= 3400200 )); then YEAR=2023
 elif (( $SQLITE >= 3370200 )); then YEAR=2022
 elif (( $SQLITE >= 3340100 )); then YEAR=2021
@@ -34,7 +35,7 @@ curl -o sqlite.zip https://sqlite.org/$YEAR/sqlite-amalgamation-$SQLITE.zip
 unzip -j sqlite.zip -d /opt/sqlite
 cd /opt/sqlite
 # Build the CLI.
-gcc shell.c sqlite3.c -lpthread -ldl -o sqlite3
+gcc shell.c sqlite3.c -lpthread -ldl -lm -o sqlite3
 # Build the shared library
 gcc -c -fPIC sqlite3.c
 gcc -shared -o libsqlite3.so -fPIC sqlite3.o -ldl -lpthread

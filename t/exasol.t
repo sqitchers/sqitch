@@ -301,7 +301,7 @@ $fh = $handles->[0];
 is join('', <$fh>), $exa->_script, 'First file handle should be script';
 is $handles->[1], 'FH', 'Second should be the passed handle';
 
-# Verify should go to capture unless verosity is > 1.
+# Verify should go to capture unless verbosity is > 1.
 $mock_exa->mock(_capture => sub {shift; @capture = @_ });
 ok $exa->run_verify('foo/bar.sql'), 'Verify foo/bar.sql';
 is_deeply \@capture, ['@"foo/bar.sql"'],

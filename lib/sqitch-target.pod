@@ -38,6 +38,8 @@ Some examples:
 
 =item C<db:firebird://localhost//tmp/test.fdb>
 
+=item C<db:clickhouse://default@localhost/default?Driver=ClickHouse>
+
 =back
 
 Note that, as with any URI or URL, special characters must be

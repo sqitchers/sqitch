@@ -1,18 +1,17 @@
 # This workflow tests Sqitch's Cockroach engine on all supported versions of
-# Postgres. It runs for pushes and pull requests on the `main`, `develop`,
-# `**cockroach**`, and `**engine**` branches.
+# CockroachDB. It runs on pushes to branches matching `develop`,
+# `**cockroach**`, and `**engine**` as well as pull requests.
 name: 🪳 Cockroach
 on:
   push:
-    branches: [main, develop, "**engine**", "**cockroach**" ]
+    branches: [develop, "**engine**", "**cockroach**"]
   pull_request:
-    branches: [main, develop, "**engine**", "**cockroach**" ]
 jobs:
   Cockroach:
     strategy:
       matrix:
-        # curl https://registry.hub.docker.com/v2/repositories/cockroachdb/cockroach/tags\?page_size\=10000 | jq '.results[].name
-        version: ['23.1', '22.2', '21.2']
+        # curl https://registry.hub.docker.com/v2/repositories/cockroachdb/cockroach/tags\?page_size\=10000 | jq '.results[].name'
+        version: ['25.3', '24.3', '23.2', '22.2', '21.2']
     name: 🪳 Cockroach ${{ matrix.version }}
     runs-on: ubuntu-latest
     steps:

@@ -505,7 +505,7 @@ ok $snow->run_handle('FH'), 'Spool a "file handle"';
 is_deeply \@spool, ['FH', $snow->snowsql, $snow->_verbose_opts],
     'Handle should be passed to spool()';
 
-# Verify should go to capture unless verosity is > 1.
+# Verify should go to capture unless verbosity is > 1.
 # ok $snow->run_verify('foo/bar.sql'), 'Verify foo/bar.sql';
 # is_deeply \@capture, [$snow->snowsql, '--filename', 'foo/bar.sql'],
 #     'Verify file should be passed to capture()';
@@ -513,7 +513,7 @@ is_deeply \@spool, ['FH', $snow->snowsql, $snow->_verbose_opts],
 $mock_sqitch->mock(verbosity => 2);
 ok $snow->run_verify('foo/bar.sql'), 'Verify foo/bar.sql again';
 is_deeply \@capture, [$snow->snowsql, $snow->_verbose_opts, '--filename', 'foo/bar.sql'],
-    'Verifile file should be passed to run() for high verbosity';
+    'Verify file should be passed to run() for high verbosity';
 
 $mock_sqitch->unmock_all;
 

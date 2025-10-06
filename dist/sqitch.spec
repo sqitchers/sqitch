@@ -1,5 +1,5 @@
 Name:           sqitch
-Version:        1.5.2
+Version:        1.6.0
 Release:        1%{?dist}
 Summary:        Sensible database change management
 License:        MIT
@@ -308,7 +308,33 @@ also be installed.
 %files snowflake
 # No additional files required.
 
+%package clickhouse
+Summary:        Sensible database change management for ClickHouse
+Group:          Development/Libraries
+Requires:       sqitch >= %{version}
+Requires:       perl(DBI) => 1.631
+Requires:       perl(DBD::ODBC) >= 1.59
+Requires:       perl(XML::Tiny) >= 2.07
+Requires:       perl(YAML::Tiny) >= 1.76
+Requires:       libclickhouseodbcw.so
+Requires:       /usr/bin/clickhouse
+Provides:       sqitch-clickhouse
+
+%description clickhouse
+Sqitch provides a simple yet robust interface for database change management.
+The philosophy and functionality is inspired by Git. This package bundles the
+Sqitch ClickHouse support. It requires that the CLickHouse client and ODBC
+driver also be installed.
+
+%files clickhouse
+# No additional files required.
+
 %changelog
+* Mon Oct 6 2025 David E. Wheeler <david@justatheory.com> 1.6.0-1
+- Upgrade to v1.1.6.0.
+- Add sqitch-clickhouse package.
+- Add XML::Tiny and YAML::Tiny dependencies to that package.
+
 * Mon Apr 29 2025 David E. Wheeler <david@justatheory.com> 1.5.2-1
 - Upgrade to v1.5.2.
 
@@ -326,7 +352,7 @@ also be installed.
 
 * Mon Aug 1 2023 David E. Wheeler <david@justatheory.com> 1.4.0-1
 - Upgrade to v1.4.0.
-- Incrmented minimal DBI to 1.631.
+- Increment minimal DBI to 1.631.
 
 * Sat Oct 1 2022 David E. Wheeler <david@justatheory.com> 1.3.1-1
 - Upgrade to v1.3.1.
@@ -334,7 +360,7 @@ also be installed.
 * Fri Aug 12 2022 David E. Wheeler <david@justatheory.com> 1.3.0-1
 - Add Test::Exit build requirement.
 - Upgrade URI::db to v0.20.
-- Increased minimal MySQL version to 5.1.
+- Increase minimal MySQL version to 5.1.
 
 * Sun Dec 5 2021 David E. Wheeler <david@justatheory.com> 1.2.1-1
 - Upgrade to v1.2.1.

@@ -20,8 +20,12 @@ has '+encoding' => ( default => 'UTF-8' );
 # Set by ./Build; see Module::Build::Sqitch for details.
 my $SYSTEM_DIR = undef;
 
+sub home_dir {
+    $^O eq 'MSWin32' && "$]" < '5.016' ? $ENV{HOME} || $ENV{USERPROFILE} : (glob('~'))[0]
+}
+
 sub user_dir {
-    my $hd = $^O eq 'MSWin32' && "$]" < '5.016' ? $ENV{HOME} || $ENV{USERPROFILE} : (glob('~'))[0];
+    my $hd = home_dir;
     hurl config => __("Could not determine home directory") if not $hd;
     return dir $hd, '.sqitch';
 }
@@ -119,11 +123,17 @@ module.
 
 =head1 Interface
 
-=head2 Instance Methods
+=head2 Class Methods
 
-=head3 C<confname>
+=head3 C<home_dir>
 
-Returns the configuration file base name, which is F<sqitch.conf>.
+  my $hd = App::Sqitch->home_dir;
+
+Returns the likely path to the user's hone directory.
+
+=head3 C<user_dir>
+
+Returns the path to the user configuration directory, which is F<~/.sqitch/>.
 
 =head3 C<system_dir>
 
@@ -131,9 +141,11 @@ Returns the path to the system configuration directory, which is
 F<$(prefix)/etc/sqitch/templates>. Call C<sqitch --etc-path> to find out
 where, exactly (e.g., C<$(sqitch --etc-path)/sqitch.plan>).
 
-=head3 C<user_dir>
+=head2 Instance Methods
 
-Returns the path to the user configuration directory, which is F<~/.sqitch/>.
+=head3 C<confname>
+
+Returns the configuration file base name, which is F<sqitch.conf>.
 
 =head3 C<system_file>
 

@@ -12,10 +12,10 @@ fi
 # Set the SnowSQL workspace.
 export WORKSPACE=/opt/snowflake
 
-# https://docs.snowflake.net/manuals/release-notes/client-change-log-snowsql.html
-# https://sfc-repo.snowflakecomputing.com/index.html
-curl -sSLo snowsql.bash https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.3/linux_x86_64/snowsql-1.3.2-linux_x86_64.bash
-curl -sSLo snowdbc.tgz https://sfc-repo.snowflakecomputing.com/odbc/linux/latest/snowflake_linux_x8664_odbc-3.5.0.tgz
+# https://www.snowflake.com/en/developers/downloads/snowsql/
+# https://www.snowflake.com/en/developers/downloads/odbc/
+curl -sSLo snowsql.bash https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.4/linux_x86_64/snowsql-1.4.5-linux_x86_64.bash
+curl -sSLo snowdbc.tgz https://sfc-repo.snowflakecomputing.com/odbc/linux/3.11.0/snowflake_linux_x8664_odbc-3.11.0.tgz
 
 # Install and configure ODBC.
 mkdir -p "$WORKSPACE/.snowsql"

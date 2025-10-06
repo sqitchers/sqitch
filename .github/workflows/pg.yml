@@ -1,17 +1,16 @@
 # This workflow tests Sqitch's PostgreSQL engine on all supported versions of
-# Postgres. It runs for pushes and pull requests on the `main`, `develop`,
-# `**postgres**`, `**yugabyte**`, and `**engine**` branches.
+# Postgres. It runs on pushes to branches matching `develop`, `**postgres**`,
+# `**yugabyte**`, and `**engine**` as well as pull requests.
 name: 🐘 Postgres
 on:
   push:
-    branches: [main, develop, "**engine**", "**postgres**", "**yugabyte**" ]
+    branches: [develop, "**engine**", "**postgres**", "**yugabyte**"]
   pull_request:
-    branches: [main, develop, "**engine**", "**postgres**", "**yugabyte**" ]
 jobs:
   Postgres:
     strategy:
       matrix:
-        pg: [17, 16, 15, 14, 13, 12, 11, 10, 9.6, 9.5, 9.4, 9.3, 9.2, 9.1, '9.0', 8.4]
+        pg: [18, 17, 16, 15, 14, 13, 12, 11, 10, 9.6, 9.5, 9.4, 9.3, 9.2, 9.1, '9.0', 8.4]
     name: 🐘 Postgres ${{ matrix.pg }}
     runs-on: ubuntu-latest
     steps:

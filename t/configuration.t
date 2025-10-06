@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 22;
+use Test::More tests => 23;
 #use Test::More 'no_plan';
 use File::Spec;
 use Test::Exception;
@@ -22,6 +22,7 @@ is $config->confname, 'sqitch.conf', 'confname should be "sqitch.conf"';
 ok !$config->initialized, 'Should not be initialized';
 
 my $hd = $^O eq 'MSWin32' && "$]" < '5.016' ? $ENV{HOME} || $ENV{USERPROFILE} : (glob('~'))[0];
+is $CLASS->home_dir, $hd, 'Should have home directory';
 
 SKIP: {
     skip 'System dir can be modified at build time', 1

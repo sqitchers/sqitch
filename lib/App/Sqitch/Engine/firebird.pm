@@ -547,6 +547,9 @@ sub search_events {
         my $row = $sth->fetchrow_hashref or return;
         $row->{committed_at} = _dt $row->{committed_at};
         $row->{planned_at}   = _dt $row->{planned_at};
+        for my $col (qw(tags requires conflicts)) {
+            $row->{$col} = $self->_parse_array($row->{$col});
+        }
         return $row;
     };
 }
@@ -928,8 +931,10 @@ sub default_client {
     open STDERR, '>&', $olderr or hurl firebird => __x(
         'Cannot dup STDERR: {error}', $!
     );
-    hurl firebird => __(
-        'Unable to locate Firebird ISQL; set "engine.firebird.client" via sqitch config'
+    hurl firebird => __x(
+        'Unable to locate {cli} client; set "engine.{eng}.client" via sqitch config',
+        cli => 'Firebird ISQL',
+        eng => 'firebird',
     );
 }
 

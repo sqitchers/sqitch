@@ -72,6 +72,10 @@ L<F<~/.snowsql/config> file|https://docs.snowflake.com/en/user-guide/snowsql-sta
 and use the default C<connections.username> value. Otherwise, it uses the
 system username.
 
+=item ClickHouse
+
+The ClickHouse engine uses the C<CLICKHOUSE_USER> environment variable, if set.
+
 =back
 
 =head1 Passwords
@@ -202,6 +206,66 @@ Sadly, both the C<SNOWSQL_PRIVATE_KEY_PASSPHRASE> environment variable and
 the C<priv_key_file_pwd> ODBC parameter must be set, as Sqitch uses ODBC to
 maintain its registry and SnowSQL to execute change scripts.
 
+=item ClickHouse
+
+ClickHouse does not support password-less authentication, but does support
+L<TLS Client authentication| https://clickhouse.com/docs/guides/sre/ssl-user-auth>.
+Sqitch reads the C<$.openSSL.client> section of the
+C<Client configuration|https://clickhouse.com/docs/interfaces/cli#connection-credentials>
+to also configure is ODBC connection. For example, given this config:
+
+   <config>
+    <openSSL>
+      <client>
+        <certificateFile>my_cert_name.crt</certificateFile>
+        <privateKeyFile>my_cert_name.key</privateKeyFile>
+      </client>
+    </openSSL>
+  </config>
+
+It maps the configuration parameters to the
+C<ODBC parameters https://github.com/clickHouse/clickhouse-odbc?tab=readme-ov-file#configuration>
+as follows:
+
+=over
+
+=item C<privateKeyFile>: C<PrivateKeyFile>
+
+Path to private key file. Raises an error if both are set and not the same
+value.
+
+=item C<certificateFile>: C<CertificateFile>
+
+Path to certificate file. Raises an error if both are set and not the same
+value.
+
+=item C<caConfig>: C<CALocation>
+
+Path to the file or directory containing the CA/root certificates. Raises an
+error if both are set and not the same value.
+
+=item C<secure>, C<port>, C<host>, C<verificationMode>: C<SSLMode>
+
+Sets the ODBC C<SSLMode> parameter to C<require> when the C<secure> parameter
+from the configuration file is true or the port is C<9440>, or the host name
+from the configuration file or the target ends in C<.clickhouse.cloud>. If
+none of those are true but C<verificationMode> is set, set the C<SSLMode>
+query parameters as follows:
+
+   verificationMode | SSLMode
+  ------------------|-----------
+   none             | [not set]
+   relaxed          | allow
+   strict           | require
+   once             | require
+
+=back
+
+Unfortunately, these parameters cannot currently be specified exclusively via
+ODBC parameters, because the client lacks options or environment variables to
+match. It's best for now to omit them from target URIs and rely only on the
+client configuration.
+
 =back
 
 =head2 Use a Password File
@@ -330,6 +394,47 @@ The variables that Sqitch currently reads are:
 
 =back
 
+=item ClickHouse
+
+ClickHouse supports password configuration via its
+L<client configuration file|https://clickhouse.com/docs/interfaces/cli#connection-credentials>.
+Sqitch will read the C<host>, C<port>, C<database>, and C<password> parameters
+from either the root of the configuration file, as well as the C<secure> and
+C<openSSL.client> parameters, for example:
+
+  <config>
+    <user>username</user>
+    <password>password</password>
+    <secure>true</secure>
+    <openSSL>
+      <client>
+        <caConfig>/etc/ssl/cert.pem</caConfig>
+      </client>
+    </openSSL>
+  </config>
+
+All but the C<openSSL.client> parameters may be set on a named connection
+basis, matched by the host name in the target URL (or the
+C<$CLICKHOUSE_HOSTNAME> environment variable). All the parameters are the
+same except C<host> becomes C<hostname>. For example, to set parameters for
+the host C<click.house>:
+
+  <config>
+    <connections_credentials>
+      <connection>
+        <name>click.house</name>
+        <hostname>clickhouse.example.com</hostname>
+        <port>9440</port>
+        <secure>1</secure>
+        <user>default</user>
+        <password>password</password>
+      </connection>
+    </connections_credentials>
+  </config>
+
+Note that setting C<port> to 9440 will implicitly set the ODBC port to 8443
+unless it's explicitly set to something else.
+
 =back
 
 =head2 Use C<$SQITCH_PASSWORD>
@@ -365,6 +470,10 @@ C<$ISC_PASSWORD>
 =item Snowflake
 
 C<$SNOWSQL_PWD>
+
+=item ClickHouse
+
+C<$CLICKHOUSE_PASSWORD>
 
 =back
 

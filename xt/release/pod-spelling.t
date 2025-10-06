@@ -17,6 +17,8 @@ API
 Blockchain
 blog
 change's
+ClickHouse
+clickhouse
 CLDR
 CockroachDB
 command's
@@ -51,6 +53,7 @@ hashtags
 Hrm
 IDE
 ident
+iODBC
 incrementing
 init
 iovation
@@ -101,6 +104,7 @@ sql
 SQLite
 sqlite
 SQLite's
+SSLMode
 subdirectories
 sublicense
 Suciu
@@ -109,6 +113,7 @@ timestamp
 TLS
 transactional
 undeployed
+UnixODBC
 unlocalized
 unsets
 Unsets

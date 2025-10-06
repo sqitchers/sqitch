@@ -310,7 +310,7 @@ is_deeply \@spool, [['FH'], $mysql->mysql],
     'Handle should be passed to spool()';
 @spool = ();
 
-# Verify should go to capture unless verosity is > 1.
+# Verify should go to capture unless verbosity is > 1.
 ok $mysql->run_verify('foo/bar.sql'), 'Verify foo/bar.sql';
 is_deeply \@capture, [$mysql->mysql, '--execute', 'source foo/bar.sql'],
     'Verify file should be passed to capture()';
@@ -319,7 +319,7 @@ is_deeply \@capture, [$mysql->mysql, '--execute', 'source foo/bar.sql'],
 $mock_sqitch->mock(verbosity => 2);
 ok $mysql->run_verify('foo/bar.sql'), 'Verify foo/bar.sql again';
 is_deeply \@run, [$mysql->mysql, '--execute', 'source foo/bar.sql'],
-    'Verifile file should be passed to run() for high verbosity';
+    'Verify file should be passed to run() for high verbosity';
 @run = ();
 
 # Try with variables.

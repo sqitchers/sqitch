@@ -1,22 +1,21 @@
 # This workflow tests Sqitch's Firebird engine on all supported versions of
-# Postgres. It runs for pushes and pull requests on the `main`, `develop`,
-# `**firebird**`, and `**engine**` branches.
+# Firebird. It runs on pushes to branches matching `develop`, `**firebird**`,
+# and `**engine**` as well as pull requests.
 name: 🔥 Firebird
 on:
   push:
-    branches: [main, develop, "**engine**", "**firebird**" ]
+    branches: [develop, "**engine**", "**firebird**"]
   pull_request:
-    branches: [main, develop, "**engine**", "**firebird**" ]
 jobs:
   Firebird:
     strategy:
       matrix:
         include:
-          - { version: '5',      image: ghcr.io/fdcastel/firebird, dir: /var/lib/firebird/data }
-          - { version: '4',      image: ghcr.io/fdcastel/firebird, dir: /var/lib/firebird/data }
-          - { version: '3',      image: ghcr.io/fdcastel/firebird, dir: /var/lib/firebird/data }
-          - { version: '2.5-ss', image: jacobalberty/firebird,     dir: /firebird/data         } # deprecated
-          - { version: '2.5-sc', image: jacobalberty/firebird,     dir: /firebird/data         } # deprecated
+          - { version: '5',      image: firebirdsql/firebird,  dir: /var/lib/firebird/data }
+          - { version: '4',      image: firebirdsql/firebird,  dir: /var/lib/firebird/data }
+          - { version: '3',      image: firebirdsql/firebird,  dir: /var/lib/firebird/data }
+          - { version: '2.5-ss', image: jacobalberty/firebird, dir: /firebird/data         } # deprecated
+          - { version: '2.5-sc', image: jacobalberty/firebird, dir: /firebird/data         } # deprecated
     name: 🔥 Firebird ${{ matrix.version }}
     runs-on: ubuntu-latest
     services:

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: App-Sqitch 0.9996\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-04-27 19:42-0400\n"
+"POT-Creation-Date: 2025-09-30 19:43-0400\n"
 "PO-Revision-Date: 2017-10-12 10:30+0200\n"
 "Last-Translator: Luca Ferrari <fluca1978@gmail.com>\n"
 "Language-Team: Sqitch Hackers <sqitch-hackers@googlegroups.com>\n"
@@ -25,75 +25,75 @@ msgstr ""
 "NOME\""
 
 #: lib/App/Sqitch.pm:116
+#, fuzzy, perl-brace-format
 msgid ""
-"Cannot infer your email address; run sqitch config --user user.email "
-"you@host.com"
+"Cannot infer your email address; run sqitch config --user user.email {email}"
 msgstr ""
 "Non riesco a risalire alla tua e-mail: esegui sqitch config --user "
 "user.email tuaemail@host.com"
 
-#: lib/App/Sqitch.pm:280
+#: lib/App/Sqitch.pm:281
 #, fuzzy, perl-brace-format
 msgid "Cannot change to directory {directory}: {error}"
 msgstr "Non posso copiare {src} in {dest}: {error}"
 
-#: lib/App/Sqitch.pm:314 lib/App/Sqitch/Command.pm:114
+#: lib/App/Sqitch.pm:315 lib/App/Sqitch/Command.pm:115
 #, perl-brace-format
 msgid "\"{command}\" is not a valid command"
 msgstr "\"{command}\" non è un comando valido"
 
-#: lib/App/Sqitch.pm:408
+#: lib/App/Sqitch.pm:409
 msgid ""
 "Sqitch seems to be unattended and there is no default value for this question"
 msgstr ""
 "Sqitch sembra non presidiato e non ha un valore di default per il quesito"
 
-#: lib/App/Sqitch.pm:427
+#: lib/App/Sqitch.pm:428
 msgctxt "Confirm prompt answer yes"
 msgid "Yes"
 msgstr ""
 
-#: lib/App/Sqitch.pm:428
+#: lib/App/Sqitch.pm:429
 msgctxt "Confirm prompt answer no"
 msgid "No"
 msgstr ""
 
-#: lib/App/Sqitch.pm:437
+#: lib/App/Sqitch.pm:438
 msgid "Please answer \"y\" or \"n\"."
 msgstr "Rispondi \"y\" (si) o \"n\" (no)"
 
-#: lib/App/Sqitch.pm:440
+#: lib/App/Sqitch.pm:441
 msgid "No valid answer after 3 attempts; aborting"
 msgstr "Nessuna risposta valida in 3 tentativi, aborto"
 
-#: lib/App/Sqitch.pm:461 lib/App/Sqitch.pm:468
+#: lib/App/Sqitch.pm:462 lib/App/Sqitch.pm:469
 #, perl-brace-format
 msgid "Cannot exec {command}: {error}"
 msgstr "Non posso eseguire {command}: {error}"
 
-#: lib/App/Sqitch.pm:484
+#: lib/App/Sqitch.pm:485
 #, perl-brace-format
 msgid "Error closing pipe to {command}: {error}"
 msgstr "Errore di chiusura pipe per {command}: {error}"
 
-#: lib/App/Sqitch.pm:488 lib/App/Sqitch/Engine/oracle.pm:765
+#: lib/App/Sqitch.pm:489 lib/App/Sqitch/Engine/oracle.pm:765
 #, perl-brace-format
 msgid "{command} unexpectedly returned exit value {exitval}"
 msgstr "Il comando {command} ha restituito un exit value inatteso {exitval}"
 
-#: lib/App/Sqitch/Command.pm:284
+#: lib/App/Sqitch/Command.pm:285
 #, perl-brace-format
 msgid "Unknown argument \"{arg}\""
 msgid_plural "Unknown arguments: {arg}"
 msgstr[0] "Argomento sconosciuto: \"{arg}\""
 msgstr[1] "Argomenti sconosciuti: {arg}"
 
-#: lib/App/Sqitch/Command.pm:296
+#: lib/App/Sqitch/Command.pm:297
 msgid "Cannot specify both --all and engine, target, or plan arugments"
 msgstr ""
 "Non si può specificare contemporaneamente --all e target, target o plan."
 
-#: lib/App/Sqitch/Command.pm:316 lib/App/Sqitch/Command/add.pm:421
+#: lib/App/Sqitch/Command.pm:317 lib/App/Sqitch/Command/add.pm:421
 #: lib/App/Sqitch/Command/init.pm:203
 #: lib/App/Sqitch/Role/TargetConfigCommand.pm:250
 #: lib/App/Sqitch/Role/TargetConfigCommand.pm:337
@@ -101,7 +101,7 @@ msgstr ""
 msgid "Created {file}"
 msgstr "{file} creato"
 
-#: lib/App/Sqitch/Command.pm:323 lib/App/Sqitch/Role/TargetConfigCommand.pm:256
+#: lib/App/Sqitch/Command.pm:324 lib/App/Sqitch/Role/TargetConfigCommand.pm:256
 #, perl-brace-format
 msgid "Error creating {path}: {error}"
 msgstr "Errore durante la creazione di {path}: {error}"
@@ -673,7 +673,7 @@ msgstr "Il registro {registry} è aggiornato alla versione {version}"
 msgid "Too many changes specified; verifying from \"{from}\" to \"{to}\""
 msgstr "Troppe modifiche specificate; verfica da \"{from}\" a \"{to}\""
 
-#: lib/App/Sqitch/Config.pm:25
+#: lib/App/Sqitch/Config.pm:29
 msgid "Could not determine home directory"
 msgstr "Non riesco a stabiliare la home directory"
 
@@ -1048,6 +1048,33 @@ msgstr[1] ""
 msgid "Check successful"
 msgstr "Verifica riuscita"
 
+#: lib/App/Sqitch/Engine/clickhouse.pm:70
+#, perl-brace-format
+msgid ""
+"Client config {cfg_key} value \"{cfg_val}\" conflicts with ODBC param "
+"{odb_param} value \"{odbc_val}\""
+msgstr ""
+
+#: lib/App/Sqitch/Engine/clickhouse.pm:270 lib/App/Sqitch/Engine/mysql.pm:145
+#, perl-brace-format
+msgid "Database name missing in URI \"{uri}\""
+msgstr "Il nome di database non è specificato nell'URI {uri}"
+
+#: lib/App/Sqitch/Engine/clickhouse.pm:348
+#: lib/App/Sqitch/Engine/firebird.pm:935
+#, fuzzy, perl-brace-format
+msgid ""
+"Unable to locate {cli} client; set \"engine.{eng}.client\" via sqitch config"
+msgstr ""
+"Non trovo Firebirs ISQL: imposta \"engine.firebird.client\" attraverso "
+"\"sqitch config\""
+
+#: lib/App/Sqitch/Engine/clickhouse.pm:414
+#: lib/App/Sqitch/Engine/firebird.pm:205 lib/App/Sqitch/Engine/sqlite.pm:153
+#, perl-brace-format
+msgid "Sqitch database {database} already initialized"
+msgstr "Database Sqitch già inizialiatto su {database}"
+
 #: lib/App/Sqitch/Engine/exasol.pm:317 lib/App/Sqitch/Engine/oracle.pm:456
 msgid "Sqitch already initialized"
 msgstr "Sqitch è già stato inizializzato"
@@ -1072,11 +1099,6 @@ msgstr "Non posso creare un link simbolico da {file} a {alias}: {error}"
 msgid "{command} unexpectedly failed; exit value = {exitval}"
 msgstr "Il comando {command} ha restituito un exit value inatteso {exitval}"
 
-#: lib/App/Sqitch/Engine/firebird.pm:205 lib/App/Sqitch/Engine/sqlite.pm:153
-#, perl-brace-format
-msgid "Sqitch database {database} already initialized"
-msgstr "Database Sqitch già inizialiatto su {database}"
-
 #: lib/App/Sqitch/Engine/firebird.pm:224
 #, perl-brace-format
 msgid "Cannot create database {database}: {error}"
@@ -1087,29 +1109,21 @@ msgstr "Non posso creare il database {database}: {error}"
 msgid "Database name missing in URI {uri}"
 msgstr "Il nome di database non è specificato nell'URI {uri}"
 
-#: lib/App/Sqitch/Engine/firebird.pm:836 lib/App/Sqitch/Role/DBIEngine.pm:529
+#: lib/App/Sqitch/Engine/firebird.pm:839 lib/App/Sqitch/Role/DBIEngine.pm:536
 #, fuzzy, perl-brace-format
 msgid "Cannot log change \"{change}\": The deploy script is not unique"
 msgstr "La modifica \"{change}\" è implementata ma non pianificata"
 
-#: lib/App/Sqitch/Engine/firebird.pm:900 lib/App/Sqitch/Engine/firebird.pm:918
-#: lib/App/Sqitch/Engine/firebird.pm:929
+#: lib/App/Sqitch/Engine/firebird.pm:903 lib/App/Sqitch/Engine/firebird.pm:921
+#: lib/App/Sqitch/Engine/firebird.pm:932
 #, perl-brace-format
 msgid "Cannot dup STDERR: {error}"
 msgstr "Non posso effettuare la dup su STDERR: {error}"
 
-#: lib/App/Sqitch/Engine/firebird.pm:904
+#: lib/App/Sqitch/Engine/firebird.pm:907
 #, perl-brace-format
 msgid "Cannot reirect STDERR: {error}"
 msgstr "Non posso redirezionare STDERR: {error}"
-
-#: lib/App/Sqitch/Engine/firebird.pm:932
-msgid ""
-"Unable to locate Firebird ISQL; set \"engine.firebird.client\" via sqitch "
-"config"
-msgstr ""
-"Non trovo Firebirs ISQL: imposta \"engine.firebird.client\" attraverso "
-"\"sqitch config\""
 
 #: lib/App/Sqitch/Engine/mysql.pm:113
 #, perl-brace-format
@@ -1118,11 +1132,6 @@ msgid ""
 msgstr ""
 "Sqitch richiede {rdbms} alla version {want_version} o superiore: questa è la "
 "versione {have_version}"
-
-#: lib/App/Sqitch/Engine/mysql.pm:145
-#, perl-brace-format
-msgid "Database name missing in URI \"{uri}\""
-msgstr "Il nome di database non è specificato nell'URI {uri}"
 
 #: lib/App/Sqitch/Engine/mysql.pm:518
 msgid "Insufficient permissions to create the checkit() function; skipping."
@@ -1533,7 +1542,7 @@ msgid ""
 "  Use --chdir instead."
 msgstr ""
 
-#: lib/App/Sqitch/Role/DBIEngine.pm:367
+#: lib/App/Sqitch/Role/DBIEngine.pm:374
 #, perl-brace-format
 msgid ""
 "Cannot register \"{project}\" with URI {uri}: already exists with NULL URI"
@@ -1541,7 +1550,7 @@ msgstr ""
 "Non posso registrare \"{project}\" con l'URI {uri}: è già esistente con URI "
 "NULL."
 
-#: lib/App/Sqitch/Role/DBIEngine.pm:373
+#: lib/App/Sqitch/Role/DBIEngine.pm:380
 #, perl-brace-format
 msgid ""
 "Cannot register \"{project}\" without URI: already exists with URI {uri}"
@@ -1549,7 +1558,7 @@ msgstr ""
 "Non posso registrare \"{project}\" senza un URI: è già esistente con URI "
 "{uri}."
 
-#: lib/App/Sqitch/Role/DBIEngine.pm:379
+#: lib/App/Sqitch/Role/DBIEngine.pm:386
 #, perl-brace-format
 msgid ""
 "Cannot register \"{project}\" with URI {uri}: already exists with URI "
@@ -1558,7 +1567,7 @@ msgstr ""
 "Non posso registrare \"{project}\" con URI {uri}: è già esistente con URI "
 "{reg_uri}."
 
-#: lib/App/Sqitch/Role/DBIEngine.pm:397
+#: lib/App/Sqitch/Role/DBIEngine.pm:404
 #, perl-brace-format
 msgid ""
 "Cannot register \"{project}\" with URI {uri}: project \"{reg_proj}\" already "

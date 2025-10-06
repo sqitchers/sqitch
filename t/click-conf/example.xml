@@ -1,0 +1,10 @@
+<config>
+    <user>username</user>
+    <password>password</password>
+    <secure>true</secure>
+    <openSSL>
+      <client>
+        <caConfig>/etc/ssl/cert.pem</caConfig>
+      </client>
+    </openSSL>
+</config>

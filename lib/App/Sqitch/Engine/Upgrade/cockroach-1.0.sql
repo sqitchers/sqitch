@@ -19,7 +19,7 @@ UPDATE :"registry".changes SET script_hash = change_id;
 COMMENT ON COLUMN :"registry".changes.script_hash IS 'Deploy script SHA-1 hash.';
 
 -- Allow "merge" events.
--- Stricly speaking the `IF EXISTS` should not be required here, but funkyness
+-- Strictly speaking the `IF EXISTS` should not be required here, but funkyness
 -- in Cockroach schema changes require it.
 ALTER TABLE :"registry".events DROP CONSTRAINT IF EXISTS events_event_check;
 ALTER TABLE :"registry".events ADD  CONSTRAINT events_event_check

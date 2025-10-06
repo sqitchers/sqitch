@@ -1,22 +1,22 @@
 # This workflow tests Sqitch's Vertica engine on all supported versions of
-# Vertica. It runs for pushes and pull requests on the `main`, `develop`,
-# `**vertica**`, and `**engine**` branches.
+# Vertica. It runs on pushes to branches matching `develop`, `**vertica**`,
+# and `**engine**` as well as pull requests.
 name: 🔺 Vertica
 on:
   push:
-    branches: [main, develop, "**engine**", "**vertica**" ]
+    branches: [develop, "**engine**", "**vertica**" ]
   pull_request:
-    branches: [main, develop, "**engine**", "**vertica**" ]
 jobs:
   Vertica:
     strategy:
       matrix:
         include:
-         - { label: '24.1', version: 24.1.0-0, image: vertica/vertica-ce,     db: VMart }
-         - { label: '23.4', version: 23.4.0-0, image: vertica/vertica-ce,     db: VMart }
-         - { label: '12.0', version: 12.0.4-0, image: vertica/vertica-ce,     db: VMart }
-         - { label: '11.0', version: 11.1.1-0, image: vertica/vertica-ce,     db: VMart }
-         - { label: '10.1', version: 10.1.1-0, image: vertica/vertica-ce,     db: VMart }
+        # https://github.com/vertica/vertica-containers/issues/64
+        #  - { label: '24.1', version: 24.1.0-0, image: vertica/vertica-ce,     db: VMart }
+        #  - { label: '23.4', version: 23.4.0-0, image: vertica/vertica-ce,     db: VMart }
+        #  - { label: '12.0', version: 12.0.4-0, image: vertica/vertica-ce,     db: VMart }
+        #  - { label: '11.0', version: 11.1.1-0, image: vertica/vertica-ce,     db: VMart }
+        #  - { label: '10.1', version: 10.1.1-0, image: vertica/vertica-ce,     db: VMart }
          - { label: '9.2',  version: 9.2.1-0,  image: cjonesy/docker-vertica, db: docker }
          - { label: '9.1',  version: 9.1.1-0,  image: cjonesy/docker-vertica, db: docker }
          - { label: '8.1',  version: 8.1.1-0,  image: cjonesy/docker-vertica, db: docker }

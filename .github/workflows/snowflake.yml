@@ -1,11 +1,11 @@
-# This workflow tests Sqitch's Snowflake engine. It runs for pushes and pull
-# requests on the `main`, `develop`, `**snowflake**`, and `**engine**` branches.
+# This workflow tests Sqitch's Snowflake engine. It runs on pushes to branches
+# matching `develop`, `**snowflake**`, and `**engine**` as well as pull
+# requests.
 name: ❄️ Snowflake
 on:
   push:
-    branches: [main, develop, "**engine**", "**snowflake**" ]
+    branches: [develop, "**engine**", "**snowflake**"]
   pull_request:
-    branches: [main, develop, "**engine**", "**snowflake**" ]
 jobs:
   Snowflake:
     name: ❄️ Snowflake

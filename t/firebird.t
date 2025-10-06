@@ -244,7 +244,7 @@ ok $fb->run_handle('FH'), 'Spool a "file handle"';
 is_deeply \@spool, ['FH', $fb->isql],
     'Handle should be passed to spool()';
 
-# Verify should go to capture unless verosity is > 1.
+# Verify should go to capture unless verbosity is > 1.
 ok $fb->run_verify('foo/bar.sql'), 'Verify foo/bar.sql';
 is_deeply \@capture, [$fb->isql, '-input', 'foo/bar.sql'],
     'Verify file should be passed to capture()';
@@ -386,8 +386,10 @@ FSPEC: {
     throws_ok { $fb->default_client } 'App::Sqitch::X',
         'Should get error when no client found';
     is $@->ident, 'firebird', 'Client exception ident should be "firebird"';
-    is $@->message, __(
-        'Unable to locate Firebird ISQL; set "engine.firebird.client" via sqitch config'
+    is $@->message, __x(
+        'Unable to locate {cli} client; set "engine.{eng}.client" via sqitch config',
+        cli => 'Firebird ISQL',
+        eng => 'firebird',
     ), 'Client exception message should be correct';
 }
 

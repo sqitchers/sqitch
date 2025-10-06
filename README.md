@@ -1,13 +1,13 @@
-App/Sqitch version v1.5.2
+App/Sqitch version v1.6.0
 =========================
 
-| Release           | Coverage          | Database                              ||
-|-------------------|-------------------|-------------------|--------------------|
-| [![CPAN]][📚]     | [![OSes]][💿]     | [![Exasol]][☀️]    | [![Oracle]][🔮]    |
-| [![Docker]][🐳]   | [![Perl]][🧅]     | [![Firebird]][🔥] | [![Snowflake]][❄️]  |
-| [![Homebrew]][🍺] | [![Coverage]][📈] | [![MySQL]][🐬]    | [![SQLite]][💡]    |
-| [![Debian]][🍥]   |                   | [![Postgres]][🐘] | [![Vertica]][🔺]   |
-|                   |                   | [![Yugabyte]][💫] | [![Cockroach]][🪳] |
+| Release           | Coverage          | Database                                                |||
+|-------------------|-------------------|-------------------|------------------|--------------------|
+| [![CPAN]][📚]      | [![OSes]][💿]      | [![Postgres]][🐘]  | [![SQLite]][💡]   | [![MySQL]][🐬]      |
+| [![Docker]][🐳]    | [![Perl]][🧅]      | [![Yugabyte]][💫]  | [![Firebird]][🔥] | [![MariaDB]][🦭]    |
+| [![Homebrew]][🍺]  | [![Coverage]][📈]  | [![Cockroach]][🪳] | [![Exasol]][☀️]   | [![ClickHouse]][🏠] |
+| [![Debian]][🍥]    |                   | [![Snowflake]][❄️] | [![Oracle]][🔮]   | [![Vertica]][🔺]    |
+
 
 [Sqitch] is a database change management application. It currently supports:
 
@@ -22,6 +22,7 @@ App/Sqitch version v1.5.2
 *   [Vertica][vert] 7.2+
 *   [Exasol][exa] 6.0+
 *   [Snowflake][flake]
+*   [ClickHouse][click] 25.8+
 
 What makes it different from your typical migration approaches? A few things:
 
@@ -163,13 +164,13 @@ SOFTWARE.
   [OSes]:      https://github.com/sqitchers/sqitch/actions/workflows/os.yml/badge.svg
   [💿]:        https://github.com/sqitchers/sqitch/actions/workflows/os.yml "Tested on Linux, macOS, and Windows"
   [Exasol]:    https://github.com/sqitchers/sqitch/actions/workflows/exasol.yml/badge.svg
-  [☀️]:         https://github.com/sqitchers/sqitch/actions/workflows/exasol.yml "Tested with Exasol 7.0–8.32"
+  [☀️]:         https://github.com/sqitchers/sqitch/actions/workflows/exasol.yml "Tested with Exasol 7.0–2025.1"
   [Oracle]:    https://github.com/sqitchers/sqitch/actions/workflows/oracle.yml/badge.svg
   [🔮]:        https://github.com/sqitchers/sqitch/actions/workflows/oracle.yml "Tested with Oracle 11, 18, and 21"
   [Docker]:    https://img.shields.io/docker/v/sqitch/sqitch?label=%F0%9F%90%B3%20Docker&sort=semver
   [🐳]:        https://hub.docker.com/r/sqitch/sqitch "Latest version on Docker Hub"
   [Perl]:      https://github.com/sqitchers/sqitch/actions/workflows/perl.yml/badge.svg
-  [🧅]:        https://github.com/sqitchers/sqitch/actions/workflows/perl.yml "Tested with Perl 5.12–5.40"
+  [🧅]:        https://github.com/sqitchers/sqitch/actions/workflows/perl.yml "Tested with Perl 5.12–5.42"
   [Firebird]:  https://github.com/sqitchers/sqitch/actions/workflows/firebird.yml/badge.svg
   [🔥]:        https://github.com/sqitchers/sqitch/actions/workflows/firebird.yml "Tested with Firebird 2.5–5.0"
   [Snowflake]: https://github.com/sqitchers/sqitch/actions/workflows/snowflake.yml/badge.svg
@@ -179,19 +180,23 @@ SOFTWARE.
   [Coverage]:  https://img.shields.io/coveralls/github/sqitchers/sqitch?label=%F0%9F%93%88%20Coverage
   [📈]:        https://coveralls.io/r/sqitchers/sqitch "Test Coverage"
   [MySQL]:     https://github.com/sqitchers/sqitch/actions/workflows/mysql.yml/badge.svg
-  [🐬]:        https://github.com/sqitchers/sqitch/actions/workflows/mysql.yml "Tested with MySQL 5.5–9.1 and MariaDB 10.0–11.6"
+  [🐬]:        https://github.com/sqitchers/sqitch/actions/workflows/mysql.yml "Tested with MySQL 5.5–9.1"
+  [MariaDB]:   https://github.com/sqitchers/sqitch/actions/workflows/maria.yml/badge.svg
+  [🦭]:        https://github.com/sqitchers/sqitch/actions/workflows/maria.yml "Tested with MariaDB 10.0–12.0"
   [SQLite]:    https://github.com/sqitchers/sqitch/actions/workflows/sqlite.yml/badge.svg
-  [💡]:        https://github.com/sqitchers/sqitch/actions/workflows/sqlite.yml "Tested with SQLite 3.8–3.47"
+  [💡]:        https://github.com/sqitchers/sqitch/actions/workflows/sqlite.yml "Tested with SQLite 3.8–3.50"
   [Debian]:    https://img.shields.io/debian/v/sqitch?label=%F0%9F%8D%A5%20Debian
   [🍥]:        https://packages.debian.org/stable/sqitch "Latest version on Debian"
   [Postgres]:  https://github.com/sqitchers/sqitch/actions/workflows/pg.yml/badge.svg
-  [🐘]:        https://github.com/sqitchers/sqitch/actions/workflows/pg.yml "Tested with PostgreSQL 8.4–17"
+  [🐘]:        https://github.com/sqitchers/sqitch/actions/workflows/pg.yml "Tested with PostgreSQL 8.4–18"
   [Yugabyte]:  https://github.com/sqitchers/sqitch/actions/workflows/yugabyte.yml/badge.svg
-  [💫]:        https://github.com/sqitchers/sqitch/actions/workflows/yugabyte.yml "Tested with YugabyteDB 2.6–2024.2"
+  [💫]:        https://github.com/sqitchers/sqitch/actions/workflows/yugabyte.yml "Tested with YugabyteDB 2.6–2025.1"
   [Vertica]:   https://github.com/sqitchers/sqitch/actions/workflows/vertica.yml/badge.svg
   [🔺]:        https://github.com/sqitchers/sqitch/actions/workflows/vertica.yml "Tested with Vertica 7.2–12.0"
-[Cockroach]: https://github.com/sqitchers/sqitch/actions/workflows/cockroach.yml/badge.svg
-  [🪳]:        https://github.com/sqitchers/sqitch/actions/workflows/cockroach.yml "Tested with CockroachDB v21-23"
+  [Cockroach]: https://github.com/sqitchers/sqitch/actions/workflows/cockroach.yml/badge.svg
+  [🪳]:        https://github.com/sqitchers/sqitch/actions/workflows/cockroach.yml "Tested with CockroachDB v21–24"
+  [ClickHouse]: https://github.com/sqitchers/sqitch/actions/workflows/clickhouse.yml/badge.svg
+  [🏠]:          https://github.com/sqitchers/sqitch/actions/workflows/clickhouse.yml "Tested with ClickHouse v25.8–25.9"
 
   [Sqitch]: https://sqitch.org/
   [PostgreSQL]: https://postgresql.org/
@@ -206,6 +211,7 @@ SOFTWARE.
   [vert]: https://www.vertica.com/
   [exa]: https://www.exasol.com/
   [flake]: https://www.snowflake.net/
+  [click]: https://clickhouse.com/clickhouse
   [SQL\*Plus]: https://www.orafaq.com/wiki/SQL*Plus
   [Merkle tree]: https://en.wikipedia.org/wiki/Merkle_tree "Wikipedia: “Merkle tree”"
   [gitmerkle]: https://stackoverflow.com/a/18589734/

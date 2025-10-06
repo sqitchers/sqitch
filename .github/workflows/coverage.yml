@@ -1,13 +1,12 @@
 # This workflow creates the services and installs the clients in order to run
-# coverage tests. Each engine must be accessible for a complete coverage report.
-# It runs for pushes and pull requests on the `main`, `develop`, and `**cover**`
-# branches.
+# coverage tests. Each engine must be accessible for a complete coverage
+# report. It runs on pushes to branches matching `develop` and `**cover**` as
+# well as pull requests.
 name: 📈 Coverage
 on:
   push:
-    branches: [main, develop, "**cover**"]
+    branches: [develop, "**cover**"]
   pull_request:
-    branches: [main, develop, "**cover**"]
 jobs:
   Snowflake:
     name: 📈 Coverage
@@ -18,7 +17,7 @@ jobs:
         ports: [ 8563 ]
         options: --privileged
       firebird:
-        image: ghcr.io/fdcastel/firebird:latest
+        image: firebirdsql/firebird
         ports: [ 3050 ]
         env:
           FIREBIRD_ROOT_PASSWORD: nix
@@ -41,8 +40,19 @@ jobs:
           --health-timeout 10s
           --health-retries 10
       vertica:
-        image: vertica/vertica-ce:latest
+        image: cjonesy/docker-vertica:9.2.1-0
         ports: [ 5433 ]
+      clickhouse:
+        image: clickhouse:latest
+        ports: [ 8123, 9000 ]
+        env:
+          CLICKHOUSE_SKIP_USER_SETUP: 1
+        options: >-
+          --ulimit nofile=262144:262144
+          --health-cmd "clickhouse-client --query 'SELECT 1'"
+          --health-interval 20s
+          --health-timeout 10s
+          --health-retries 10
     steps:
       # https://github.com/orgs/community/discussions/25678#discussioncomment-9017167
       - name: Free Disk Space
@@ -69,6 +79,7 @@ jobs:
           SNOWFLAKE_KEY_FILE: ${{ secrets.SNOWFLAKE_KEY_FILE }}
         run: |
           .github/ubuntu/all-apt-prereqs.sh
+          .github/ubuntu/clickhouse.sh
           .github/ubuntu/exasol.sh
           .github/ubuntu/firebird.sh
           .github/ubuntu/mysql.sh
@@ -98,9 +109,11 @@ jobs:
           SQITCH_TEST_SNOWFLAKE_URI: db:snowflake://${{ secrets.SNOWFLAKE_USERNAME }}@sra81677.us-east-1/sqitchtest?DSN=sqitch;warehouse=compute_wh
           LIVE_SQLITE_REQUIRED: true
           LIVE_VERTICA_REQUIRED: true
-          SQITCH_TEST_VSQL_URI: db:vertica://dbadmin@localhost:${{ job.services.vertica.ports[5433] }}/VMart?Driver=Vertica
+          SQITCH_TEST_VSQL_URI: db:vertica://dbadmin@localhost:${{ job.services.vertica.ports[5433] }}/docker?Driver=Vertica
           LIVE_COCKROACH_REQUIRED: true
           SQITCH_TEST_COCKROACH_URI: db:cockroach://root@localhost:26257/
+          LIVE_CLICKHOUSE_REQUIRED: true
+          SQITCH_TEST_CLICKHOUSE_URI: db:clickhouse://default@localhost:${{ job.services.clickhouse.ports[8123] }}/default?Driver=ClickHouse&NativePort=${{ job.services.clickhouse.ports[9000] }}
         run: prove -lrj4 t
       - name: Report Coverage
         env:

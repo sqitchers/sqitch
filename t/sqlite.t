@@ -238,7 +238,7 @@ is_deeply \@spool, ['FH', $sqlite->sqlite3],
 SKIP: {
     skip 'DBD::SQLite not available', 2 unless $have_sqlite;
 
-    # Verify should go to capture unless verosity is > 1.
+    # Verify should go to capture unless verbosity is > 1.
     ok $sqlite->run_verify('foo/bar.sql'), 'Verify foo/bar.sql';
     is_deeply \@capture, [$sqlite->sqlite3, ".read 'foo/bar.sql'"],
         'Verify file should be passed to capture()';
@@ -246,7 +246,7 @@ SKIP: {
     $mock_sqitch->mock(verbosity => 2);
     ok $sqlite->run_verify('foo/bar.sql'), 'Verify foo/bar.sql again';
     is_deeply \@run, [$sqlite->sqlite3, ".read 'foo/bar.sql'"],
-        'Verifile file should be passed to run() for high verbosity';
+        'Verify file should be passed to run() for high verbosity';
 }
 
 ##############################################################################

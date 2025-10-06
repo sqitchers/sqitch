@@ -21,6 +21,157 @@ sub randstr {
     join "", map $s[rand @s], 1..8;
 }
 
+=head3 run
+
+Run the live tests. See sample usages in the engine tests in the C<t>
+directory. Parameters:
+
+=over
+
+=item C<class>
+
+  class => 'App::Sqitch::Engine::pg',
+
+The Engine class. Required.
+
+=item C<sqitch_params>
+
+  sqitch_params => [ user_email => 'hi@example.com' ],
+
+An array of parameters to pass to C<< App::Sqitch->new >>. Optional.
+
+=item C<target_params>
+
+  target_params => [ uri => $uri, registry => $reg1 ],
+
+Optional array of parameters to pass to C<< App::Sqitch::Target->new >> for
+the first registry tested.
+
+=item C<alt_target_params>
+
+  alt_target_params => [ uri => $uri, registry => $reg2 ],
+
+Optional array of parameters to pass to C<< App::Sqitch::Target->new >> for
+the second registry tested.
+
+=item C<engine_params>
+
+  engine_params => [ log_only => 1 ],
+
+Optional list of parameters, other than C<sqitch> and C<target>, to pass to
+the first instance of the engine created for testing.
+
+=item C<alt_engine_params>
+
+  alt_engine_params => [ log_only => 1 ],
+
+Optional list of parameters, other than C<sqitch> and C<target>, passed to
+the second instance of the engine created for testing.
+
+=item C<skip_unless>
+
+    skip_unless => sub {
+        die $err if $err;
+        my $self = shift;
+        my $version = $self->sqitch->capture( $self->client, '--version' );
+        say "# Detected $version";
+        $self->_capture('--command' => 'SELECT version()');
+    },
+
+Optional subroutine that should raise an error if for some reason the engine
+cannot be tested. The single argument passed ot it is an instance of the
+engine. Often used to raise an error if an error was previously detected in
+the test, as in the use of C<$err> in the example above.
+
+=item C<version_query>
+
+  version_query => 'SELECT version()',
+
+Optional SQL query that should return a single row with a single column
+containing the engine server version. Used to display a diagnostic in the
+test output.
+
+=item C<init_error>
+
+    init_error => __x(
+        'Sqitch schema "{schema}" already exists',
+        schema => $reg2,
+    ),
+
+Localized string representing the error raised when database initialization
+fails because the registry database already exists. Required.
+
+=item C<engine_err_regex>
+
+    engine_err_regex => qr/^ERROR:  /,
+
+Regular expression that matches an error from the database engine. Required.
+
+=item C<test_dbh>
+
+    test_dbh => sub {
+        my $dbh = shift;
+        # Make sure the sqitch schema is the first in the search path.
+        is $dbh->selectcol_arrayref('SELECT current_schema')->[0],
+            $reg2, 'The Sqitch schema should be the current schema';
+    },
+
+Optional subroutine that tests a database connection once it has been
+established. Use to test that connection parameters were properly set or
+executed.
+
+=item C<add_second_format>
+
+    add_second_format => 'dateadd(second, 1, %s)',
+
+Optional C<sprintf> format that adds one second to the named timestamp
+column, to be filled in for C<%s>. Use for engines without sub-second
+timestamp precision.
+
+=item C<no_unique>
+
+  no_unique => 1,
+
+Indicates that the engine being tested does not support unique constraints.
+Required for such engines.
+
+=item C<lock_sql>
+
+Anonymous subroutine that returns a hash reference with SQL queries to test
+for various lock states. Required only for engines that support locking on
+a per-deploy basis. The keys in the returned hash reference must be:
+
+=over
+
+=item C<is_locked>
+
+An SQL query that returns true if a lock is in place. Required.
+
+=item C<try_lock>
+
+An SQL query that returns true when it creates a lock and false when it fails
+to create a lock. Required.
+
+=item C<free_lock>
+
+An SQL query that frees a lock. Required.
+
+=item C<wait_time>
+
+Time to pass to C<lock_timeout> to wait for a lock to time out. Defaults to
+C<0.005>.
+
+=item C<async_free>
+
+Boolean indicating whether the freeing of a lock is performed asynchronously.
+Required only for engines that don't free locks synchronously.
+
+=back
+
+=back
+
+=cut
+
 sub run {
     my ( $self, %p ) = @_;
 
@@ -175,7 +326,7 @@ sub run {
         ok $engine->initialized, 'Database should be initialized again';
         ok !$engine->needs_upgrade, 'Registry should not need upgrading';
 
-        is $engine->earliest_change_id, undef, 'Still no earlist change';
+        is $engine->earliest_change_id, undef, 'Still no earliest change';
         is $engine->latest_change_id, undef, 'Still no latest changes';
 
         # Make sure a second attempt to initialize dies.
@@ -343,9 +494,9 @@ sub run {
             'users',
             'engine',
             'User roles',
-            $engine->_log_requires_param($change),
-            $engine->_log_conflicts_param($change),
-            $engine->_log_tags_param($change),
+            reqs_for($change),
+            flicts_for($change),
+            tags_for($change),
             $sqitch->user_name,
             $sqitch->user_email,
             $change->planner_name,
@@ -418,9 +569,9 @@ sub run {
             change_id       => $change->id,
             change          => 'users',
             note            => 'User roles',
-            requires        => $engine->_log_requires_param($change),
-            conflicts       => $engine->_log_conflicts_param($change),
-            tags            => $engine->_log_tags_param($change),
+            requires        => reqs_for($change),
+            conflicts       => flicts_for($change),
+            tags            => tags_for($change),
             committer_name  => $sqitch->user_name,
             committer_email => $sqitch->user_email,
             committed_at    => dt_for_event($engine, 0),
@@ -446,7 +597,7 @@ sub run {
         ]], 'The tag should be the same';
 
         # Delete that tag.
-        $engine->dbh->do('DELETE FROM tags');
+        $engine->dbh->do('DELETE FROM tags WHERE 1=1');
         is_deeply all_tags($engine), [], 'Should now have no tags';
 
         # Put it back.
@@ -486,9 +637,9 @@ sub run {
             'users',
             'engine',
             'User roles',
-            $engine->_log_requires_param($change),
-            $engine->_log_conflicts_param($change),
-            $engine->_log_tags_param($change),
+            reqs_for($change),
+            flicts_for($change),
+            tags_for($change),
             $sqitch->user_name,
             $sqitch->user_email,
             $change->planner_name,
@@ -511,9 +662,9 @@ sub run {
             change_id       => $change->id,
             change          => 'users',
             note            => 'User roles',
-            requires        => $engine->_log_requires_param($change),
-            conflicts       => $engine->_log_conflicts_param($change),
-            tags            => $engine->_log_tags_param($change),
+            requires        => reqs_for($change),
+            conflicts       => flicts_for($change),
+            tags            => tags_for($change),
             committer_name  => $sqitch->user_name,
             committer_email => $sqitch->user_email,
             committed_at    => dt_for_event($engine, 1),
@@ -543,9 +694,9 @@ sub run {
             'users',
             'engine',
             'User roles',
-            $engine->_log_requires_param($change),
-            $engine->_log_conflicts_param($change),
-            $engine->_log_tags_param($change),
+            reqs_for($change),
+            flicts_for($change),
+            tags_for($change),
             $sqitch->user_name,
             $sqitch->user_email,
             $change->planner_name,
@@ -563,9 +714,9 @@ sub run {
             change_id       => $change->id,
             change          => 'users',
             note            => 'User roles',
-            requires        => $engine->_log_requires_param($change),
-            conflicts       => $engine->_log_conflicts_param($change),
-            tags            => $engine->_log_tags_param($change),
+            requires        => reqs_for($change),
+            conflicts       => flicts_for($change),
+            tags            => tags_for($change),
             committer_name  => $sqitch->user_name,
             committer_email => $sqitch->user_email,
             committed_at    => dt_for_event($engine, 2),
@@ -595,11 +746,36 @@ sub run {
             'Only the first change should be deployed';
         my ($req) = $change2->requires;
         ok $req->resolved_id($change->id),      'Set resolved ID in required depend';
+
         # Send this change back in time.
-        $engine->dbh->do(
-            'UPDATE changes SET committed_at = ?',
-                undef, '2013-03-30 00:47:47',
-        );
+        if ($engine->key eq 'clickhouse') {
+            # ClickHouse forbids key column update; delete and insert instead.
+            $engine->dbh->do(
+                'DELETE FROM changes WHERE change_id = ?',
+                undef, $change->id,
+            );
+            $engine->dbh->do(
+                'INSERT INTO changes VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                undef,
+                $change->id,
+                $change->script_hash,
+                $change->format_name,
+                $change->project,
+                $change->note,
+                '2013-03-30 00:47:47',
+                $sqitch->user_name,
+                $sqitch->user_email,
+                $engine->_char2ts( $change->timestamp ),
+                $change->planner_name,
+                $change->planner_email,
+            );
+        } else {
+            $engine->dbh->do(
+                'UPDATE changes SET committed_at = ? WHERE 1=1',
+                    undef, '2013-03-30 00:47:47',
+            );
+        }
+
         ok $engine->log_deploy_change($change2),    'Deploy second change';
         is $engine->earliest_change_id, $change->id, 'Should still get users ID for earliest change ID';
         is $engine->earliest_change_id(1), $change2->id,
@@ -667,9 +843,9 @@ sub run {
             'users',
             'engine',
             'User roles',
-            $engine->_log_requires_param($change),
-            $engine->_log_conflicts_param($change),
-            $engine->_log_tags_param($change),
+            reqs_for($change),
+            flicts_for($change),
+            tags_for($change),
             $user2_name,
             $user2_email,
             $change->planner_name,
@@ -680,9 +856,9 @@ sub run {
             'widgets',
             'engine',
             'All in',
-            $engine->_log_requires_param($change2),
-            $engine->_log_conflicts_param($change2),
-            $engine->_log_tags_param($change2),
+            reqs_for($change2),
+            flicts_for($change2),
+            tags_for($change2),
             $user2_name,
             $user2_email,
             $change2->planner_name,
@@ -761,9 +937,9 @@ sub run {
             change_id       => $change2->id,
             change          => 'widgets',
             note            => 'All in',
-            requires        => $engine->_log_requires_param($change2),
-            conflicts       => $engine->_log_conflicts_param($change2),
-            tags            => $engine->_log_tags_param($change2),
+            requires        => reqs_for($change2),
+            conflicts       => flicts_for($change2),
+            tags            => tags_for($change2),
             committer_name  => $user2_name,
             committer_email => $user2_email,
             committed_at    => dt_for_event($engine, 4),
@@ -776,9 +952,9 @@ sub run {
             change_id       => $change->id,
             change          => 'users',
             note            => 'User roles',
-            requires        => $engine->_log_requires_param($change),
-            conflicts       => $engine->_log_conflicts_param($change),
-            tags            => $engine->_log_tags_param($change),
+            requires        => reqs_for($change),
+            conflicts       => flicts_for($change),
+            tags            => tags_for($change),
             committer_name  => $user2_name,
             committer_email => $user2_email,
             committed_at    => dt_for_event($engine, 3),
@@ -908,9 +1084,9 @@ sub run {
             change_id       => $change2->id,
             change          => 'widgets',
             note            => 'All in',
-            requires        => $engine->_log_requires_param($change2),
-            conflicts       => $engine->_log_conflicts_param($change2),
-            tags            => $engine->_log_tags_param($change2),
+            requires        => reqs_for($change2),
+            conflicts       => flicts_for($change2),
+            tags            => tags_for($change2),
             committer_name  => $user2_name,
             committer_email => $user2_email,
             committed_at    => dt_for_event($engine, 6),
@@ -923,9 +1099,9 @@ sub run {
             change_id       => $change2->id,
             change          => 'widgets',
             note            => 'All in',
-            requires        => $engine->_log_requires_param($change2),
-            conflicts       => $engine->_log_conflicts_param($change2),
-            tags            => $engine->_log_tags_param($change2),
+            requires        => reqs_for($change2),
+            conflicts       => flicts_for($change2),
+            tags            => tags_for($change2),
             committer_name  => $user2_name,
             committer_email => $user2_email,
             committed_at    => dt_for_event($engine, 5),
@@ -1039,9 +1215,9 @@ sub run {
             change_id       => $barney->id,
             change          => 'barney',
             note            => 'Hello Barney',
-            requires        => $engine->_log_requires_param($barney),
-            conflicts       => $engine->_log_conflicts_param($barney),
-            tags            => $engine->_log_tags_param($barney),
+            requires        => reqs_for($barney),
+            conflicts       => flicts_for($barney),
+            tags            => tags_for($barney),
             committer_name  => $user2_name,
             committer_email => $user2_email,
             committed_at    => dt_for_event($engine, 8),
@@ -1054,9 +1230,9 @@ sub run {
             change_id       => $fred->id,
             change          => 'fred',
             note            => 'Hello Fred',
-            requires        => $engine->_log_requires_param($fred),
-            conflicts       => $engine->_log_conflicts_param($fred),
-            tags            => $engine->_log_tags_param($fred),
+            requires        => reqs_for($fred),
+            conflicts       => flicts_for($fred),
+            tags            => tags_for($fred),
             committer_name  => $user2_name,
             committer_email => $user2_email,
             committed_at    => dt_for_event($engine, 7),
@@ -1169,9 +1345,9 @@ sub run {
             change_id       => $ext_change->id,
             change          => $ext_change->name,
             note            => $ext_change->note,
-            requires        => $engine->_log_requires_param($ext_change),
-            conflicts       => $engine->_log_conflicts_param($ext_change),
-            tags            => $engine->_log_tags_param($ext_change),
+            requires        => reqs_for($ext_change),
+            conflicts       => flicts_for($ext_change),
+            tags            => tags_for($ext_change),
             committer_name  => $user2_name,
             committer_email => $user2_email,
             committed_at    => dt_for_event($engine, 9),
@@ -1739,7 +1915,7 @@ sub run {
 
         ######################################################################
         # Let's make sure script_hash upgrades work.
-        $engine->dbh->do('UPDATE changes SET script_hash = change_id');
+        $engine->dbh->do('UPDATE changes SET script_hash = change_id WHERE 1=1');
         ok $engine->_update_script_hashes, 'Update script hashes';
 
         # Make sure they were updated properly.
@@ -1897,12 +2073,20 @@ sub all_tags {
 }
 
 sub all_events {
-    shift->dbh->selectall_arrayref(q{
+    my $engine = shift;
+    my $events = $engine->dbh->selectall_arrayref(q{
         SELECT event, change_id, e.change, project, note, requires, conflicts, tags,
                committer_name, committer_email, planner_name, planner_email
           FROM events e
          ORDER BY committed_at
     });
+    # Format requires, conflicts, and tags as arrays.
+    for my $row (@{ $events }) {
+        for (5, 6, 7) {
+            $row->[$_] = $engine->_parse_array($row->[$_]) unless ref $row->[$_];
+        }
+    }
+    return $events;
 }
 
 sub get_dependencies {
@@ -1925,4 +2109,16 @@ sub test_templates_for {
     }
 }
 
+
+sub tags_for {
+    [ map { $_->format_name } shift->tags ];
+}
+
+sub reqs_for {
+    [ map { $_->as_string } shift->requires ];
+}
+
+sub flicts_for {
+    [ map { $_->as_string } shift->conflicts ];
+}
 1;
