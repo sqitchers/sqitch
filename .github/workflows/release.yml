@@ -23,12 +23,14 @@ jobs:
     - name: Install Prereqs
       run: |
         sudo apt-get update -qq
-        sudo env DEBIAN_FRONTEND=noninteractive apt-get install -qq  libicu-dev gettext aspell-en software-properties-common
+        sudo env DEBIAN_FRONTEND=noninteractive apt-get install -qq libicu-dev gettext aspell-en software-properties-common
     - name: Install Dist::Zilla
       run: cpm install --verbose --show-build-log-on-failure --no-test Dist::Zilla
     - name: Install Build Dependencies
       env: { PERL5LIB: "${{ github.workspace }}/local/lib/perl5" }
       run: local/bin/dzil authordeps | xargs cpm install --verbose --show-build-log-on-failure --no-test
+    - name: Install Dependencies
+      run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends --cpanfile dist/cpanfile
     - name: Prepare PAUSE
       env:
         CPAN_USERNAME: ${{ secrets.CPAN_USERNAME }}

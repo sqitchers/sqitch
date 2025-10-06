@@ -53,8 +53,8 @@ requires "URI" => "0";
 requires "URI::QueryParam" => "0";
 requires "URI::db" => "0.20";
 requires "User::pwent" => "0";
-requires "XML::Tiny" => "0";
-requires "YAML::Tiny" => "0";
+requires "XML::Tiny" => "2.07";
+requires "YAML::Tiny" => "1.76";
 requires "constant" => "0";
 requires "locale" => "0";
 requires "namespace::autoclean" => "0.16";
@@ -111,6 +111,8 @@ on 'test' => sub {
   requires "Test::More" => "0.94";
   requires "Test::NoWarnings" => "0.083";
   requires "Test::Warn" => "0.31";
+  requires "XML::Tiny" => "2.07";
+  requires "YAML::Tiny" => "1.76";
   requires "base" => "0";
   requires "lib" => "0";
 };
@@ -174,6 +176,8 @@ on 'develop' => sub {
   recommends "Test::Spelling" => "0";
   recommends "Time::HiRes" => "0";
   recommends "Time::Local" => "0";
+  recommends "XML::Tiny" => "2.07";
+  recommends "YAML::Tiny" => "1.76";
 };
 
 on 'develop' => sub {
