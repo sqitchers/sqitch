@@ -1,5 +1,7 @@
 Revision history for Perl extension App::Sqitch
 
+1.6.1  Not Yet Released
+
 1.6.0  2025-10-06T13:00:00Z
      - Refactored the parsing of arrays for engines that don't support arrays
        (e.g., SQLite & Firebird). A new method in DBIEngine, `_parse_array`,

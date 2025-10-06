@@ -224,11 +224,11 @@ perl -i -pe "s/^(version\s*=).+/\$1 v$NEXT_VERSION/" dist.ini
 perl -i -pe "s{(App/Sqitch version).+}{\$1 v$NEXT_VERSION-dev}" README.md
 perl -i -pe "s/(Project-Id-Version: App-Sqitch)[^\\\\]+/\$1 v$NEXT_VERSION-dev/" po/App-Sqitch.pot
 perl -i -pe "s/(Version:\s*).+/\${1}$NEXT_VERSION-dev/" dist/sqitch.spec
+perl -i -pe "s{^$VERSION}{$NEXT_VERSION  Not Yet Released\n\n$VERSION}" Changes
 ```
 
-Also add a line for the new version (without the pre-release part) to the top of
-the `Changes` file. Then commit and push the changes and you're done! Time to
-start work on the next release. Good luck!
+Then commit and push the changes and you're done! Time to start work on the
+next release. Good luck!
 
   [semver]: https://semver.org/
   [workflow actions]: https://github.com/sqitchers/sqitch/actions
