@@ -1,6 +1,8 @@
 Revision history for Perl extension App::Sqitch
 
 1.6.1  Not Yet Released
+     - Fixed some ancient typos in sqitchtutorial-sqlite, with thanks to @ovid
+       for the report!
 
 1.6.0  2025-10-06T13:00:00Z
      - Refactored the parsing of arrays for engines that don't support arrays
