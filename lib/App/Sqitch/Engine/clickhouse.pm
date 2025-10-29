@@ -226,7 +226,21 @@ sub _load_cfg {
 
 sub _def_user { $ENV{CLICKHOUSE_USER}     || $_[0]->_clickcnf->{user}     }
 sub _def_pass { $ENV{CLICKHOUSE_PASSWORD} || shift->_clickcnf->{password} }
-sub _dsn { shift->registry_uri->dbi_dsn }
+
+sub _dsn {
+    # Always set the host name to the default if it's not set. Otherwise
+    # URI::db::_odbc returns the DSN `dbi:ODBC:DSN=sqitch;Driver=ClickHouse`.
+    # We don't want that, because no such DSN exists. By setting the host
+    # name, it instead returns
+    # `dbi:ODBC:Server=localhost;Database=sqitch;Driver=ClickHouse`, almost
+    # certainly more correct.
+    my $uri = shift->registry_uri;
+    unless ($uri->host) {
+        $uri = $uri->clone;
+        $uri->host('localhost');
+    }
+    return $uri->dbi_dsn
+}
 
 has dbh => (
     is      => 'rw',

@@ -59,7 +59,8 @@ my $sqitch_uri = $uri->clone;
 $sqitch_uri->dbname('sqitch');
 is $ch->registry_uri, $sqitch_uri, 'registry_uri should be correct';
 is $ch->uri, $uri, qq{uri should be "$uri"};
-is $ch->_dsn, 'dbi:ODBC:DSN=sqitch', 'DSN should use DBD::ODBC with registry database';
+is $ch->_dsn, 'dbi:ODBC:Server=localhost;Port=8123;Database=sqitch',
+    'DSN should use DBD::ODBC with registry database';
 is $ch->registry_destination, 'db:clickhouse:sqitch',
     'registry_destination should be the same as registry_uri';
 
