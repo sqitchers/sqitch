@@ -9,6 +9,7 @@ use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::X qw(hurl);
 use Config::GitLike 1.15;
 use utf8;
+use File::stat;
 
 extends 'Config::GitLike';
 
@@ -101,7 +102,33 @@ sub load_dirs {
 sub load_file {
     my $self = shift;
     $self->{_initialized} ||= $self->{__loading_dirs};
+    $self->chmod_files_if_needed(@_);
     $self->SUPER::load_file(@_);
+}
+
+# chmod_files_if_needed
+#
+# Utility method that changes the permissions of a configuration
+# file into mode 0600 if they are different.
+#
+# Returns the number of chmod-ed files.
+#
+sub chmod_files_if_needed {
+    my $self = shift;
+    my $changed = 0;
+
+
+    for (@_) {
+	next unless ( -f "$_" );
+	my $stat = stat("$_");
+	next unless ( $stat );
+	if ( $stat->mode & 07777 != 0600 ) {
+	    chmod 0600, $_;
+	    $changed++;
+	}
+    }
+
+    return $changed;
 }
 
 1;

@@ -15,6 +15,7 @@ requires "File::Basename" => "0";
 requires "File::Copy" => "0";
 requires "File::Path" => "0";
 requires "File::Temp" => "0";
+requires "File::stat" => "0";
 requires "Getopt::Long" => "0";
 requires "Hash::Merge" => "0";
 requires "IO::Handle" => "0";
