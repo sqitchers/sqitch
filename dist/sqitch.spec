@@ -1,5 +1,5 @@
 Name:           sqitch
-Version:        1.6.1-dev
+Version:        1.6.1
 Release:        1%{?dist}
 Summary:        Sensible database change management
 License:        MIT
@@ -330,6 +330,9 @@ driver also be installed.
 # No additional files required.
 
 %changelog
+* Tue Jan 6 2026 David E. Wheeler <david@justatheory.com> 1.6.1-1
+- Upgrade to v1.1.6.1.
+
 * Mon Oct 6 2025 David E. Wheeler <david@justatheory.com> 1.6.0-1
 - Upgrade to v1.1.6.0.
 - Add sqitch-clickhouse package.

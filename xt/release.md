@@ -6,9 +6,9 @@ use the `$VERSION` and `$OLD_VERSION` environment variables for consistency. The
 assumption is that they're set to the old and new versions, respectively, e.g.,
 
 ``` sh
-export OLD_VERSION=1.6.0
-export VERSION=1.6.1
-export NEXT_VERSION=1.6.2
+export OLD_VERSION=1.6.1
+export VERSION=1.6.2
+export NEXT_VERSION=1.6.3
 ```
 
 Preparation
@@ -42,7 +42,7 @@ First, update the sources so that everything is up-to-date.
 *   Update copyright dates if a year has turned over since the last release:
 
     ``` sh
-    grep -ril copyright . | xargs perl -i -pe "s/-2025/-$(date +%Y)/g"
+    grep -ril copyright . | xargs perl -i -pe "s/-2026/-$(date +%Y)/g"
     ```
 
 *   Make a build and run `xt/dependency_report`:

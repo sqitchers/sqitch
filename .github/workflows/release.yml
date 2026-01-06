@@ -1,6 +1,7 @@
 name: 🚀 Release
 on:
   push:
+    tags: [v*]
     branches: [develop, "**perl**"]
   pull_request:
 jobs:

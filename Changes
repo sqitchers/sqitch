@@ -1,6 +1,6 @@
 Revision history for Perl extension App::Sqitch
 
-1.6.1  Not Yet Released
+1.6.1  2026-01-06T18:07:23Z
      - Fixed some ancient typos in sqitchtutorial-sqlite, with thanks to @ovid
        for the report!
      - Updated ClickHouse logic to always specify "default" as the hostname
