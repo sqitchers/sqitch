@@ -197,7 +197,7 @@ The Sqitch command-line client.
 
 =head1 License
 
-Copyright (c) 2012-2025 David E. Wheeler, 2012-2021 iovation Inc.
+Copyright (c) 2012-2026 David E. Wheeler, 2012-2021 iovation Inc.
 
 Copyright (c) 2012-2013 Ronan Dunklau
 

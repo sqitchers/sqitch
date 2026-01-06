@@ -208,8 +208,6 @@ the F<deploy/users.sql> file looks like this:
 
   -- XXX Add DDLs here.
 
-  COMMIT;
-
 What we want to do is to replace the C<XXX> comment with the C<CREATE TABLE>
 statement, like so:
 
@@ -1071,18 +1069,14 @@ Yes, copy the original change script to the new revert change.
 
 =item 4.
 
-Add a C<DROP VIEW> statement to F<revert/userflips_mastodon.sql>.
-
-=item 5.
-
 Copy F<verify/userflips.sql> to F<verify/userflips_mastodon.sql>.
 
-=item 6.
+=item 5.
 
 Modify F<verify/userflips_mastodon.sql> to include a check for the C<mastodon>
 column.
 
-=item 7.
+=item 6.
 
 Test the changes to make sure you can deploy and revert the
 C<userflips_mastodon> change.
@@ -1257,7 +1251,7 @@ is planned to make managing idempotent reworkings even easier. Stay tuned.
 
 =head1 License
 
-Copyright (c) 2012-2025 David E. Wheeler, 2012-2021 iovation Inc.
+Copyright (c) 2012-2026 David E. Wheeler, 2012-2021 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

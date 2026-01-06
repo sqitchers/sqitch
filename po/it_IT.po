@@ -1,5 +1,5 @@
 # Sqitch Italian Localization Messages
-# Copyright (c) 2012-2025 David E. Wheeler, 2012-2021 iovation Inc.
+# Copyright (c) 2012-2026 David E. Wheeler, 2012-2021 iovation Inc.
 # This file is distributed under the same license as the App-Sqitch package.
 # Luca Ferrari <fluca1978@gmail.com>, 2017
 #
@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: App-Sqitch 0.9996\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-09-30 19:43-0400\n"
+"POT-Creation-Date: 2026-01-06 12:32-0500\n"
 "PO-Revision-Date: 2017-10-12 10:30+0200\n"
 "Last-Translator: Luca Ferrari <fluca1978@gmail.com>\n"
 "Language-Team: Sqitch Hackers <sqitch-hackers@googlegroups.com>\n"
@@ -1055,12 +1055,12 @@ msgid ""
 "{odb_param} value \"{odbc_val}\""
 msgstr ""
 
-#: lib/App/Sqitch/Engine/clickhouse.pm:270 lib/App/Sqitch/Engine/mysql.pm:145
+#: lib/App/Sqitch/Engine/clickhouse.pm:284 lib/App/Sqitch/Engine/mysql.pm:145
 #, perl-brace-format
 msgid "Database name missing in URI \"{uri}\""
 msgstr "Il nome di database non è specificato nell'URI {uri}"
 
-#: lib/App/Sqitch/Engine/clickhouse.pm:348
+#: lib/App/Sqitch/Engine/clickhouse.pm:362
 #: lib/App/Sqitch/Engine/firebird.pm:935
 #, fuzzy, perl-brace-format
 msgid ""
@@ -1069,7 +1069,7 @@ msgstr ""
 "Non trovo Firebirs ISQL: imposta \"engine.firebird.client\" attraverso "
 "\"sqitch config\""
 
-#: lib/App/Sqitch/Engine/clickhouse.pm:414
+#: lib/App/Sqitch/Engine/clickhouse.pm:428
 #: lib/App/Sqitch/Engine/firebird.pm:205 lib/App/Sqitch/Engine/sqlite.pm:153
 #, perl-brace-format
 msgid "Sqitch database {database} already initialized"

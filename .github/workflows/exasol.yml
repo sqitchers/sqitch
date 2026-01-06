@@ -10,7 +10,7 @@ jobs:
   Exasol:
     strategy:
       matrix:
-        exasol: ['2025.1', '8', '7.1', '7.0']
+        exasol: ['2025.2', '8', '7.1']
     name: ☀️ Exasol ${{ matrix.exasol }}
     runs-on: ubuntu-latest
     services:

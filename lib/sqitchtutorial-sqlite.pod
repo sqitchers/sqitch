@@ -685,12 +685,13 @@ We can try deploying to make sure the tag gets picked up like so:
   Deploying changes to db:sqlite:dev/flipr.db
     + users ................... ok
     + flips ................... ok
+    + userflips @v1.0.0-dev1 .. ok
 
 Great, both changes were deployed and C<userflips> was tagged with
 C<@v1.0.0-dev1>. Let's have a look at the status:
 
-  > sqitch status db:sqlite:dev/flipr_dev.db
-  # On database db:sqlite:dev/flipr_dev.db
+  > sqitch status db:sqlite:dev/flipr.db
+  # On database db:sqlite:dev/flipr.db
   # Project:  flipr
   # Change:   60ee3aba0445bf3287f9dc1dd97b1877523fa139
   # Name:     userflips
@@ -1229,7 +1230,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2025 David E. Wheeler, 2012-2021 iovation Inc.
+Copyright (c) 2012-2026 David E. Wheeler, 2012-2021 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

@@ -2,9 +2,11 @@ name: 🚀 Release
 on:
   push:
     tags: [v*]
+    branches: [develop, "**perl**"]
+  pull_request:
 jobs:
   release:
-    name: 🚀 Release
+    name: 🚀 ${{ startsWith(github.ref, 'refs/tags') && '' || 'Test ' }}Release
     runs-on: ubuntu-latest
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -48,11 +50,12 @@ jobs:
         PERL5LIB: "${{ github.workspace }}/local/lib/perl5"
         DZIL_CONFIRMRELEASE_DEFAULT: "yes"
       run: |
-        local/bin/dzil release
+        local/bin/dzil ${{ startsWith(github.ref, 'refs/tags') && 'release' || 'test' }}
         echo "tarball=$( ls App-Sqitch-*.tar.gz )" >> $GITHUB_OUTPUT
     - name: Generate Release Changes
       run: xt/gen_release_changes
     - name: Create GitHub Release
+      if: startsWith( github.ref, 'refs/tags/v' )
       id: release
       uses: actions/create-release@v1
       with:
@@ -60,6 +63,7 @@ jobs:
         release_name: Release ${{ github.ref }}
         body_path: latest_changes.md
     - name: Upload Release Asset
+      if: startsWith( github.ref, 'refs/tags/v' )
       uses: actions/upload-release-asset@v1
       with:
         upload_url: ${{ steps.release.outputs.upload_url }}

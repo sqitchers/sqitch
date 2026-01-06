@@ -23,7 +23,7 @@ jobs:
       - name: Setup Perl
         id: perl
         uses: shogo82148/actions-setup-perl@v1
-        with: { perl-version: latest }
+        with: { perl-version: "5.38" } # https://github.com/shogo82148/actions-setup-perl/issues/2310
       - run: perl -V
       - if: runner.os == 'Linux'
         name: Install Apt Packages
