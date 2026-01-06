@@ -64,7 +64,6 @@ is $ch->_dsn, 'dbi:ODBC:Server=localhost;Port=8123;Database=sqitch',
 is $ch->registry_destination, 'db:clickhouse:sqitch',
     'registry_destination should be the same as registry_uri';
 
-
 # Test the client.
 my $mock_sqitch = Test::MockModule->new('App::Sqitch');
 my @std_opts = (

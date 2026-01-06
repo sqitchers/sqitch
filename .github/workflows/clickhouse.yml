@@ -9,7 +9,7 @@ jobs:
   ClickHouse:
     strategy:
       matrix:
-        clickhouse: ['25.9', '25.8']
+        clickhouse: ['25.12', '25.11', '25.10', '25.9', '25.8']
     name: 🏠 ClickHouse ${{ matrix.clickhouse }}
     runs-on: ubuntu-latest
     services:

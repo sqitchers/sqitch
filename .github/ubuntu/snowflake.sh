@@ -15,7 +15,7 @@ export WORKSPACE=/opt/snowflake
 # https://www.snowflake.com/en/developers/downloads/snowsql/
 # https://www.snowflake.com/en/developers/downloads/odbc/
 curl -sSLo snowsql.bash https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.4/linux_x86_64/snowsql-1.4.5-linux_x86_64.bash
-curl -sSLo snowdbc.tgz https://sfc-repo.snowflakecomputing.com/odbc/linux/3.11.0/snowflake_linux_x8664_odbc-3.11.0.tgz
+curl -sSLo snowdbc.tgz https://sfc-repo.snowflakecomputing.com/odbc/linux/3.13.0/snowflake_linux_x8664_odbc-3.13.0.tgz
 
 # Install and configure ODBC.
 mkdir -p "$WORKSPACE/.snowsql"

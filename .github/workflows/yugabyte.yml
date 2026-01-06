@@ -11,9 +11,10 @@ jobs:
     strategy:
       matrix:
         include:
-          # curl https://registry.hub.docker.com/v2/repositories/yugabytedb/yugabyte/tags\?page_size\=10000 | jq '.results[].name' | sort
-          - { version: '2025.1', tag: '2025.1.0.1-b3' }
-          - { version: '2024.2', tag: 2024.2.5.1-b1   }
+          # curl -s https://registry.hub.docker.com/v2/repositories/yugabytedb/yugabyte/tags\?page_size\=10000 | jq '.results[].name' | sort
+          - { version: '2025.2', tag: 2025.2.0.0-b131 }
+          - { version: '2025.1', tag: 2025.1.2.2-b5   }
+          - { version: '2024.2', tag: 2024.2.7.1-b1   }
           - { version: '2024.1', tag: 2024.1.6.1-b2   }
           - { version: '2.23',   tag: 2.23.1.0-b220   }
           - { version: '2.21',   tag: 2.21.1.0-b271   }

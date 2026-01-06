@@ -19,6 +19,7 @@ jobs:
           - { os: [🪟, windows], perl: '5.22' } # https://github.com/shogo82148/actions-setup-perl/issues/2310
           - { os: [🪟, windows], perl: '5.24' } # https://github.com/shogo82148/actions-setup-perl/issues/2310
           - { os: [🪟, windows], perl: '5.40' } # https://github.com/shogo82148/actions-setup-perl/issues/2310
+          - { os: [🪟, windows], perl: '5.42' } # https://github.com/shogo82148/actions-setup-perl/issues/2310
     name: 🧅 Perl ${{ matrix.perl }} on ${{ matrix.os[0] }} ${{ matrix.os[1] }}
     runs-on: ${{ matrix.os[1] }}-latest
     steps:

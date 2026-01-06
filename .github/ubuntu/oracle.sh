@@ -2,8 +2,8 @@
 
 set -e
 
-version=23.9.0.25.07
-icdr=2390000
+version=23.26.0.0.0
+icdr=2326000
 
 # Download dependencies.
 if [ -z "$SKIP_DEPENDS" ]; then
