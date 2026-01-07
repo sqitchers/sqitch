@@ -54,9 +54,18 @@ jobs:
           --health-timeout 10s
           --health-retries 10
     steps:
-      # https://github.com/orgs/community/discussions/25678#discussioncomment-9017167
       - name: Free Disk Space
-        run: find /opt -maxdepth 1 -mindepth 1 '!' -path ./containerd '!' -path ./actionarchivecache '!' -path ./runner '!' -path ./runner-cache -exec rm -rf '{}' ';'
+        uses: endersonmenezes/free-disk-space@v3
+        with:
+          rm_cmd: rmz
+          remove_android: true
+          remove_dotnet: true
+          remove_haskell: true
+          remove_tool_cache: true
+          remove_swap: true
+          remove_packages: "azure-cli google-cloud-cli microsoft-edge-stable google-chrome-stable firefox postgresql* temurin-* *llvm* mysql* dotnet-sdk-*"
+          remove_packages_one_command: true
+          remove_folders: "/usr/share/swift /usr/share/miniconda /usr/share/az* /usr/local/lib/node_modules /usr/local/share/chromium /usr/local/share/powershell /usr/local/julia /usr/local/aws-cli /usr/local/aws-sam-cli /usr/share/gradle"
       - name: Start CockroachDB
         run: docker run -d -p 26257:26257 cockroachdb/cockroach:latest start-single-node --insecure
       - uses: actions/checkout@v4
