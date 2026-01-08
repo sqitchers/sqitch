@@ -9,6 +9,8 @@ Revision history for Perl extension App::Sqitch
        when connecting and the URI includes not hostname. This ensures it
        doesn't try to use `DSN=sqitch`, which is unlikely to be a configured
        DSN, and to align with the behavior of the ClickHouse client.
+     - Added the `sqitch grep` command to search changes and list matches in
+       plan order.
 
 1.6.0  2025-10-06T13:00:00Z
      - Refactored the parsing of arrays for engines that don't support arrays

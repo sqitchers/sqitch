@@ -1,0 +1,9 @@
+%project=greptest
+
+roles 2024-01-01T12:00:00Z Alice <alice@example.com>
+users [roles] 2024-01-02T12:00:00Z Bob <bob@example.com>
+@alpha 2024-01-03T12:00:00Z Alice <alice@example.com>
+
+widgets [users] 2024-01-04T12:00:00Z Alice <alice@example.com>
+posts [users] 2024-01-05T12:00:00Z Bob <bob@example.com>
+@beta 2024-01-06T12:00:00Z Alice <alice@example.com>
