@@ -12,7 +12,7 @@ SQLITE=$(perl -e 'my @v = split /[.]/, shift; printf "%d%02d%02d%02d\n", @v[0..3
 # 3.18.2, 3.18.1, 3.9.3, and 3.7.11 missing.
 # https://sqlite.org/chronology.html
 # https://stackoverflow.com/a/37712117/79202
-if   (( SQLITE >= 3512000 )); then YEAR=2026
+if   (( SQLITE >= 3510200 )); then YEAR=2026
 elif (( SQLITE >= 3480000 )); then YEAR=2025
 elif (( SQLITE >= 3450000 )); then YEAR=2024
 elif (( SQLITE >= 3400200 )); then YEAR=2023

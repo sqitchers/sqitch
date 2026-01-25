@@ -2,6 +2,8 @@
 
 set -e
 
+echo "Installing Firebird"
+
 # Download dependencies.
 if [ -z "$SKIP_DEPENDS" ]; then
     sudo apt-get update -qq

@@ -42,23 +42,22 @@ jobs:
       vertica:
         image: cjonesy/docker-vertica:9.2.1-0
         ports: [ 5433 ]
-      clickhouse:
-        image: clickhouse:latest
-        ports: [ 8123, 9000 ]
-        env:
-          CLICKHOUSE_SKIP_USER_SETUP: 1
-        options: >-
-          --ulimit nofile=262144:262144
-          --health-cmd "clickhouse-client --query 'SELECT 1'"
-          --health-interval 20s
-          --health-timeout 10s
-          --health-retries 10
     steps:
       # https://github.com/orgs/community/discussions/25678#discussioncomment-9017167
       - name: Free Disk Space
         run: find /opt -maxdepth 1 -mindepth 1 '!' -path ./containerd '!' -path ./actionarchivecache '!' -path ./runner '!' -path ./runner-cache -exec rm -rf '{}' ';'
       - name: Start CockroachDB
         run: docker run -d -p 26257:26257 cockroachdb/cockroach:latest start-single-node --insecure
+      - name: Start ClickHouse
+        run: >-
+          docker run -d -p 8123:8123 -p 9000:9000
+          --env CLICKHOUSE_SKIP_USER_SETUP=1
+          --ulimit nofile=262144:262144
+          --health-cmd "clickhouse-client --query 'SELECT 1'"
+          --health-interval 20s
+          --health-timeout 10s
+          --health-retries 10
+          clickhouse:latest
       - uses: actions/checkout@v4
       - name: Setup Perl
         id: perl
@@ -113,7 +112,7 @@ jobs:
           LIVE_COCKROACH_REQUIRED: true
           SQITCH_TEST_COCKROACH_URI: db:cockroach://root@localhost:26257/
           LIVE_CLICKHOUSE_REQUIRED: true
-          SQITCH_TEST_CLICKHOUSE_URI: db:clickhouse://default@localhost:${{ job.services.clickhouse.ports[8123] }}/default?Driver=ClickHouse&NativePort=${{ job.services.clickhouse.ports[9000] }}
+          SQITCH_TEST_CLICKHOUSE_URI: db:clickhouse://default@localhost:8123/default?Driver=ClickHouse&NativePort=9000
         run: prove -lrj4 t
       - name: Report Coverage
         env:

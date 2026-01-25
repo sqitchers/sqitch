@@ -2,6 +2,8 @@
 
 set -e
 
+echo "Installing Snowflake Clients"
+
 # Set up Snowflake.
 if [ -z "$SKIP_DEPENDS" ]; then
     sudo apt-get update -qq

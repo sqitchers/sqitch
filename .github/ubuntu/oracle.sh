@@ -2,6 +2,8 @@
 
 set -e
 
+echo "Installing Oracle Clients"
+
 version=23.26.0.0.0
 icdr=2326000
 

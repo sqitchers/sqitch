@@ -2,6 +2,8 @@
 
 set -e
 
+echo "Installing ClickHouse Clients"
+
 if [ -z "$SKIP_DEPENDS" ]; then
     sudo apt-get update -qq
     sudo env DEBIAN_FRONTEND=noninteractive apt-get install -qq unixodbc-dev odbcinst unixodbc
