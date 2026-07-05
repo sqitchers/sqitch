@@ -2497,13 +2497,13 @@ is_deeply +MockOutput->get_info, [], 'Should have no info output';
 $mock_engine->mock(run_verify => sub { die 'OHNO' });
 throws_ok { $engine->verify_change($change) } 'App::Sqitch::X',
     'Should throw error on verify failure';
-$mock_engine->unmock('run_verify');
 is $@->ident, 'verify', 'Verify error ident should be "verify"';
 like $@->previous_exception, qr/OHNO/, 'Previous exception should be captured';
 is $@->message, __x(
     'Verify script "{script}" failed.',
     script => $change->verify_file
 ), 'Verify error message should be correct';
+$mock_engine->unmock('run_verify');
 is_deeply $engine->seen, [], 'Should have seen not method calls';
 is_deeply +MockOutput->get_info, [], 'Should have no info output';
 
