@@ -2,6 +2,11 @@ Revision history for Perl extension App::Sqitch
 
 1.6.2  Not Yet Released
 
+     - Fixed the `"ident" without a package or object reference` test failure
+       due to a recent change to Test::MockModule or some module it depends on
+       clearing the error variable `$@`. Thanks Slaven Rezić for the report
+       (#921)!
+
 1.6.1  2026-01-06T18:07:23Z
      - Fixed some ancient typos in sqitchtutorial-sqlite, with thanks to @ovid
        for the report!

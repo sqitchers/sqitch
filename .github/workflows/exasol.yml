@@ -31,8 +31,8 @@ jobs:
         with:
           path: local
           key: perl-${{ steps.perl.outputs.perl-hash }}
-      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends --cpanfile dist/cpanfile
-      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends DBD::ODBC
+      - run: cpm install --top-level-phase configure,build,test,runtime --verbose --show-build-log-on-failure --no-test --with-recommends --cpanfile dist/cpanfile
+      - run: cpm install --top-level-phase configure,build,test,runtime --verbose --show-build-log-on-failure --no-test --with-recommends DBD::ODBC
       - name: prove
         env:
           PERL5LIB: "${{ github.workspace }}/local/lib/perl5"
