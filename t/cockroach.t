@@ -135,8 +135,14 @@ END {
         $h->disconnect if $h->{Type} eq 'db' && $h->{Active} && $h ne $dbh;
     });
 
-    # Drop the database or schema.
-    $dbh->do("DROP DATABASE $db") if $dbh->{Active}
+    # Drop the database or schema. v26 raises a notice about waiting for jobs
+    # to finish as an error, so suppress notices.
+    if ($dbh->{Active}) {
+        $dbh->do($_) for (
+            "SET client_min_messages = warning",
+            "DROP DATABASE IF EXISTS $db",
+        );
+    }
 }
 
 my $err = try {

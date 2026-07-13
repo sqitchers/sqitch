@@ -9,9 +9,10 @@ on:
 jobs:
   Cockroach:
     strategy:
+      fail-fast: false
       matrix:
         # curl https://registry.hub.docker.com/v2/repositories/cockroachdb/cockroach/tags\?page_size\=10000 | jq '.results[].name'
-        version: ['25.4', '24.3', '23.2', '22.2', '21.2']
+        version: ['26.2', '25.4', '24.3', '23.2']
     name: 🪳 Cockroach ${{ matrix.version }}
     runs-on: ubuntu-latest
     steps:
@@ -27,8 +28,8 @@ jobs:
         with:
           path: local
           key: perl-${{ steps.perl.outputs.perl-hash }}
-      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends --cpanfile dist/cpanfile
-      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends DBD::Pg
+      - run: cpm install --top-level-phase configure,build,test,runtime --verbose --show-build-log-on-failure --no-test --top-level-relationship requires,recommends --cpanfile dist/cpanfile
+      - run: cpm install --top-level-phase configure,build,test,runtime --verbose --show-build-log-on-failure --no-test --top-level-relationship requires,recommends DBD::Pg
       - name: prove
         env:
           PERL5LIB: "${{ github.workspace }}/local/lib/perl5"

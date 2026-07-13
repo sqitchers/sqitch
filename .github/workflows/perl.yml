@@ -10,18 +10,27 @@ on:
 jobs:
   Perl:
     strategy:
+      fail-fast: false
       matrix:
         os: [[🐧, ubuntu], [🍎, macos], [🪟, windows]]
         perl: [ '5.42', '5.40', '5.38', '5.36', '5.34', '5.32', '5.30', '5.28', '5.26', '5.24', '5.22', '5.20', '5.18', '5.16', '5.14', '5.12' ]
         exclude:
-          - { os: [🪟, windows], perl: '5.12' } # https://github.com/shogo82148/actions-setup-perl/issues/876
-          - { os: [🪟, windows], perl: '5.14' } # https://github.com/shogo82148/actions-setup-perl/issues/881
-          - { os: [🪟, windows], perl: '5.22' } # https://github.com/shogo82148/actions-setup-perl/issues/2310
-          - { os: [🪟, windows], perl: '5.24' } # https://github.com/shogo82148/actions-setup-perl/issues/2310
+          - { os: [🪟, windows], perl: '5.12' } # cpm too much a PITA && https://github.com/shogo82148/actions-setup-perl/issues/876
+          - { os: [🪟, windows], perl: '5.14' } # cpm too much a PITA && https://github.com/shogo82148/actions-setup-perl/issues/881
+          - { os: [🪟, windows], perl: '5.16' } # cpm too much a PITA
+          - { os: [🪟, windows], perl: '5.18' } # cpm too much a PITA
+          - { os: [🪟, windows], perl: '5.20' } # cpm too much a PITA
+          - { os: [🪟, windows], perl: '5.22' } # cpm too much a PITA && https://github.com/shogo82148/actions-setup-perl/issues/2310
+          - { os: [🪟, windows], perl: '5.24' } # cpm too much a PITA && https://github.com/shogo82148/actions-setup-perl/issues/2310
           - { os: [🪟, windows], perl: '5.40' } # https://github.com/shogo82148/actions-setup-perl/issues/2310
           - { os: [🪟, windows], perl: '5.42' } # https://github.com/shogo82148/actions-setup-perl/issues/2310
+          - { os: [🪟, windows], perl: '5.26' } # https://github.com/shogo82148/actions-setup-perl/issues/2669
+          - { os: [🪟, windows], perl: '5.28' } # https://github.com/shogo82148/actions-setup-perl/issues/2669
     name: 🧅 Perl ${{ matrix.perl }} on ${{ matrix.os[0] }} ${{ matrix.os[1] }}
     runs-on: ${{ matrix.os[1] }}-latest
+    env:
+      # Set args for cpm depending on the Perl version.
+      CPM_ARGS: --verbose --show-build-log-on-failure --no-test ${{ matrix.perl < 5.24 && '--no-test --with-recommends' || '--top-level-phase configure,build,test,runtime --top-level-relationship requires,recommends' }}
     steps:
       - uses: actions/checkout@v4
       - name: Setup Perl
@@ -37,10 +46,22 @@ jobs:
         with:
           path: local
           key: perl-${{ steps.perl.outputs.perl-hash }}
+      - if: matrix.perl < 5.24
+        # Newer SKAJI modules require 5.24; install older versions to compensate.
+        run: |
+          cpanm install --verbose --notest --no-man-pages Module::Build::Tiny Module::cpmfile@0.006 Darwin::InitObjC@0.001 Parallel::Pipes::App@0.201 Command::Runner@0.201 Proc::ForkSafe@0.001 CPAN::02Packages::Search@0.100 App::cpm@0.998003
+          perl -E 'use Config; say $Config{sitebin}' >> "${{ github.path }}"
+      - if: matrix.perl < 5.18
+        # cpanm fails to install the cpm script above, but a manual install works.
+        working-directory: ${{ runner.temp }}
+        run: |
+          curl -O https://cpan.metacpan.org/authors/id/S/SK/SKAJI/App-cpm-0.998003.tar.gz
+          tar zxf App-cpm-0.998003.tar.gz && cd App-cpm-0.998003
+          perl Build.PL && ./Build && ./Build install
       - if: runner.os == 'Windows'
-        run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends Encode Win32::Console::ANSI Win32API::Net Win32::Locale Win32::ShellQuote DateTime::TimeZone::Local::Win32
-      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends --cpanfile dist/cpanfile
-      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends Test::Spelling Test::Pod Test::Pod::Coverage
+        run: cpm install ${{ env.CPM_ARGS }} Encode Win32::Console::ANSI Win32API::Net Win32::Locale Win32::ShellQuote DateTime::TimeZone::Local::Win32
+      - run: cpm install ${{ env.CPM_ARGS }} --cpanfile dist/cpanfile
+      - run: cpm install ${{ env.CPM_ARGS }} Test::Spelling Test::Pod Test::Pod::Coverage
       - name: prove
         env: { PERL5LIB: "${{ github.workspace }}/local/lib/perl5" }
         run: prove -lrj4

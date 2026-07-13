@@ -194,7 +194,7 @@ SOFTWARE.
   [Vertica]:   https://github.com/sqitchers/sqitch/actions/workflows/vertica.yml/badge.svg
   [🔺]:        https://github.com/sqitchers/sqitch/actions/workflows/vertica.yml "Tested with Vertica 7.2–12.0"
   [Cockroach]: https://github.com/sqitchers/sqitch/actions/workflows/cockroach.yml/badge.svg
-  [🪳]:        https://github.com/sqitchers/sqitch/actions/workflows/cockroach.yml "Tested with CockroachDB v21–24"
+  [🪳]:        https://github.com/sqitchers/sqitch/actions/workflows/cockroach.yml "Tested with CockroachDB v23–26"
   [ClickHouse]: https://github.com/sqitchers/sqitch/actions/workflows/clickhouse.yml/badge.svg
   [🏠]:          https://github.com/sqitchers/sqitch/actions/workflows/clickhouse.yml "Tested with ClickHouse v25.8–25.9"
 

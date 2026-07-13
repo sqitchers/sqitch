@@ -33,11 +33,11 @@ jobs:
         with:
           path: local
           key: perl-${{ steps.perl.outputs.perl-hash }}
-      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends ExtUtils::MakeMaker List::MoreUtils::XS
+      - run: cpm install --top-level-phase configure,build,test,runtime --verbose --show-build-log-on-failure --no-test --top-level-relationship requires,recommends ExtUtils::MakeMaker List::MoreUtils::XS
       - if: runner.os == 'Windows'
-        run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends Encode Win32::Console::ANSI Win32API::Net Win32::Locale Win32::ShellQuote DateTime::TimeZone::Local::Win32
-      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends --cpanfile dist/cpanfile
-      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends Test::Spelling Test::Pod Test::Pod::Coverage
+        run: cpm install --top-level-phase configure,build,test,runtime --verbose --show-build-log-on-failure --no-test --top-level-relationship requires,recommends Encode Win32::Console::ANSI Win32API::Net Win32::Locale Win32::ShellQuote DateTime::TimeZone::Local::Win32
+      - run: cpm install --top-level-phase configure,build,test,runtime --verbose --show-build-log-on-failure --no-test --top-level-relationship requires,recommends --cpanfile dist/cpanfile
+      - run: cpm install --top-level-phase configure,build,test,runtime --verbose --show-build-log-on-failure --no-test --top-level-relationship requires,recommends Test::Spelling Test::Pod Test::Pod::Coverage
       - name: prove
         env: { PERL5LIB: "${{ github.workspace }}/local/lib/perl5" }
         run: prove -lrj4

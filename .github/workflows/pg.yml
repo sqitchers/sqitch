@@ -24,13 +24,13 @@ jobs:
         with:
           path: local
           key: perl-${{ steps.perl.outputs.perl-hash }}
-      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends --cpanfile dist/cpanfile
+      - run: cpm install --top-level-phase configure,build,test,runtime --verbose --show-build-log-on-failure --no-test --top-level-relationship requires,recommends --cpanfile dist/cpanfile
         # DBD::Pg always build against the Debian packaged client, alas, so go
         # ahead and let it be cached. If can figure out how to install the
         # version-specific client (https://github.com/bucardo/dbdpg/issues/84),
-        # use cpm install --global to install DBD::Pg for a version-specific
+        # use cpm install --top-level-phase configure,build,test,runtime --global to install DBD::Pg for a version-specific
         # build each time.
-      - run: cpm install --verbose --show-build-log-on-failure --no-test --with-recommends DBD::Pg
+      - run: cpm install --top-level-phase configure,build,test,runtime --verbose --show-build-log-on-failure --no-test --top-level-relationship requires,recommends DBD::Pg
       - name: Install Postgres
         env: { PERL5LIB: "${{ github.workspace }}/local/lib/perl5" }
         run: .github/ubuntu/pg.sh ${{ matrix.pg }}
