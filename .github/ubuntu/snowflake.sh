@@ -2,6 +2,14 @@
 
 set -e
 
+# Verify we have secrets.
+if [ -z "${SNOWFLAKE_KEY_FILE}" ] || [ -z "${SNOWFLAKE_KEY_PASSWORD}" ]; then
+    printf 'SNOWFLAKE_KEY_FILE and/or SNOWFLAKE_KEY_PASSWORD not set\n'
+    printf 'Most likely reason is an attempt to execute in a pull request from a fork\n'
+    printf 'Exiting\n'
+    exit 2
+fi
+
 echo "Installing Snowflake Clients"
 
 # Set up Snowflake.

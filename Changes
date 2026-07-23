@@ -1,6 +1,8 @@
 Revision history for Perl extension App::Sqitch
 
 1.6.2  Not Yet Released
+     - Added Simplified Chinese translation, with thanks to Homer Xing for the
+       PR and to Dianjin Wang for the review (#918).
 
      - Fixed the `"ident" without a package or object reference` test failure
        due to a recent change to Test::MockModule or some module it depends on

@@ -1,0 +1,1538 @@
+# Sqitch Localization Messages
+# Copyright (c) 2012-2026 "David E. Wheeler, iovation Inc."
+# This file is distributed under the same license as the App-Sqitch package.
+# Dongsheng "Homer" Xing <homer.hsing@gmail.com>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: App-Sqitch v1.6.2-dev\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-01-06 12:32-0500\n"
+"PO-Revision-Date: 2026-05-13 15:49-0500\n"
+"Last-Translator: Dongsheng \"Homer\" Xing <homer.hsing@gmail.com>\n"
+"Language-Team: Sqitch Hackers <sqitch-hackers@googlegroups.com>\n"
+"Language: zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Poedit 3.9\n"
+
+#: lib/App/Sqitch.pm:86
+msgid "Cannot find your name; run sqitch config --user user.name \"YOUR NAME\""
+msgstr "找不到您的用户名；运行 sqitch config --user user.name “您的用户名”"
+
+#: lib/App/Sqitch.pm:116
+#, perl-brace-format
+msgid "Cannot infer your email address; run sqitch config --user user.email {email}"
+msgstr "无法推断您的电子邮件地址；运行 sqitch config --user user.email {email}"
+
+#: lib/App/Sqitch.pm:281
+#, perl-brace-format
+msgid "Cannot change to directory {directory}: {error}"
+msgstr "无法切换到目录 {directory}: {error}"
+
+#: lib/App/Sqitch.pm:315 lib/App/Sqitch/Command.pm:115
+#, perl-brace-format
+msgid "\"{command}\" is not a valid command"
+msgstr "\"{command}\" 是无效的命令"
+
+#: lib/App/Sqitch.pm:409
+msgid "Sqitch seems to be unattended and there is no default value for this question"
+msgstr "Sqitch 似乎无人值守，并且这个问题没有默认答案"
+
+#: lib/App/Sqitch.pm:428
+msgctxt "Confirm prompt answer yes"
+msgid "Yes"
+msgstr "是"
+
+#: lib/App/Sqitch.pm:429
+msgctxt "Confirm prompt answer no"
+msgid "No"
+msgstr "否"
+
+#: lib/App/Sqitch.pm:438
+msgid "Please answer \"y\" or \"n\"."
+msgstr "请回答“y”或“n”。"
+
+#: lib/App/Sqitch.pm:441
+msgid "No valid answer after 3 attempts; aborting"
+msgstr "3次尝试后，回答依旧无效；中止"
+
+#: lib/App/Sqitch.pm:462 lib/App/Sqitch.pm:469
+#, perl-brace-format
+msgid "Cannot exec {command}: {error}"
+msgstr "无法执行 {command}：{error}"
+
+#: lib/App/Sqitch.pm:485
+#, perl-brace-format
+msgid "Error closing pipe to {command}: {error}"
+msgstr "关闭到 {command} 的管道时出错：{error}"
+
+#: lib/App/Sqitch.pm:489 lib/App/Sqitch/Engine/oracle.pm:765
+#, perl-brace-format
+msgid "{command} unexpectedly returned exit value {exitval}"
+msgstr "{command} 意外返回了退出值 {exitval}"
+
+#: lib/App/Sqitch/Command.pm:285
+#, perl-brace-format
+msgid "Unknown argument \"{arg}\""
+msgid_plural "Unknown arguments: {arg}"
+msgstr[0] "未定义的参数 \"{arg}\""
+msgstr[1] "未定义的参数: {arg}"
+
+#: lib/App/Sqitch/Command.pm:297
+msgid "Cannot specify both --all and engine, target, or plan arugments"
+msgstr "不能同时指定 --all 和 engine、target 或 plan 参数"
+
+#: lib/App/Sqitch/Command.pm:317 lib/App/Sqitch/Command/add.pm:421
+#: lib/App/Sqitch/Command/init.pm:203 lib/App/Sqitch/Role/TargetConfigCommand.pm:250
+#: lib/App/Sqitch/Role/TargetConfigCommand.pm:337
+#, perl-brace-format
+msgid "Created {file}"
+msgstr "已创建 {file}"
+
+#: lib/App/Sqitch/Command.pm:324 lib/App/Sqitch/Role/TargetConfigCommand.pm:256
+#, perl-brace-format
+msgid "Error creating {path}: {error}"
+msgstr "创建 {path} 时出错：{error}"
+
+#: lib/App/Sqitch/Command/add.pm:102
+#, perl-brace-format
+msgid "Template {template} does not exist"
+msgstr "模板 {template} 不存在"
+
+#: lib/App/Sqitch/Command/add.pm:107
+#, perl-brace-format
+msgid "Template {template} is not a file"
+msgstr "模板 {template} 不是文件"
+
+#: lib/App/Sqitch/Command/add.pm:145
+#, perl-brace-format
+msgid "Cannot find {script} template"
+msgstr "找不到 {script} 模板"
+
+#: lib/App/Sqitch/Command/add.pm:224
+#, perl-brace-format
+msgid "Directory \"{dir}\" does not exist"
+msgstr "目录“{dir}”不存在"
+
+#: lib/App/Sqitch/Command/add.pm:229
+#, perl-brace-format
+msgid "\"{dir}\" is not a directory"
+msgstr "“{dir}”不是目录"
+
+#: lib/App/Sqitch/Command/add.pm:282
+#, perl-brace-format
+msgid ""
+"Name \"{name}\" identifies a target; use \"--change {name}\" to use it for the change name"
+msgstr "名称“{name}”表示目标；使用“--change {name}”来为其改名"
+
+#: lib/App/Sqitch/Command/add.pm:330
+msgid "add"
+msgstr "添加"
+
+#: lib/App/Sqitch/Command/add.pm:348
+#, perl-brace-format
+msgid "Added \"{change}\" to {file}"
+msgstr "已将“{change}”添加到 {file}"
+
+#: lib/App/Sqitch/Command/add.pm:367
+#, perl-brace-format
+msgid "Skipped {file}: already exists"
+msgstr "跳过 {file}: 已存在"
+
+#: lib/App/Sqitch/Command/add.pm:386 lib/App/Sqitch/Command/add.pm:427
+#: lib/App/Sqitch/Engine/snowflake.pm:331 lib/App/Sqitch/Plan.pm:136
+#: lib/App/Sqitch/Plan.pm:602 lib/App/Sqitch/Plan.pm:982 lib/App/Sqitch/Plan/Line.pm:107
+#: lib/App/Sqitch/Role/TargetConfigCommand.pm:321
+#, perl-brace-format
+msgid "Cannot open {file}: {error}"
+msgstr "无法打开 {file}: {error}"
+
+#: lib/App/Sqitch/Command/add.pm:394
+#, perl-brace-format
+msgid "Error executing {template}: {error}"
+msgstr "执行 {template} 时出错：{error}"
+
+#: lib/App/Sqitch/Command/add.pm:406 lib/App/Sqitch/Role/TargetConfigCommand.pm:332
+#, perl-brace-format
+msgid "Error closing {file}: {error}"
+msgstr "关闭 {file} 时出错：{error}"
+
+#: lib/App/Sqitch/Command/add.pm:415
+#, perl-brace-format
+msgid "File {file} has a double extension of {ext}"
+msgstr "文件 {file} 具有双重扩展名 {ext}"
+
+#: lib/App/Sqitch/Command/bundle.pm:99
+msgid ""
+"Use of --to or --from to bundle multiple targets is not recommended.\n"
+"Pass them as arguments after each target argument, instead."
+msgstr ""
+"不推荐使用 --to 或 --from 来捆绑多个目标。\n"
+"请为每个目标单独使用一个参数。"
+
+#: lib/App/Sqitch/Command/bundle.pm:106
+msgid "Cannot specify both --from or --to and change arguments"
+msgstr "无法同时指定 --from 或 --to 和 change 参数"
+
+#: lib/App/Sqitch/Command/bundle.pm:111
+#, perl-brace-format
+msgid "Bundling into {dir}"
+msgstr "正在打包到 {dir}"
+
+#: lib/App/Sqitch/Command/bundle.pm:136
+#, perl-brace-format
+msgid "Cannot copy {file}: does not exist"
+msgstr "无法复制 {file}：不存在"
+
+#: lib/App/Sqitch/Command/bundle.pm:149
+#, perl-brace-format
+msgid "Copying {source} -> {dest}"
+msgstr "正在复制 {source} -> {dest}"
+
+#: lib/App/Sqitch/Command/bundle.pm:156
+#, perl-brace-format
+msgid "Cannot copy \"{source}\" to \"{dest}\": {error}"
+msgstr "无法复制“{source}”到“{dest}”：{error}"
+
+#: lib/App/Sqitch/Command/bundle.pm:166
+msgid "Writing config"
+msgstr "正在写入配置"
+
+#: lib/App/Sqitch/Command/bundle.pm:177
+msgid "Writing plan"
+msgstr "正在写入计划"
+
+#: lib/App/Sqitch/Command/bundle.pm:186
+#, perl-brace-format
+msgid "Writing plan from {from} to {to}"
+msgstr "正在写入计划: 从 {from} 到 {to} "
+
+#: lib/App/Sqitch/Command/bundle.pm:206 lib/App/Sqitch/Command/bundle.pm:213
+#: lib/App/Sqitch/Plan.pm:954 lib/App/Sqitch/Plan.pm:963
+#, perl-brace-format
+msgid "Cannot find change {change}"
+msgstr "找不到更改 {change}"
+
+#: lib/App/Sqitch/Command/bundle.pm:217
+msgid "Writing scripts"
+msgstr "正在写入脚本"
+
+#: lib/App/Sqitch/Command/check.pm:89 lib/App/Sqitch/Command/deploy.pm:118
+#: lib/App/Sqitch/Command/log.pm:212 lib/App/Sqitch/Command/rebase.pm:63
+#: lib/App/Sqitch/Command/revert.pm:137 lib/App/Sqitch/Command/status.pm:110
+#: lib/App/Sqitch/Command/verify.pm:89
+#, perl-brace-format
+msgid "Too many targets specified; connecting to {target}"
+msgstr "指定的目标过多；正在连接到 {target}"
+
+#: lib/App/Sqitch/Command/check.pm:97
+#, perl-brace-format
+msgid "Too many changes specified; checking from \"{from}\" to \"{to}\""
+msgstr "指定的更改过多；正在检查从 \"{from}\" 到 \"{to}\""
+
+#: lib/App/Sqitch/Command/checkout.pm:65
+#, perl-brace-format
+msgid "Already on branch {branch}"
+msgstr "已经在分支 {branch}"
+
+#: lib/App/Sqitch/Command/checkout.pm:101
+#, perl-brace-format
+msgid "Branch {branch} has no changes in common with current branch {current}"
+msgstr "分支 {branch} 与当前分支 {current} 没有任何共同的更改"
+
+#: lib/App/Sqitch/Command/checkout.pm:107
+#, perl-brace-format
+msgid "Last change before the branches diverged: {last_change}"
+msgstr "分支分叉前的最后更改：{last_change}"
+
+#: lib/App/Sqitch/Command/config.pm:129
+#, perl-brace-format
+msgid "Unknown config action: {action}"
+msgstr "未知配置操作: {action}"
+
+#: lib/App/Sqitch/Command/config.pm:149
+#, perl-brace-format
+msgid "More then one value for the key \"{key}\""
+msgstr "键 \"{key}\" 有多个值"
+
+#: lib/App/Sqitch/Command/config.pm:261
+msgid "Cannot overwrite multiple values with a single value"
+msgstr "无法用单个值覆盖多个值"
+
+#: lib/App/Sqitch/Command/config.pm:291
+msgid "Cannot unset key with multiple values"
+msgstr "无法取消设置具有多个值的键"
+
+#: lib/App/Sqitch/Command/config.pm:344 lib/App/Sqitch/Command/config.pm:361
+msgid "No such section!"
+msgstr "无此部分！"
+
+#: lib/App/Sqitch/Command/deploy.pm:125
+#, perl-brace-format
+msgid "Too many changes specified; deploying to \"{change}\""
+msgstr "指定的更改太多；正在部署到“{change}”"
+
+#: lib/App/Sqitch/Command/engine.pm:26 lib/App/Sqitch/Command/engine.pm:156
+#: lib/App/Sqitch/Role/TargetConfigCommand.pm:121
+#, perl-brace-format
+msgid "Unknown engine \"{engine}\""
+msgstr "未知引擎 \"{engine}\""
+
+#: lib/App/Sqitch/Command/engine.pm:40 lib/App/Sqitch/Command/target.pm:33
+#, perl-brace-format
+msgid "Unknown action \"{action}\""
+msgstr "未知操作 \"{action}\""
+
+#: lib/App/Sqitch/Command/engine.pm:71
+#, perl-brace-format
+msgid "Cannot assign URI using engine \"{new}\" to engine \"{old}\""
+msgstr "无法将新引擎“{new}”的 URI 分配给旧引擎“{old}”"
+
+#: lib/App/Sqitch/Command/engine.pm:81 lib/App/Sqitch/Command/target.pm:148
+#, perl-brace-format
+msgid "Unknown target \"{target}\""
+msgstr "未知目标 \"{target}\""
+
+#: lib/App/Sqitch/Command/engine.pm:95
+#, perl-brace-format
+msgid "Engine \"{engine}\" already exists"
+msgstr "引擎“{engine}”已存在"
+
+#: lib/App/Sqitch/Command/engine.pm:126
+#, perl-brace-format
+msgid "Missing Engine \"{engine}\"; use \"{command}\" to add it"
+msgstr "缺少引擎“{engine}”；使用“{command}”添加它"
+
+#: lib/App/Sqitch/Command/engine.pm:133
+msgid "Cannot unset an engine target"
+msgstr "无法取消引擎目标"
+
+#: lib/App/Sqitch/Command/engine.pm:179
+msgid "Target"
+msgstr "目标"
+
+#: lib/App/Sqitch/Command/engine.pm:180 lib/App/Sqitch/Command/target.pm:172
+msgid "Registry"
+msgstr "注册"
+
+#: lib/App/Sqitch/Command/engine.pm:181 lib/App/Sqitch/Command/target.pm:173
+msgid "Client"
+msgstr "客户端"
+
+#: lib/App/Sqitch/Command/engine.pm:182 lib/App/Sqitch/Command/target.pm:174
+msgid "Top Directory"
+msgstr "顶层目录"
+
+#: lib/App/Sqitch/Command/engine.pm:183 lib/App/Sqitch/Command/target.pm:175
+msgid "Plan File"
+msgstr "计划文件"
+
+#: lib/App/Sqitch/Command/engine.pm:184 lib/App/Sqitch/Command/target.pm:176
+msgid "Extension"
+msgstr "扩展"
+
+#: lib/App/Sqitch/Command/engine.pm:185 lib/App/Sqitch/Command/target.pm:177
+#: lib/App/Sqitch/ItemFormatter.pm:61
+msgid "Revert"
+msgstr "撤销"
+
+#: lib/App/Sqitch/Command/engine.pm:186 lib/App/Sqitch/Command/target.pm:178
+#: lib/App/Sqitch/ItemFormatter.pm:60
+msgid "Deploy"
+msgstr "部署"
+
+#: lib/App/Sqitch/Command/engine.pm:187 lib/App/Sqitch/Command/target.pm:179
+msgid "Verify"
+msgstr "验证"
+
+#: lib/App/Sqitch/Command/engine.pm:188 lib/App/Sqitch/Command/target.pm:180
+msgid "Reworked"
+msgstr "重写"
+
+#: lib/App/Sqitch/Command/engine.pm:195 lib/App/Sqitch/Command/target.pm:187
+msgid "Script Directories"
+msgstr "脚本目录"
+
+#: lib/App/Sqitch/Command/engine.pm:196 lib/App/Sqitch/Command/target.pm:188
+msgid "Reworked Script Directories"
+msgstr "重写后的脚本目录"
+
+#: lib/App/Sqitch/Command/engine.pm:197 lib/App/Sqitch/Command/target.pm:189
+msgid "Variables"
+msgstr "变量"
+
+#: lib/App/Sqitch/Command/engine.pm:198 lib/App/Sqitch/Command/target.pm:190
+msgid "No Variables"
+msgstr "无变量"
+
+#: lib/App/Sqitch/Command/help.pm:46
+#, perl-brace-format
+msgid "No manual entry for {command}"
+msgstr "没有 {command} 的手册条目"
+
+#: lib/App/Sqitch/Command/init.pm:50
+#, perl-brace-format
+msgid ""
+"invalid project name \"{project}\": project names must not begin with punctuation, "
+"contain \"@\", \":\", \"#\", \"[\", \"]\", or blanks, or end in punctuation or digits "
+"following punctuation"
+msgstr ""
+"无效的项目名称“{project}”：项目名称不得以标点符号开头，包含“@”、“:”、“#”、“[”、“]”或空格，"
+"也不得以标点符号结尾，也不得以数字连接标点符号的形式结尾"
+
+#: lib/App/Sqitch/Command/log.pm:183
+#, perl-brace-format
+msgid "Unknown log format \"{format}\""
+msgstr "未知的日志格式 \"{format}\""
+
+#: lib/App/Sqitch/Command/log.pm:222 lib/App/Sqitch/Command/status.pm:131
+#, perl-brace-format
+msgid "Database {db} has not been initialized for Sqitch"
+msgstr "数据库 {db} 尚未为 Sqitch 初始化"
+
+#: lib/App/Sqitch/Command/log.pm:233
+#, perl-brace-format
+msgid "No events logged for {db}"
+msgstr "未记录 {db} 的任何事件"
+
+#: lib/App/Sqitch/Command/log.pm:252 lib/App/Sqitch/Command/status.pm:119
+#, perl-brace-format
+msgid "On database {db}"
+msgstr "在数据库 {db}"
+
+#: lib/App/Sqitch/Command/plan.pm:170
+#, perl-brace-format
+msgid "Unknown plan format \"{format}\""
+msgstr "未知计划格式 \"{format}\""
+
+#: lib/App/Sqitch/Command/plan.pm:199 lib/App/Sqitch/Command/upgrade.pm:39
+#, perl-brace-format
+msgid "Too many targets specified; using {target}"
+msgstr "指定了太多目标；使用 {target}"
+
+#: lib/App/Sqitch/Command/plan.pm:209
+#, perl-brace-format
+msgid "No changes in {file}"
+msgstr "在 {file} 中没有更改"
+
+#: lib/App/Sqitch/Command/plan.pm:228
+#, perl-brace-format
+msgid "Project: {project}"
+msgstr "项目：{project}"
+
+#: lib/App/Sqitch/Command/plan.pm:229
+#, perl-brace-format
+msgid "File:    {file}"
+msgstr "文件：    {file}"
+
+#: lib/App/Sqitch/Command/rebase.pm:74
+#, perl-brace-format
+msgid "Too many changes specified; rebasing onto \"{onto}\" up to \"{upto}\""
+msgstr "指定的更改太多；正在重定位到 \"{onto}\" 直到 \"{upto}\""
+
+#: lib/App/Sqitch/Command/revert.pm:150
+msgid "Must specify a target revision in strict mode"
+msgstr "在严格模式下，必须指定目标版本"
+
+#: lib/App/Sqitch/Command/revert.pm:158
+msgid "Too many changes specified"
+msgstr "指定的更改太多"
+
+#: lib/App/Sqitch/Command/revert.pm:163
+#, perl-brace-format
+msgid "Too many changes specified; reverting to \"{change}\""
+msgstr "指定的更改过多；正在还原到“{change}”"
+
+#: lib/App/Sqitch/Command/rework.pm:153
+msgid "rework"
+msgstr "重做"
+
+#: lib/App/Sqitch/Command/rework.pm:171
+#, perl-brace-format
+msgid "Added \"{change}\" to {file}."
+msgstr "添加了“{change}”到{file}。"
+
+#: lib/App/Sqitch/Command/rework.pm:179
+msgid "Modify this file as appropriate:"
+msgid_plural "Modify these files as appropriate:"
+msgstr[0] "根据需要修改此文件："
+msgstr[1] ""
+
+#: lib/App/Sqitch/Command/rework.pm:199
+#, perl-brace-format
+msgid "Skipped {dest}: {src} does not exist"
+msgstr "跳过 {dest}: {src} 不存在"
+
+#: lib/App/Sqitch/Command/rework.pm:211
+#, perl-brace-format
+msgid "Cannot copy {src} to {dest}: {error}"
+msgstr "无法将 {src} 复制到 {dest}：{error}"
+
+#: lib/App/Sqitch/Command/rework.pm:218
+#, perl-brace-format
+msgid "Copied {src} to {dest}"
+msgstr "已将 {src} 复制到 {dest}"
+
+#: lib/App/Sqitch/Command/show.pm:73 lib/App/Sqitch/Plan/ChangeList.pm:72
+#, perl-brace-format
+msgid "Unknown tag \"{tag}\""
+msgstr "未知标签 \"{tag}\""
+
+#: lib/App/Sqitch/Command/show.pm:81
+#, perl-brace-format
+msgid "Unknown object type \"{type}"
+msgstr "未知对象类型 \"{type}\""
+
+#: lib/App/Sqitch/Command/show.pm:89
+#, perl-brace-format
+msgid "Unknown change \"{change}\""
+msgstr "未知更改 \"{change}\""
+
+#: lib/App/Sqitch/Command/show.pm:104
+#, perl-brace-format
+msgid "File \"{path}\" does not exist"
+msgstr "文件“{path}”不存在"
+
+#: lib/App/Sqitch/Command/show.pm:106
+#, perl-brace-format
+msgid "\"{path}\" is not a file"
+msgstr "\"{path}\" 不是文件"
+
+#: lib/App/Sqitch/Command/status.pm:77
+msgid "Database not initialized for Sqitch"
+msgstr "Sqitch 的数据库未初始化"
+
+#: lib/App/Sqitch/Command/status.pm:80
+msgid "No projects registered"
+msgstr "没有注册的项目"
+
+#: lib/App/Sqitch/Command/status.pm:82
+#, perl-brace-format
+msgid "Use --project to select which project to query: {projects}"
+msgstr "使用 --project 选择要查询的项目: {projects}"
+
+#: lib/App/Sqitch/Command/status.pm:83 lib/App/Sqitch/Command/status.pm:206
+#: lib/App/Sqitch/Role/TargetConfigCommand.pm:99
+msgid ", "
+msgstr "，"
+
+#: lib/App/Sqitch/Command/status.pm:138 lib/App/Sqitch/Engine.pm:455
+#: lib/App/Sqitch/Engine.pm:1300
+msgid "No changes deployed"
+msgstr "未部署任何更改"
+
+#: lib/App/Sqitch/Command/status.pm:156
+#, perl-brace-format
+msgid "Status unknown. Use --plan-file to assess \"{project}\" status"
+msgstr "状态未知。使用 --plan-file 来评估 \"{project}\" 的状态"
+
+#: lib/App/Sqitch/Command/status.pm:190
+#, perl-brace-format
+msgid "Project:  {project}"
+msgstr "项目：  {project}"
+
+#: lib/App/Sqitch/Command/status.pm:194
+#, perl-brace-format
+msgid "Change:   {change_id}"
+msgstr "更改：   {change_id}"
+
+#: lib/App/Sqitch/Command/status.pm:198
+#, perl-brace-format
+msgid "Name:     {change}"
+msgstr "姓名：     {change}"
+
+#: lib/App/Sqitch/Command/status.pm:203
+#, perl-brace-format
+msgid "Tag:      {tags}"
+msgid_plural "Tags:     {tags}"
+msgstr[0] "标签：      {tags}"
+msgstr[1] "标签：      {tags}"
+
+#: lib/App/Sqitch/Command/status.pm:211
+#, perl-brace-format
+msgid "Deployed: {date}"
+msgstr "已部署：{date}"
+
+#: lib/App/Sqitch/Command/status.pm:217
+#, perl-brace-format
+msgid "By:       {name} <{email}>"
+msgstr "作者：      {name} <{email}>"
+
+#: lib/App/Sqitch/Command/status.pm:240
+msgid "Change:"
+msgid_plural "Changes:"
+msgstr[0] "更改："
+msgstr[1] ""
+
+#: lib/App/Sqitch/Command/status.pm:269
+msgid "Tags: None."
+msgstr "标签: 无。"
+
+#: lib/App/Sqitch/Command/status.pm:273
+msgid "Tag:"
+msgid_plural "Tags:"
+msgstr[0] "标签："
+msgstr[1] ""
+
+#: lib/App/Sqitch/Command/status.pm:299
+#, perl-brace-format
+msgid "Cannot find this change in {file}"
+msgstr "无法在 {file} 中找到此更改"
+
+#: lib/App/Sqitch/Command/status.pm:302
+msgid "Make sure you are connected to the proper database for this project."
+msgstr "确保您已连接到此项目的正确数据库。"
+
+#: lib/App/Sqitch/Command/status.pm:308 lib/App/Sqitch/Engine.pm:240
+msgid "Nothing to deploy (up-to-date)"
+msgstr "无需部署（已是最新）"
+
+#: lib/App/Sqitch/Command/status.pm:311 lib/App/Sqitch/Engine.pm:610
+msgid "Undeployed change:"
+msgid_plural "Undeployed changes:"
+msgstr[0] "未部署的变更："
+msgstr[1] ""
+
+#: lib/App/Sqitch/Command/tag.pm:80
+msgid "tag"
+msgstr "标签"
+
+#: lib/App/Sqitch/Command/tag.pm:88
+#, perl-brace-format
+msgid "Tagged \"{change}\" with {tag} in {file}"
+msgstr "已将“{change}”用{tag}标记在{file}中"
+
+#: lib/App/Sqitch/Command/tag.pm:100
+#, perl-brace-format
+msgid "Name \"{name}\" identifies a target; use \"--tag {name}\" to use it for the tag name"
+msgstr "名称“{name}”标识一个目标；使用“--tag {name}”将其用作标签名称"
+
+#: lib/App/Sqitch/Command/target.pm:62
+#, perl-brace-format
+msgid "Target \"{target}\" already exists"
+msgstr "目标“{target}”已存在"
+
+#: lib/App/Sqitch/Command/target.pm:90
+#, perl-brace-format
+msgid "Missing Target \"{target}\"; use \"{command}\" to add it"
+msgstr "缺少目标“{target}”；使用“{command}”添加它"
+
+#: lib/App/Sqitch/Command/target.pm:106 lib/App/Sqitch/Command/target.pm:119
+#, perl-brace-format
+msgid "Cannot rename target \"{target}\" because it's referenced by: {engines}"
+msgstr "无法重命名目标“{target}”，因为它正被 {engines} 使用"
+
+#: lib/App/Sqitch/Command/target.pm:171
+msgid "URI"
+msgstr "URI"
+
+#: lib/App/Sqitch/Command/upgrade.pm:47
+#, perl-brace-format
+msgid "Upgrading registry {registry} to version {version}"
+msgstr "升级注册表 {registry} 到版本 {version}"
+
+#: lib/App/Sqitch/Command/upgrade.pm:54
+#, perl-brace-format
+msgid "Registry {registry} is up-to-date at version {version}"
+msgstr "注册表 {registry} 已更新至版本 {version}"
+
+#: lib/App/Sqitch/Command/verify.pm:97
+#, perl-brace-format
+msgid "Too many changes specified; verifying from \"{from}\" to \"{to}\""
+msgstr "指定的更改过多；正在验证从“{from}”到“{to}”"
+
+#: lib/App/Sqitch/Config.pm:29
+msgid "Could not determine home directory"
+msgstr "无法确定主目录"
+
+#: lib/App/Sqitch/DateTime.pm:33 lib/App/Sqitch/DateTime.pm:71
+#, perl-brace-format
+msgid "Unknown date format \"{format}\""
+msgstr "未知日期格式 \"{format}\""
+
+#: lib/App/Sqitch/Engine.pm:168 lib/App/Sqitch/Engine.pm:183
+#: lib/App/Sqitch/Role/TargetConfigCommand.pm:162 lib/App/Sqitch/Target.pm:254
+msgid "No engine specified; specify via target or core.engine"
+msgstr "未指定引擎；通过 target 或 core.engine 指定"
+
+#: lib/App/Sqitch/Engine.pm:173
+#, perl-brace-format
+msgid "Unknown engine: {engine}"
+msgstr "未知引擎：{engine}"
+
+#: lib/App/Sqitch/Engine.pm:205
+#, perl-brace-format
+msgid "{driver} required to manage {engine}"
+msgstr "需要 {driver} 来管理 {engine}"
+
+#: lib/App/Sqitch/Engine.pm:220
+msgid "Nothing to deploy (empty plan)"
+msgstr "没有要部署的内容（空计划）"
+
+#: lib/App/Sqitch/Engine.pm:224 lib/App/Sqitch/Engine.pm:350 lib/App/Sqitch/Plan.pm:749
+#: lib/App/Sqitch/Plan/ChangeList.pm:121
+#, perl-brace-format
+msgid "Unknown change: \"{change}\""
+msgstr "未知更改：\"{change}\""
+
+#: lib/App/Sqitch/Engine.pm:231
+#, perl-brace-format
+msgid "Nothing to deploy (already at \"{change}\")"
+msgstr "无需部署（已位于“{change}”）"
+
+#: lib/App/Sqitch/Engine.pm:249
+#, perl-brace-format
+msgid "Adding registry tables to {destination}"
+msgstr "正在向 {destination} 添加注册表"
+
+#: lib/App/Sqitch/Engine.pm:258
+msgid "Cannot deploy to an earlier change; use \"revert\" instead"
+msgstr "无法部署到较早的更改；请改用“revert”"
+
+#: lib/App/Sqitch/Engine.pm:266
+#, perl-brace-format
+msgid "Deploying changes through {change} to {destination}"
+msgstr "通过 {change} 将更改部署到 {destination}"
+
+#: lib/App/Sqitch/Engine.pm:270
+#, perl-brace-format
+msgid "Deploying changes to {destination}"
+msgstr "正在部署更改到 {destination}"
+
+#: lib/App/Sqitch/Engine.pm:275
+msgid "Will deploy the following changes:"
+msgstr "将部署以下更改："
+
+#: lib/App/Sqitch/Engine.pm:288
+#, perl-brace-format
+msgid "Unknown deployment mode: \"{mode}\""
+msgstr "未知的部署模式：\"{mode}\""
+
+#: lib/App/Sqitch/Engine.pm:316
+msgid "Missing required parameter $prompt_default"
+msgstr "缺少必需的参数 $prompt_default"
+
+#: lib/App/Sqitch/Engine.pm:344
+#, perl-brace-format
+msgid "Change not deployed: \"{change}\""
+msgstr "变更未部署：\"{change}\""
+
+#: lib/App/Sqitch/Engine.pm:361
+#, perl-brace-format
+msgid "No changes deployed since: \"{change}\""
+msgstr "自 \"{change}\" 以来未部署任何更改"
+
+#: lib/App/Sqitch/Engine.pm:371
+#, perl-brace-format
+msgid "Reverting changes to {change} from {destination}"
+msgstr "正在还原 {change} 的更改（来自 {destination}）"
+
+#: lib/App/Sqitch/Engine.pm:375 lib/App/Sqitch/Engine.pm:405
+msgid "Will revert the following changes:"
+msgstr "将还原以下更改："
+
+#: lib/App/Sqitch/Engine.pm:378 lib/App/Sqitch/Engine.pm:408
+msgid "Would revert the following changes:"
+msgstr "将还原以下更改："
+
+#: lib/App/Sqitch/Engine.pm:382 lib/App/Sqitch/Engine.pm:412
+msgid "Nothing reverted"
+msgstr "没有还原"
+
+#: lib/App/Sqitch/Engine.pm:385
+#, perl-brace-format
+msgid "Revert changes to {change} from {destination}?"
+msgstr "撤销从 {destination} 到 {change} 的更改？"
+
+#: lib/App/Sqitch/Engine.pm:394
+msgid "Nothing to revert (nothing deployed)"
+msgstr "没有可撤销的（未部署）"
+
+#: lib/App/Sqitch/Engine.pm:402
+#, perl-brace-format
+msgid "Reverting all changes from {destination}"
+msgstr "正在从 {destination} 撤销所有更改"
+
+#: lib/App/Sqitch/Engine.pm:415
+#, perl-brace-format
+msgid "Revert all changes from {destination}?"
+msgstr "从 {destination} 撤销所有更改？"
+
+#: lib/App/Sqitch/Engine.pm:449
+#, perl-brace-format
+msgid "Verifying {destination}"
+msgstr "正在验证 {destination}"
+
+#: lib/App/Sqitch/Engine.pm:456
+msgid "Nothing to verify (no planned or deployed changes)"
+msgstr "无需验证（无计划或已部署的更改）"
+
+#: lib/App/Sqitch/Engine.pm:463
+msgid "There are deployed changes, but none planned!"
+msgstr "有已部署的更改，但没有计划！"
+
+#: lib/App/Sqitch/Engine.pm:476
+msgid "Verify Summary Report"
+msgstr "验证摘要报告"
+
+#: lib/App/Sqitch/Engine.pm:479
+#, perl-brace-format
+msgid "Changes: {number}"
+msgstr "更改：{number}"
+
+#: lib/App/Sqitch/Engine.pm:480
+#, perl-brace-format
+msgid "Errors:  {number}"
+msgstr "错误：{number}"
+
+#: lib/App/Sqitch/Engine.pm:481
+msgid "Verify failed"
+msgstr "验证失败"
+
+#: lib/App/Sqitch/Engine.pm:486
+msgid "Verify successful"
+msgstr "验证成功"
+
+#: lib/App/Sqitch/Engine.pm:515
+#, perl-brace-format
+msgid "Change \"{change}\" has not been deployed"
+msgstr "变更“{change}”尚未部署"
+
+#: lib/App/Sqitch/Engine.pm:518
+#, perl-brace-format
+msgid "Cannot find \"{change}\" in the database or the plan"
+msgstr "无法在数据库或计划中找到“{change}”"
+
+#: lib/App/Sqitch/Engine.pm:525
+#, perl-brace-format
+msgid "Change \"{change}\" is deployed, but not planned"
+msgstr "变更“{change}”已部署，但未计划"
+
+#: lib/App/Sqitch/Engine.pm:569
+msgid "Out of order"
+msgstr "故障"
+
+#: lib/App/Sqitch/Engine.pm:575
+msgid "Not present in the plan"
+msgstr "不在计划中"
+
+#: lib/App/Sqitch/Engine.pm:586 lib/App/Sqitch/Engine.pm:598 lib/App/Sqitch/Engine.pm:1075
+#: lib/App/Sqitch/Engine.pm:1110
+msgid "not ok"
+msgstr "不行"
+
+#: lib/App/Sqitch/Engine.pm:586 lib/App/Sqitch/Engine.pm:1053 lib/App/Sqitch/Engine.pm:1100
+msgid "ok"
+msgstr "好"
+
+#: lib/App/Sqitch/Engine.pm:600
+msgid "Not deployed"
+msgstr "未部署"
+
+#: lib/App/Sqitch/Engine.pm:632
+#, perl-brace-format
+msgid "Verify script \"{script}\" failed."
+msgstr "验证脚本“{script}”失败。"
+
+#: lib/App/Sqitch/Engine.pm:641
+#, perl-brace-format
+msgid "Verify script {file} does not exist"
+msgstr "验证脚本 {file} 不存在"
+
+#: lib/App/Sqitch/Engine.pm:683
+#, perl-brace-format
+msgid "Conflicts with previously deployed change: {changes}"
+msgid_plural "Conflicts with previously deployed changes: {changes}"
+msgstr[0] "与先前部署的更改冲突：{changes}"
+msgstr[1] "与先前部署的更改冲突：{changes}"
+
+#: lib/App/Sqitch/Engine.pm:690
+#, perl-brace-format
+msgid "Missing required change: {changes}"
+msgid_plural "Missing required changes: {changes}"
+msgstr[0] "缺少必需的更改：{changes}"
+msgstr[1] "缺少必需的更改：{changes}"
+
+#: lib/App/Sqitch/Engine.pm:702
+#, perl-brace-format
+msgid "Change \"{changes}\" has already been deployed"
+msgid_plural "Changes have already been deployed: {changes}"
+msgstr[0] "更改 ”{changes}”已部署"
+msgstr[1] "更改 ”{changes}”已部署"
+
+#: lib/App/Sqitch/Engine.pm:725
+#, perl-brace-format
+msgid "Change \"{change}\" required by currently deployed change: {changes}"
+msgid_plural "Change \"{change}\" required by currently deployed changes: {changes}"
+msgstr[0] "当前的部署: {changes} 要求变更 ”{change}”"
+msgstr[1] "当前的部署: {changes} 要求变更 ”{change}”"
+
+#: lib/App/Sqitch/Engine.pm:748
+#, perl-brace-format
+msgid "Invalid dependency: {dependency}"
+msgstr "无效依赖: {dependency}"
+
+#: lib/App/Sqitch/Engine.pm:884 lib/App/Sqitch/Plan/ChangeList.pm:88
+#, perl-brace-format
+msgid "Change \"{change}\" is ambiguous. Please specify a tag-qualified change:"
+msgstr "更改“{change}”不明确。请指定带标签的更改："
+
+#: lib/App/Sqitch/Engine.pm:899
+msgid "Change Lookup Failed"
+msgstr "查找更改失败"
+
+#: lib/App/Sqitch/Engine.pm:920
+#, perl-brace-format
+msgid "Reverting to {change}"
+msgstr "还原到 {change}"
+
+#: lib/App/Sqitch/Engine.pm:921
+msgid "Reverting all changes"
+msgstr "还原所有更改"
+
+#: lib/App/Sqitch/Engine.pm:929
+msgid "The schema will need to be manually repaired"
+msgstr "数据库结构需要手动修复"
+
+#: lib/App/Sqitch/Engine.pm:933 lib/App/Sqitch/Engine.pm:1069
+msgid "Deploy failed"
+msgstr "部署失败"
+
+#: lib/App/Sqitch/Engine.pm:993
+#, perl-brace-format
+msgid "Cannot find change {id} ({change}) in {file}"
+msgstr "在 {file} 中找不到更改 {id} ({change})"
+
+#: lib/App/Sqitch/Engine.pm:1046
+#, perl-brace-format
+msgid "Deploy script {file} does not exist"
+msgstr "部署脚本 {file} 不存在"
+
+#: lib/App/Sqitch/Engine.pm:1094
+#, perl-brace-format
+msgid "Revert script {file} does not exist"
+msgstr "还原脚本 {file} 不存在"
+
+#: lib/App/Sqitch/Engine.pm:1125
+#, perl-brace-format
+msgid "Blocked by another instance of Sqitch working on {dest}; waiting {secs} seconds..."
+msgstr "被另一个正在处理 {dest} 的 Sqitch 实例阻塞；等待 {secs} 秒..."
+
+#: lib/App/Sqitch/Engine.pm:1135
+#, perl-brace-format
+msgid ""
+"Timed out waiting {secs} seconds for another instance of Sqitch to finish work on {dest}"
+msgstr "等待 {secs} 秒超时，另一个 Sqitch 实例未能在 {dest} 上完成工作"
+
+#: lib/App/Sqitch/Engine.pm:1194
+#, perl-brace-format
+msgid "No registry found in {destination}. Have you ever deployed?"
+msgstr "在 {destination} 中未找到注册表。您是否已部署过？"
+
+#: lib/App/Sqitch/Engine.pm:1199
+#, perl-brace-format
+msgid "Registry version is {old} but {new} is the latest known. Please upgrade Sqitch"
+msgstr "注册版本为 {old}，但 {new} 是已知最新版本。请升级 Sqitch"
+
+#: lib/App/Sqitch/Engine.pm:1205
+#, perl-brace-format
+msgid "Registry is at version {old} but latest is {new}. Please run the \"upgrade\" command"
+msgstr "Registry 的版本为 {old}，但最新版本为 {new}。请运行 \"upgrade\" 命令"
+
+#: lib/App/Sqitch/Engine.pm:1220
+#, perl-brace-format
+msgid "Registry version is {old} but {new} is the latest known. Please upgrade Sqitch."
+msgstr "注册版本是 {old}，但 {new} 是已知的最新版本。请升级 Sqitch。"
+
+#: lib/App/Sqitch/Engine.pm:1235
+#, perl-brace-format
+msgid "Cannot upgrade to {version}: Cannot find upgrade script \"{file}\""
+msgstr "无法升级到 {version}: 找不到升级脚本 \"{file}\""
+
+#: lib/App/Sqitch/Engine.pm:1242
+#, perl-brace-format
+msgid "Upgrading the Sqitch registry from {old} to {new}"
+msgstr "将 Sqitch 注册表从 {old} 升级到 {new}"
+
+#: lib/App/Sqitch/Engine.pm:1249
+#, perl-brace-format
+msgid "From {old} to {new}"
+msgstr "从 {old} 到 {new}"
+
+#: lib/App/Sqitch/Engine.pm:1294
+#, perl-brace-format
+msgid "Checking {destination}"
+msgstr "正在检查 {destination}"
+
+#: lib/App/Sqitch/Engine.pm:1301
+msgid "Nothing to check (no planned or deployed changes)"
+msgstr "无需检查（无计划或已部署的更改）"
+
+#: lib/App/Sqitch/Engine.pm:1314
+#, perl-brace-format
+msgid "Script signatures diverge at change {change}"
+msgstr "脚本签名在变更 {change} 处分歧"
+
+#: lib/App/Sqitch/Engine.pm:1322
+#, perl-brace-format
+msgid "Failed one check"
+msgid_plural "Failed {count} checks"
+msgstr[0] "一个检查失败了"
+msgstr[1] "{count} 个检查失败了"
+
+#: lib/App/Sqitch/Engine.pm:1330
+msgid "Check successful"
+msgstr "检查成功"
+
+#: lib/App/Sqitch/Engine/clickhouse.pm:70
+#, perl-brace-format
+msgid ""
+"Client config {cfg_key} value \"{cfg_val}\" conflicts with ODBC param {odb_param} value "
+"\"{odbc_val}\""
+msgstr ""
+"客户端配置 {cfg_key} 值 \"{cfg_val}\" 与 ODBC 参数 {odb_param} 值 \"{odbc_val}\" 冲突"
+
+#: lib/App/Sqitch/Engine/clickhouse.pm:284 lib/App/Sqitch/Engine/mysql.pm:145
+#, perl-brace-format
+msgid "Database name missing in URI \"{uri}\""
+msgstr "URI \"{uri}\" 中缺少数据库名称"
+
+#: lib/App/Sqitch/Engine/clickhouse.pm:362 lib/App/Sqitch/Engine/firebird.pm:935
+#, perl-brace-format
+msgid "Unable to locate {cli} client; set \"engine.{eng}.client\" via sqitch config"
+msgstr "无法找到 {cli} 客户端；通过 sqitch config 设置 \"engine.{eng}.client\""
+
+#: lib/App/Sqitch/Engine/clickhouse.pm:428 lib/App/Sqitch/Engine/firebird.pm:205
+#: lib/App/Sqitch/Engine/sqlite.pm:153
+#, perl-brace-format
+msgid "Sqitch database {database} already initialized"
+msgstr "Sqitch 数据库 {database} 已经初始化"
+
+#: lib/App/Sqitch/Engine/exasol.pm:317 lib/App/Sqitch/Engine/oracle.pm:456
+msgid "Sqitch already initialized"
+msgstr "Sqitch 已经初始化"
+
+#: lib/App/Sqitch/Engine/exasol.pm:385 lib/App/Sqitch/Engine/oracle.pm:586
+#, perl-brace-format
+msgid "Cannot remove {file}: {error}"
+msgstr "无法删除 {file}: {error}"
+
+#: lib/App/Sqitch/Engine/exasol.pm:394 lib/App/Sqitch/Engine/oracle.pm:595
+#, perl-brace-format
+msgid "Cannot copy {file} to {alias}: {error}"
+msgstr "无法将 {file} 复制到 {alias}: {error}"
+
+#: lib/App/Sqitch/Engine/exasol.pm:403 lib/App/Sqitch/Engine/oracle.pm:604
+#, perl-brace-format
+msgid "Cannot symlink {file} to {alias}: {error}"
+msgstr "无法将 {file} 符号链接到 {alias}：{error}"
+
+#: lib/App/Sqitch/Engine/exasol.pm:516
+#, perl-brace-format
+msgid "{command} unexpectedly failed; exit value = {exitval}"
+msgstr "{command} 意外失败；退出值 = {exitval}"
+
+#: lib/App/Sqitch/Engine/firebird.pm:224
+#, perl-brace-format
+msgid "Cannot create database {database}: {error}"
+msgstr "无法创建数据库 {database}: {error}"
+
+#: lib/App/Sqitch/Engine/firebird.pm:238 lib/App/Sqitch/Engine/sqlite.pm:122
+#, perl-brace-format
+msgid "Database name missing in URI {uri}"
+msgstr "URI {uri} 中缺少数据库名称"
+
+#: lib/App/Sqitch/Engine/firebird.pm:839 lib/App/Sqitch/Role/DBIEngine.pm:536
+#, perl-brace-format
+msgid "Cannot log change \"{change}\": The deploy script is not unique"
+msgstr "无法记录更改“{change}”：部署脚本不唯一"
+
+#: lib/App/Sqitch/Engine/firebird.pm:903 lib/App/Sqitch/Engine/firebird.pm:921
+#: lib/App/Sqitch/Engine/firebird.pm:932
+#, perl-brace-format
+msgid "Cannot dup STDERR: {error}"
+msgstr "无法复制标准错误流: {error}"
+
+#: lib/App/Sqitch/Engine/firebird.pm:907
+#, perl-brace-format
+msgid "Cannot reirect STDERR: {error}"
+msgstr "无法重定向标准错误流: {error}"
+
+#: lib/App/Sqitch/Engine/mysql.pm:113
+#, perl-brace-format
+msgid "Sqitch requires {rdbms} {want_version} or higher; this is {have_version}"
+msgstr "Sqitch 需要 {rdbms} {want_version} 或更高；当前版本是 {have_version}"
+
+#: lib/App/Sqitch/Engine/mysql.pm:518
+msgid "Insufficient permissions to create the checkit() function; skipping."
+msgstr "权限不足，无法创建 checkit() 函数；跳过。"
+
+#: lib/App/Sqitch/Engine/pg.pm:202 lib/App/Sqitch/Engine/snowflake.pm:298
+#: lib/App/Sqitch/Engine/vertica.pm:137
+#, perl-brace-format
+msgid "Sqitch schema \"{schema}\" already exists"
+msgstr "Sqitch 模式 \"{schema}\" 已存在"
+
+#: lib/App/Sqitch/Engine/pg.pm:449
+msgid "Sqitch registry not initialized"
+msgstr "Sqitch 注册表未初始化"
+
+#: lib/App/Sqitch/Engine/pg.pm:450
+msgid ""
+"Because the \"changes\" table does not exist, Sqitch will now initialize the database to "
+"create its registry tables."
+msgstr "因为 \"changes\" 表不存在，Sqitch 现在将初始化数据库以创建其注册表。"
+
+#: lib/App/Sqitch/Engine/snowflake.pm:120
+msgid "Cannot determine Snowflake account name"
+msgstr "无法确定 Snowflake 账户名称"
+
+#: lib/App/Sqitch/Engine/sqlite.pm:93
+#, perl-brace-format
+msgid "Sqitch requires SQLite 3.8.6 or later; DBD::SQLite was built with {version}"
+msgstr "Sqitch 需要 SQLite 3.8.6 或更高版本；DBD::SQLite 是使用 {version} 构建的"
+
+#: lib/App/Sqitch/Engine/sqlite.pm:116
+#, perl-brace-format
+msgid "Sqitch requires SQLite 3.3.9 or later; {client} is {version}"
+msgstr "Sqitch 需要 SQLite 3.3.9 或更高版本；{client} 是 {version}"
+
+#: lib/App/Sqitch/ItemFormatter.pm:62
+msgid "Fail"
+msgstr "失败"
+
+#: lib/App/Sqitch/ItemFormatter.pm:67
+msgid "deploy"
+msgstr "部署"
+
+#: lib/App/Sqitch/ItemFormatter.pm:68
+msgid "revert"
+msgstr "回滚"
+
+#: lib/App/Sqitch/ItemFormatter.pm:69
+msgid "fail"
+msgstr "失败"
+
+#: lib/App/Sqitch/ItemFormatter.pm:74
+msgid "No label passed to the _ format"
+msgstr "未将标签传递给 _ 格式"
+
+#: lib/App/Sqitch/ItemFormatter.pm:76
+msgid "Event:    "
+msgstr "事件："
+
+#: lib/App/Sqitch/ItemFormatter.pm:77
+msgid "Change:   "
+msgstr "更改："
+
+#: lib/App/Sqitch/ItemFormatter.pm:78
+msgid "Committer:"
+msgstr "提交者："
+
+#: lib/App/Sqitch/ItemFormatter.pm:79
+msgid "Planner:  "
+msgstr "计划者："
+
+#: lib/App/Sqitch/ItemFormatter.pm:80
+msgid "By:       "
+msgstr "由："
+
+#: lib/App/Sqitch/ItemFormatter.pm:81
+msgid "Date:     "
+msgstr "日期："
+
+#: lib/App/Sqitch/ItemFormatter.pm:82
+msgid "Committed:"
+msgstr "已提交："
+
+#: lib/App/Sqitch/ItemFormatter.pm:83
+msgid "Planned:  "
+msgstr "计划："
+
+#: lib/App/Sqitch/ItemFormatter.pm:84
+msgid "Name:     "
+msgstr "名称："
+
+#: lib/App/Sqitch/ItemFormatter.pm:85
+msgid "Project:  "
+msgstr "项目："
+
+#: lib/App/Sqitch/ItemFormatter.pm:86
+msgid "Email:    "
+msgstr "电子邮件："
+
+#: lib/App/Sqitch/ItemFormatter.pm:87 lib/App/Sqitch/ItemFormatter.pm:172
+msgid "Requires: "
+msgstr "需要："
+
+#: lib/App/Sqitch/ItemFormatter.pm:88 lib/App/Sqitch/ItemFormatter.pm:183
+msgid "Conflicts:"
+msgstr "冲突："
+
+#: lib/App/Sqitch/ItemFormatter.pm:90
+#, perl-brace-format
+msgid "Unknown label \"{label}\" passed to the _ format"
+msgstr "未知标签 \"{label}\" 传递给 _ 格式"
+
+#: lib/App/Sqitch/ItemFormatter.pm:146
+#, perl-brace-format
+msgid "{color} is not a valid ANSI color"
+msgstr "{color} 不是有效的 ANSI 颜色"
+
+#: lib/App/Sqitch/ItemFormatter.pm:189
+#, perl-brace-format
+msgid "{attr} is not a valid change attribute"
+msgstr "{attr}不是有效的变更的属性"
+
+#: lib/App/Sqitch/ItemFormatter.pm:212
+#, perl-brace-format
+msgid "Unknown format code \"{code}\""
+msgstr "未知格式代码 \"{code}\""
+
+#: lib/App/Sqitch/Plan.pm:131
+#, perl-brace-format
+msgid "Plan file {file} does not exist"
+msgstr "计划文件 {file} 不存在"
+
+#: lib/App/Sqitch/Plan.pm:133
+#, perl-brace-format
+msgid "Plan file {file} is not a regular file"
+msgstr "计划文件 {file} 不是常规文件"
+
+#: lib/App/Sqitch/Plan.pm:184
+#, perl-brace-format
+msgid "Syntax error in {file} at line {lineno}: {error}"
+msgstr "在 {file} 的第 {lineno} 行出现语法错误：{error}"
+
+#: lib/App/Sqitch/Plan.pm:208
+msgid "Invalid pragma; a blank line must come between pragmas and changes"
+msgstr "无效语法；语法和更改之间必须有一空行"
+
+#: lib/App/Sqitch/Plan.pm:239
+#, perl-brace-format
+msgid ""
+"invalid project name \"{project}\": project names must not begin with punctuation, "
+"contain \"@\", \":\", \"#\", \"\\\", \"[\", \"]\", or blanks, or end in punctuation or "
+"digits following punctuation"
+msgstr ""
+"无效的项目名称“{project}”：项目名称不得以标点符号开头，包含“@”、“:”、“#”、“\\”、“[”、“]”或"
+"空格，或以标点符号结尾，或以标点符号后跟数字结尾"
+
+#: lib/App/Sqitch/Plan.pm:265 lib/App/Sqitch/Role/TargetConfigCommand.pm:286
+#, perl-format, perl-brace-format
+msgid "Missing %project pragma in {file}"
+msgstr "在 {file} 中缺少 %project 指令"
+
+#: lib/App/Sqitch/Plan.pm:320
+msgid ""
+"Invalid name; names must not begin with punctuation, contain \"@\", \":\", \"#\", \"\\\", "
+"\"[\", \"]\", or blanks, or end in punctuation or digits following punctuation"
+msgstr ""
+"无效名称；名称不得以标点符号开头，不得包含“@”、“:”、“#”、“\\”、“[”、“]”或空格，或以标点符"
+"号结尾，或以标点符号后跟数字结尾"
+
+#: lib/App/Sqitch/Plan.pm:325
+msgid "Missing timestamp and planner name and email"
+msgstr "缺少时间戳和规划者姓名及电子邮件"
+
+#: lib/App/Sqitch/Plan.pm:327
+msgid "Missing timestamp"
+msgstr "缺少时间戳"
+
+#: lib/App/Sqitch/Plan.pm:329
+msgid "Missing planner name and email"
+msgstr "缺少规划者姓名和邮箱"
+
+#: lib/App/Sqitch/Plan.pm:334 lib/App/Sqitch/Plan.pm:908
+#, perl-brace-format
+msgid "\"{name}\" is a reserved name"
+msgstr "\"{name}\" 是一个保留名称"
+
+#: lib/App/Sqitch/Plan.pm:340 lib/App/Sqitch/Plan.pm:912
+#, perl-brace-format
+msgid "\"{name}\" is invalid because it could be confused with a SHA1 ID"
+msgstr "\"{name}\" 无效，因为它可能与 SHA1 ID 混淆"
+
+#: lib/App/Sqitch/Plan.pm:360
+#, perl-brace-format
+msgid "Tag \"{tag}\" contains illegal character {sep}"
+msgstr "标签“{tag}”包含非法字符 {sep}"
+
+#: lib/App/Sqitch/Plan.pm:369
+#, perl-brace-format
+msgid "Tag \"{tag}\" declared without a preceding change"
+msgstr "标签“{tag}”已声明，但没有前置的更改"
+
+#: lib/App/Sqitch/Plan.pm:378
+#, perl-brace-format
+msgid "Tag \"{tag}\" duplicates earlier declaration on line {line}"
+msgstr "标签“{tag}”重复了第 {line} 行的先前声明"
+
+#: lib/App/Sqitch/Plan.pm:386
+msgid "Tags may not specify dependencies"
+msgstr "标签不可以有依赖项"
+
+#: lib/App/Sqitch/Plan.pm:415
+#, perl-brace-format
+msgid "Change \"{change}\" duplicates earlier declaration on line {line}"
+msgstr "更改“{change}”重复了第{line}行的早期声明"
+
+#: lib/App/Sqitch/Plan.pm:428 lib/App/Sqitch/Plan.pm:780 lib/App/Sqitch/Plan.pm:792
+#, perl-brace-format
+msgid "\"{dep}\" is not a valid dependency specification"
+msgstr "\"{dep}\" 不是一个有效的依赖规范"
+
+#: lib/App/Sqitch/Plan.pm:437
+#, perl-brace-format
+msgid "Duplicate dependency \"{dep}\""
+msgstr "重复依赖 \"{dep}\""
+
+#: lib/App/Sqitch/Plan.pm:550
+#, perl-brace-format
+msgid "Change \"{change}\" cannot require itself"
+msgstr "更改“{change}”不能要求自身"
+
+#: lib/App/Sqitch/Plan.pm:557
+#, perl-brace-format
+msgid "Change \"{change}\" planned {num} change before required change \"{required}\""
+msgid_plural ""
+"Change \"{change}\" planned {num} changes before required change \"{required}\""
+msgstr[0] "在所需的“{required}”之前计划进行{num}次更改“{change}”"
+msgstr[1] "在所需的“{required}”之前计划进行{num}次更改“{change}”"
+
+#: lib/App/Sqitch/Plan.pm:566
+#, perl-brace-format
+msgid "Unknown change \"{required}\" required by change \"{change}\""
+msgstr "“{change}”要求未知的更改“{required}”"
+
+#: lib/App/Sqitch/Plan.pm:576
+#, perl-brace-format
+msgid "HINT: move \"{change}\" down {num} line in {plan}"
+msgid_plural "HINT: move \"{change}\" down {num} lines in {plan}"
+msgstr[0] "提示：将“{change}”在{plan}中下移{num}行"
+msgstr[1] "提示：将“{change}”在{plan}中下移{num}行"
+
+#: lib/App/Sqitch/Plan.pm:590
+msgid "Dependency error detected:"
+msgid_plural "Dependency errors detected:"
+msgstr[0] "检测到依赖错误："
+msgstr[1] ""
+
+#: lib/App/Sqitch/Plan.pm:687
+#, perl-brace-format
+msgid "Cannot find change \"{change}\" in plan"
+msgstr "在计划中找不到更改“{change}”"
+
+#: lib/App/Sqitch/Plan.pm:742
+#, perl-brace-format
+msgid "Tag \"{tag}\" already exists"
+msgstr "标签“{tag}”已经存在"
+
+#: lib/App/Sqitch/Plan.pm:754
+#, perl-brace-format
+msgid "Cannot apply tag \"{tag}\" to a plan with no changes"
+msgstr "无法将标签“{tag}”应用到没有更改的计划"
+
+#: lib/App/Sqitch/Plan.pm:811
+#, perl-brace-format
+msgid ""
+"Change \"{change}\" already exists in plan {file}.\n"
+"Use \"sqitch rework\" to copy and rework it"
+msgstr ""
+"变更“{change}”已存在于计划{file}中。\n"
+"使用用 “sqitch rework” 来复制和重做"
+
+#: lib/App/Sqitch/Plan.pm:844
+#, perl-brace-format
+msgid ""
+"Change \"{change}\" does not exist in {file}.\n"
+"Use \"sqitch add {change}\" to add it to the plan"
+msgstr ""
+"更改“{change}”在{file}中不存在。\n"
+"用 \"sqitch add {change}\" 来将其添加到计划里"
+
+#: lib/App/Sqitch/Plan.pm:852
+#, perl-brace-format
+msgid ""
+"Cannot rework \"{change}\" without an intervening tag.\n"
+"Use \"sqitch tag\" to create a tag and try again"
+msgstr ""
+"无法在没有中间标签的情况下重做“{change}”。\n"
+"使用“sqitch tag”创建一个标签，然后重试"
+
+#: lib/App/Sqitch/Plan.pm:890
+#, perl-brace-format
+msgid "Cannot add change \"{change}\": requires unknown change \"{req}\""
+msgstr "无法添加更改“{change}”：需要未知的更改“{req}”"
+
+#: lib/App/Sqitch/Plan.pm:896
+#, perl-brace-format
+msgid "Cannot rework change \"{change}\": requires unknown change \"{req}\""
+msgstr "无法重做更改“{change}”：需要未知的更改“{req}”"
+
+#: lib/App/Sqitch/Plan.pm:918
+#, perl-brace-format
+msgid ""
+"\"{name}\" is invalid: changes must not begin with punctuation, contain \"@\", \":\", "
+"\"#\", \"\\\", \"[\", \"]\", or blanks, or end in punctuation or digits following "
+"punctuation"
+msgstr ""
+"“{name}” 无效：更改不得以标点符号开头、包含“@”、“:”、“#”、“\\”、“[”、“]”或空白，或以标点符"
+"号结尾，或以标点符号后的数字结尾"
+
+#: lib/App/Sqitch/Plan.pm:924
+#, perl-brace-format
+msgid ""
+"\"{name}\" is invalid: tags must not begin with punctuation, contain \"@\", \":\", \"#\", "
+"\"/\", \"\\\", \"[\", \"]\", or blanks, or end in punctuation or digits following "
+"punctuation"
+msgstr ""
+"“{name}” 无效：标签不得以标点符号开头、包含“@”、“:”、“#”、“/”、“\\”、“[”、“]”或空白，或以"
+"标点符号结尾，或以标点符号后跟数字结尾"
+
+#: lib/App/Sqitch/Plan.pm:988
+#, perl-brace-format
+msgid "\"Error closing {file}: {error}"
+msgstr "关闭 {file} 时出错：{error}"
+
+#: lib/App/Sqitch/Plan/Change.pm:328
+#, perl-brace-format
+msgid ""
+"Please enter a note for your change. Lines starting with '#' will\n"
+"be ignored, and an empty message aborts the {command}."
+msgstr "请为您的更改输入注释。以“#”开头的行将被忽略，而空消息将中止 {command}。"
+
+#: lib/App/Sqitch/Plan/Change.pm:333
+#, perl-brace-format
+msgid "Change to {command}:"
+msgstr "更改为 {command}："
+
+#: lib/App/Sqitch/Plan/ChangeList.pm:96
+msgid "Change lookup failed"
+msgstr "更改查找失败"
+
+#: lib/App/Sqitch/Plan/Depend.pm:78
+#, perl-brace-format
+msgid "Unable to find change \"{change}\" in plan {file}"
+msgstr "无法在计划 {file} 中找到更改 \"{change}\""
+
+#: lib/App/Sqitch/Plan/Line.pm:115
+msgid "Aborting due to empty note"
+msgstr "因空注释而中止"
+
+#: lib/App/Sqitch/Plan/Line.pm:131
+#, perl-brace-format
+msgid ""
+"Write a {command} note.\n"
+"Lines starting with '#' will be ignored."
+msgstr ""
+"为 {command} 写注释。\n"
+"由 “#” 开始的行会被忽略。"
+
+#: lib/App/Sqitch/Role/ContextCommand.pm:38
+#, perl-brace-format
+msgid ""
+"  Option --top-dir is deprecated for {command} and other non-configuration commands.\n"
+"  Use --chdir instead."
+msgstr ""
+"针对 {command} 和其他非配置命令，选项 --top-dir 已经过时了。\n"
+"请用 --chdir 选项。"
+
+#: lib/App/Sqitch/Role/DBIEngine.pm:374
+#, perl-brace-format
+msgid "Cannot register \"{project}\" with URI {uri}: already exists with NULL URI"
+msgstr "无法使用 URI {uri} 注册 \"{project}\"：已存在空 URI"
+
+#: lib/App/Sqitch/Role/DBIEngine.pm:380
+#, perl-brace-format
+msgid "Cannot register \"{project}\" without URI: already exists with URI {uri}"
+msgstr "无法在未提供 URI 的情况下注册“{project}”：已存在 URI {uri}"
+
+#: lib/App/Sqitch/Role/DBIEngine.pm:386
+#, perl-brace-format
+msgid "Cannot register \"{project}\" with URI {uri}: already exists with URI {reg_uri}"
+msgstr "无法使用 URI {uri} 注册 \"{project}\"：已使用 URI {reg_uri} 存在"
+
+#: lib/App/Sqitch/Role/DBIEngine.pm:404
+#, perl-brace-format
+msgid ""
+"Cannot register \"{project}\" with URI {uri}: project \"{reg_proj}\" already using that "
+"URI"
+msgstr "无法使用 URI {uri} 注册“{project}”：项目“{reg_proj}”正在使用该 URI"
+
+#: lib/App/Sqitch/Role/RevertDeployCommand.pm:129
+#, perl-brace-format
+msgid ""
+"\"{command}\" cannot be used in strict mode.\\nUse explicity revert and deploy commands "
+"instead."
+msgstr ""
+"在严格模式下，“{command}\" 无法使用。\n"
+"请使用 revert 和 deploy 命令。"
+
+#: lib/App/Sqitch/Role/TargetConfigCommand.pm:96
+#, perl-brace-format
+msgid "Unknown directory name: {dirs}"
+msgid_plural "Unknown directory names: {dirs}"
+msgstr[0] "未知目录名称: {dirs}"
+msgstr[1] "未知目录名称: {dirs}"
+
+#: lib/App/Sqitch/Role/TargetConfigCommand.pm:128
+#, perl-brace-format
+msgid "URI \"{uri}\" is not a database URI"
+msgstr "URI \"{uri}\" 不是数据库 URI"
+
+#: lib/App/Sqitch/Role/TargetConfigCommand.pm:133
+#, perl-brace-format
+msgid "No database engine in URI \"{uri}\""
+msgstr "在 URI \"{uri}\" 中没有数据库引擎"
+
+#: lib/App/Sqitch/Role/TargetConfigCommand.pm:137
+#, perl-brace-format
+msgid "Unknown engine \"{engine}\" in URI \"{uri}\""
+msgstr "在 URI“{uri}” 中存在未知引擎“{engine}”"
+
+#: lib/App/Sqitch/Role/TargetConfigCommand.pm:294
+#, perl-brace-format
+msgid "Cannot initialize because {file} already exists and is not a file"
+msgstr "无法初始化，因为 {file} 已存在且不是文件"
+
+#: lib/App/Sqitch/Role/TargetConfigCommand.pm:305
+#, perl-brace-format
+msgid "Cannot initialize because {file} already exists and is not a valid plan file"
+msgstr "无法初始化，因为 {file} 已存在且不是有效的计划文件"
+
+#: lib/App/Sqitch/Role/TargetConfigCommand.pm:311
+#, perl-brace-format
+msgid "Cannot initialize because project \"{project}\" already initialized in {file}"
+msgstr "无法初始化，因为项目 \"{project}\" 已在 {file} 中初始化"
+
+#: lib/App/Sqitch/Target.pm:257
+msgid "No project configuration found. Run the \"init\" command to initialize a project"
+msgstr "未找到项目配置。运行 \"init\" 命令以初始化项目。"
+
+#: lib/App/Sqitch/Target.pm:279
+#, perl-brace-format
+msgid "Cannot find target \"{target}\""
+msgstr "找不到目标 \"{target}\""
+
+#: lib/App/Sqitch/Target.pm:285
+#, perl-brace-format
+msgid "No URI associated with target \"{target}\""
+msgstr "没有与目标“{target}”关联的 URI"
+
+#: lib/App/Sqitch/Target.pm:294
+#, perl-brace-format
+msgid "No engine specified by URI {uri}; URI must start with \"db:$engine:\""
+msgstr "URI {uri} 未指定引擎；URI 必须以 \"db:$engine:\" 开头"
+
+#: lib/App/Sqitch/Types.pm:57
+msgid "User name may not contain \"<\" or start with \"[\""
+msgstr "用户名不得包含“<”或以“[”开头"
+
+#: lib/App/Sqitch/Types.pm:63
+msgid "User email may not contain \">\""
+msgstr "用户邮箱不得包含 \">\""
