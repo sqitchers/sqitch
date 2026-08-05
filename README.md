@@ -121,6 +121,7 @@ supported features are:
 *   `--with vertica`:   Support for managing Vertica databases
 *   `--with exasol`:    Support for managing Exasol databases
 *   `--with snowflake`: Support for managing Snowflake databases
+*   `--with duckdb`:    Support for managing DuckDB databases
 *   `--with odbc`:      Include the ODBC driver
 
 To build from a Git clone, first install [Dist::Zilla], then use it to install
