@@ -1,0 +1,208 @@
+=head1 Name
+
+sqitch-grep - Search change scripts and display results in plan order
+
+=head1 Synopsis
+
+  sqitch grep [options] <search-term> [<search-term> ...]
+  sqitch grep ALTER TABLE
+  sqitch grep --type deploy "CREATE INDEX"
+  sqitch grep --insensitive --list "drop table"
+  sqitch grep --regex "foo.*bar"
+
+=head1 Description
+
+Search for text patterns in Sqitch change scripts. Unlike standard grep,
+results are displayed in the order changes appear in the plan file, making
+it easier to understand the chronological context of changes.
+
+By default, C<sqitch grep> searches for literal strings, treating special
+regular expression characters (such as C<.>, C<*>, C<$>, C<^>, etc.) as
+literal text. This makes it easy to search for SQL code without worrying
+about escaping special characters. Use the C<--regex> option when you need
+to search using Perl regular expression patterns.
+
+When multiple search terms are provided, they are joined with spaces and
+treated as a single search string. For example, C<sqitch grep ALTER TABLE>
+searches for the literal string "ALTER TABLE".
+
+The command searches through deploy, revert, and verify scripts, displaying
+matching lines with their filename and line number in a format similar to
+standard grep. Results are sorted according to the order changes appear in
+the plan file, with deploy scripts appearing before verify scripts, which
+appear before revert scripts for the same change.
+
+=head1 Options
+
+=over
+
+=item C<-t>
+
+=item C<--type>
+
+  sqitch grep --type deploy "CREATE TABLE"
+  sqitch grep -t verify "SELECT"
+
+Limit search to a specific script type. Valid values are C<deploy>, C<verify>,
+or C<revert>. When specified, only scripts in the corresponding directory will
+be searched. Without this option, all script types are searched.
+
+=item C<-i>
+
+=item C<--insensitive>
+
+  sqitch grep --insensitive "create table"
+  sqitch grep -i "DROP INDEX"
+
+Perform case-insensitive search. When specified, the search will match text
+regardless of case. For example, searching for "create table" will match
+"CREATE TABLE", "Create Table", "create table", etc.
+
+=item C<-l>
+
+=item C<--list>
+
+  sqitch grep --list "ALTER TABLE"
+  sqitch grep -l "DROP"
+
+Show only the names of files containing matches, rather than the matching
+lines themselves. Each matching filename is displayed on a separate line.
+This is useful when you want to know which changes contain certain patterns
+without seeing the actual matching lines.
+
+=item C<-e>
+
+=item C<--regex>
+
+  sqitch grep --regex "CREATE\s+(TABLE|INDEX)"
+  sqitch grep -e "^\s*--\s*TODO:"
+
+Treat search terms as Perl regular expressions instead of literal strings.
+When this option is specified, special regex characters are interpreted
+according to Perl regex syntax, allowing for complex pattern matching.
+
+Without this option, special characters like C<.>, C<*>, C<$>, C<^>, C<[>,
+C<]>, C<(>, C<)>, C<{>, C<}>, C<+>, C<?>, and C<\> are treated as literal
+characters.
+
+=back
+
+=head1 Examples
+
+=head2 Basic Literal Search
+
+Search for the exact string "ALTER TABLE" in all change scripts:
+
+  sqitch grep "ALTER TABLE"
+
+This will find lines containing the literal text "ALTER TABLE" and display
+them sorted by plan order.
+
+=head2 Case-Insensitive Search
+
+Search for "create table" regardless of case:
+
+  sqitch grep -i "create table"
+
+This matches "CREATE TABLE", "Create Table", "create table", etc.
+
+=head2 Search Specific Script Type
+
+Search only in deploy scripts:
+
+  sqitch grep --type deploy "CREATE INDEX"
+
+Search only in verify scripts:
+
+  sqitch grep -t verify "SELECT"
+
+=head2 List Matching Files
+
+Show only the names of files containing "DROP TABLE":
+
+  sqitch grep --list "DROP TABLE"
+
+Output will be filenames only, one per line:
+
+  deploy/widgets.sql
+  deploy/users.sql
+  revert/posts.sql
+
+=head2 Search with Special Characters
+
+Search for a literal string containing regex special characters:
+
+  sqitch grep "price.$"
+
+This finds the exact string "price.$" (not a regex pattern). The dollar sign
+and period are treated as literal characters.
+
+Search for a SQL variable:
+
+  sqitch grep ":variable_name"
+
+The colon is treated literally, not as a regex special character.
+
+=head2 Multiple Search Terms
+
+Search for multiple words as a single phrase:
+
+  sqitch grep ALTER TABLE widgets
+
+This searches for the literal string "ALTER TABLE widgets" (all words joined
+with spaces).
+
+=head2 Regex Pattern Matching
+
+Search for lines starting with "CREATE TABLE" or "CREATE INDEX":
+
+  sqitch grep --regex "^\s*CREATE\s+(TABLE|INDEX)"
+
+Search for C<TODO> comments:
+
+  sqitch grep --regex "^\s*--\s*TODO:"
+
+Search for any CREATE statement:
+
+  sqitch grep --regex "CREATE\s+\w+"
+
+=head2 Combined Options
+
+Search deploy scripts for "drop" (case-insensitive) and show only filenames:
+
+  sqitch grep --type deploy --insensitive --list drop
+
+Search for a regex pattern case-insensitively:
+
+  sqitch grep --regex --insensitive "create\s+(table|index)"
+
+=head2 Practical Use Cases
+
+Find all changes that modify a specific table:
+
+  sqitch grep "ALTER TABLE users"
+
+Find all changes that add indexes:
+
+  sqitch grep --regex "CREATE\s+INDEX"
+
+Find all changes that reference a specific column:
+
+  sqitch grep "email_address"
+
+Find all changes with rollback logic:
+
+  sqitch grep --type revert "DROP"
+
+Find changes with specific comments:
+
+  sqitch grep --regex "^\s*--\s*FIXME:"
+
+=head1 Configuration Variables
+
+The C<grep> command currently does not use any configuration variables. All
+behavior is controlled through command-line options.
+
+=head1 Sqitch
+
+Part of the L<sqitch> suite.

@@ -349,6 +349,12 @@ Search and Output the complete change history of a database. Provides
 information about when changes were deployed, reverted, or failed, as well as
 who planned and committed the changes, and when.
 
+=item L<C<grep>|sqitch-grep>
+
+Search change scripts for a pattern and display matching lines in plan order.
+Useful for finding where specific code, tables, or patterns are used across
+your database changes.
+
 =item L<C<add>|sqitch-add>
 
 Add a new change.
