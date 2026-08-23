@@ -8,7 +8,7 @@ URL:            https://sqitch.org/
 Source0:        https://www.cpan.org/modules/by-module/App/App-Sqitch-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch:      noarch
-BuildRequires:  perl >= 1:v5.10.0
+BuildRequires:  perl >= 1:v5.16.0
 BuildRequires:  perl(Algorithm::Backoff::Exponential) >= 0.006
 BuildRequires:  perl(Capture::Tiny) >= 0.12
 BuildRequires:  perl(Carp)

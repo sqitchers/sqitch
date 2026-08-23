@@ -1,6 +1,6 @@
 package App::Sqitch::Plan;
 
-use 5.010;
+use v5.16;
 use utf8;
 use App::Sqitch::Plan::Tag;
 use App::Sqitch::Plan::Change;

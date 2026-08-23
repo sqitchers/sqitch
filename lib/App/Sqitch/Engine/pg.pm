@@ -1,6 +1,6 @@
 package App::Sqitch::Engine::pg;
 
-use 5.010;
+use v5.16;
 use Moo;
 use utf8;
 use Path::Class;

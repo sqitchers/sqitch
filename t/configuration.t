@@ -21,7 +21,7 @@ isa_ok my $config = $CLASS->new, $CLASS, 'New config object';
 is $config->confname, 'sqitch.conf', 'confname should be "sqitch.conf"';
 ok !$config->initialized, 'Should not be initialized';
 
-my $hd = $^O eq 'MSWin32' && "$]" < '5.016' ? $ENV{HOME} || $ENV{USERPROFILE} : (glob('~'))[0];
+my $hd = (glob('~'))[0];
 is $CLASS->home_dir, $hd, 'Should have home directory';
 
 SKIP: {

@@ -1,6 +1,6 @@
 package App::Sqitch::Config;
 
-use 5.010;
+use v5.16;
 use Moo;
 use strict;
 use warnings;
@@ -20,9 +20,7 @@ has '+encoding' => ( default => 'UTF-8' );
 # Set by ./Build; see Module::Build::Sqitch for details.
 my $SYSTEM_DIR = undef;
 
-sub home_dir {
-    $^O eq 'MSWin32' && "$]" < '5.016' ? $ENV{HOME} || $ENV{USERPROFILE} : (glob('~'))[0]
-}
+sub home_dir { (glob('~'))[0] }
 
 sub user_dir {
     my $hd = home_dir;
