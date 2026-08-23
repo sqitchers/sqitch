@@ -3,12 +3,13 @@ Revision history for Perl extension App::Sqitch
 1.6.2  Not Yet Released
      - Added Simplified Chinese translation, with thanks to Homer Xing for the
        PR and to Dianjin Wang for the review (#918).
-
      - Fixed the `"ident" without a package or object reference` test failure
        due to a recent change to Test::MockModule or some module it depends on
        clearing the error variable `$@`. Thanks Slaven Rezić for the report
        (#921)!
      - Added CockroachDB 26.2 testing and fixed a test failure.
+     - Dropped support for Perl 5.12 and 5.14. Sqitch now requires Perl 5.16
+       or greater.
 
 1.6.1  2026-01-06T18:07:23Z
      - Fixed some ancient typos in sqitchtutorial-sqlite, with thanks to @ovid
@@ -163,7 +164,7 @@ Revision history for Perl extension App::Sqitch
      - Fixed the formatting of the log and plan commands to allow empty or `0`
        separators in lists of things (such as `%{0}t` for a list of tags).
        Thanks to @web-vertalo for the pull request (#703).
-     - Updated the MySQL Tutorial to use 5.7 features. Thanks to Vlad
+     - Updated the MySQL Tutorial to use v5.16 features. Thanks to Vlad
        Safronov for the PR (#705).
      - Deprecated the `no_prompt` and `no_prompt` attributes of
        App::Sqitch::Engine in favor of passing booleans to the `revert` and

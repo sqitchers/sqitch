@@ -1,6 +1,6 @@
 package App::Sqitch::Plan::ChangeList;
 
-use 5.010;
+use v5.16;
 use utf8;
 use strict;
 use List::Util;

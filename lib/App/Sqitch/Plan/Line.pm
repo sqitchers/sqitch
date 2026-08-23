@@ -1,6 +1,6 @@
 package App::Sqitch::Plan::Line;
 
-use 5.010;
+use v5.16;
 use utf8;
 use namespace::autoclean;
 use Moo;
