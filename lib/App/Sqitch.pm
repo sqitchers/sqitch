@@ -2,7 +2,7 @@ package App::Sqitch;
 
 # ABSTRACT: Sensible database change management
 
-use 5.010;
+use v5.16;
 use strict;
 use warnings;
 use utf8;

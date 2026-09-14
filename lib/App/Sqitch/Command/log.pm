@@ -1,6 +1,6 @@
 package App::Sqitch::Command::log;
 
-use 5.010;
+use v5.16;
 use strict;
 use warnings;
 use utf8;

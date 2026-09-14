@@ -1,6 +1,6 @@
 package App::Sqitch::Plan::Depend;
 
-use 5.010;
+use v5.16;
 use utf8;
 use Moo;
 use App::Sqitch::Types qw(Str Bool Maybe Plan);
