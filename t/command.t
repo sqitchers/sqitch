@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use 5.010;
+use v5.16;
 use utf8;
 use Test::More tests => 199;
 #use Test::More 'no_plan';
@@ -174,7 +174,6 @@ is $@->exitval, 1, 'Nonexistent command should yield exitval of 1';
 
 # Test command that evals to a syntax error.
 throws_ok {
-    local $SIG{__WARN__} = sub { } if $] < 5.11; # Warns on 5.10.
     $CLASS->load({ command => 'foo.bar', sqitch => $sqitch })
 } 'App::Sqitch::X', 'Should die on bad command';
 is $@->ident, 'command', 'Bad command error ident should be "config"';

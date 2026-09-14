@@ -1,4 +1,4 @@
-use v5.10;
+use v5.16;
 
 say "@ARGV" if @ARGV;
 die 'OMGWTF';
