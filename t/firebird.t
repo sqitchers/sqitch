@@ -9,7 +9,7 @@
 #
 use strict;
 use warnings;
-use 5.010;
+use v5.16;
 use Test::More;
 use App::Sqitch;
 use App::Sqitch::Target;

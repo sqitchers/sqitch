@@ -13,10 +13,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [[🐧, ubuntu], [🍎, macos], [🪟, windows]]
-        perl: [ '5.42', '5.40', '5.38', '5.36', '5.34', '5.32', '5.30', '5.28', '5.26', '5.24', '5.22', '5.20', '5.18', '5.16', '5.14', '5.12' ]
+        perl: [ '5.42', '5.40', '5.38', '5.36', '5.34', '5.32', '5.30', '5.28', '5.26', '5.24', '5.22', '5.20', '5.18', '5.16' ]
         exclude:
-          - { os: [🪟, windows], perl: '5.12' } # cpm too much a PITA && https://github.com/shogo82148/actions-setup-perl/issues/876
-          - { os: [🪟, windows], perl: '5.14' } # cpm too much a PITA && https://github.com/shogo82148/actions-setup-perl/issues/881
           - { os: [🪟, windows], perl: '5.16' } # cpm too much a PITA
           - { os: [🪟, windows], perl: '5.18' } # cpm too much a PITA
           - { os: [🪟, windows], perl: '5.20' } # cpm too much a PITA
@@ -46,6 +44,26 @@ jobs:
         with:
           path: local
           key: perl-${{ steps.perl.outputs.perl-hash }}
+      - if: matrix.perl == 5.18
+        # https://github.com/charsbar/ExtUtils-MakeMaker-CPANfile/issues/5
+        run: |
+          set -e
+          cd "$RUNNER_TEMP"
+          cpanm install --verbose --notest --no-man-pages ExtUtils::MakeMaker::CPANfile
+          curl -O https://www.cpan.org/authors/id/I/IS/ISHIGAKI/Parse-PMFile-0.48.tar.gz
+          tar zxvf Parse-PMFile-0.48.tar.gz
+          cd Parse-PMFile-0.48
+          perl -i -pe 's/::CPANfile//' Makefile.PL
+          perl Makefile.PL
+          make && make install
+          cd "$RUNNER_TEMP"
+          curl -O https://www.cpan.org/authors/id/I/IS/ISHIGAKI/Parse-LocalDistribution-0.21.tar.gz
+          tar zxvf Parse-LocalDistribution-0.21.tar.gz
+          cd Parse-LocalDistribution-0.21
+          perl -i -pe 's/::CPANfile//' Makefile.PL
+          perl Makefile.PL
+          make && make install
+          cd "$GITHUB_WORKSPACE"
       - if: matrix.perl < 5.24
         # Newer SKAJI modules require 5.24; install older versions to compensate.
         run: |

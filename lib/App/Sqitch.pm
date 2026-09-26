@@ -2,7 +2,7 @@ package App::Sqitch;
 
 # ABSTRACT: Sensible database change management
 
-use 5.010;
+use v5.16;
 use strict;
 use warnings;
 use utf8;
@@ -329,7 +329,8 @@ sub _pod2usage {
 sub run {
     my $self = shift;
     local $SIG{__DIE__} = sub {
-        ( my $msg = shift ) =~ s/\s+at\s+.+/\n/ms;
+        my $msg = shift;
+        $msg =~ s/\s+at\s+.+/\n/ms;
         hurl ipc => $msg;
     };
     if (ISWIN && IPC::System::Simple->VERSION < 1.28) {

@@ -1,6 +1,6 @@
 package App::Sqitch::Engine::cockroach;
 
-use 5.010;
+use v5.16;
 use Moo;
 use namespace::autoclean;
 

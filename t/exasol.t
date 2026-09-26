@@ -11,7 +11,7 @@
 
 use strict;
 use warnings;
-use 5.010;
+use v5.16;
 use Test::More;
 use Test::MockModule;
 use Test::Exception;

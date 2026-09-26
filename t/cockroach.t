@@ -9,7 +9,7 @@
 
 use strict;
 use warnings;
-use 5.010;
+use v5.16;
 use Test::More 0.94;
 use Test::MockModule;
 use Locale::TextDomain qw(App-Sqitch);

@@ -1,6 +1,6 @@
 package App::Sqitch::Plan::LineList;
 
-use 5.010;
+use v5.16;
 use strict;
 use utf8;
 
