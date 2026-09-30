@@ -1,0 +1,16 @@
+=head1 Name
+
+sqitch-grep-usage - Sqitch grep usage statement
+
+=head1 Usage
+
+  sqitch grep [options] <search-term> [<search-term> ...]
+
+=head1 Options
+
+    -t --type         <type>   search only deploy, verify, or revert scripts
+    -i --insensitive           case-insensitive search
+    -l --list                  show only filenames, not matching lines
+    -e --regex                 treat search as regex pattern (default: literal)
+    -f --plan-file    <file>   path to a deployment plan file
+

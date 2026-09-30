@@ -25,6 +25,7 @@ The most commonly used sqitch commands are:
   config     Get and set local, user, or system options
   deploy     Deploy changes to a database
   engine     Manage database engine configuration
+  grep       Search change scripts and display results in plan order
   help       Display help information about Sqitch commands
   init       Initialize a project
   log        Show change logs for a database
